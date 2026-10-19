@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -111,11 +113,14 @@ fun StatsScreen(state: UiState) {
             Box(Modifier.fillMaxWidth().padding(top = 36.dp, bottom = 48.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(contentAlignment = Alignment.Center) {
-                        FloatingSticker(R.drawable.st_sparkle, Modifier.offset(x = (-70).dp, y = (-24).dp).size(18.dp), rotation = -12f, periodMs = 2000)
-                        FloatingSticker(R.drawable.st_flower, Modifier.offset(x = 68.dp, y = 8.dp).size(28.dp), rotation = 14f, periodMs = 2600)
-                        Mascot(Modifier.size(96.dp))
+                        FloatingSticker(R.drawable.st_sparkle, Modifier.offset(x = (-96).dp, y = (-70).dp).size(18.dp), rotation = -12f, periodMs = 2000)
+                        Image(
+                            painter = painterResource(R.drawable.illu_empty_stats),
+                            contentDescription = null,
+                            modifier = Modifier.size(208.dp),
+                        )
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(4.dp))
                     Text("还没有经期记录", style = MaterialTheme.typography.titleSmall)
                     Text("记满两次，这里才会算出平均周期和图表", style = MaterialTheme.typography.bodySmall)
                 }
@@ -273,7 +278,15 @@ private fun CycleBars(rows: List<Row3>, avg: Int) {
         }
         Spacer(Modifier.height(16.dp))
         if (data.isEmpty()) {
-            Text("至少两次经期才有周期长度哦", style = MaterialTheme.typography.bodySmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(R.drawable.illu_empty_stats),
+                    contentDescription = null,
+                    modifier = Modifier.size(88.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("至少两次经期才有周期长度哦", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            }
             return@SoftCard
         }
         val maxV = data.maxOf { it.second }.coerceAtLeast(avgLine) * 1.12f

@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -33,6 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,6 +65,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -202,15 +207,23 @@ private fun Welcome() {
     LaunchedEffect(Unit) {
         pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow))
     }
-    Column(Modifier.fillMaxWidth().padding(top = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Square art with wide empty margins. A 16:10 crop keeps 小月 and the notebook
+        // and leaves room for the title underneath.
         Box(contentAlignment = Alignment.Center) {
-            FloatingSticker(R.drawable.st_cloud, Modifier.offset(x = (-108).dp, y = (-28).dp).size(42.dp), rotation = -8f, periodMs = 2800)
-            FloatingSticker(R.drawable.st_star, Modifier.offset(x = 112.dp, y = (-36).dp).size(26.dp), rotation = 14f, periodMs = 2100)
-            FloatingSticker(R.drawable.st_flower, Modifier.offset(x = 100.dp, y = 48.dp).size(30.dp), rotation = 8f, periodMs = 2500)
-            FloatingSticker(R.drawable.st_heart, Modifier.offset(x = (-96).dp, y = 56.dp).size(22.dp), rotation = -12f, periodMs = 2300)
-            Mascot(Modifier.size(148.dp).graphicsLayer { scaleX = pop.value; scaleY = pop.value })
+            FloatingSticker(R.drawable.st_cloud, Modifier.offset(x = (-128).dp, y = (-92).dp).size(34.dp), rotation = -8f, periodMs = 2800)
+            Image(
+                painter = painterResource(R.drawable.illu_welcome),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth(0.88f)
+                    .widthIn(max = 380.dp)
+                    .aspectRatio(1.6f)
+                    .graphicsLayer { scaleX = pop.value; scaleY = pop.value },
+            )
         }
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(20.dp))
         Text("你好呀，我是小月", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(12.dp))
         Text(
