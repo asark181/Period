@@ -1,0 +1,21 @@
+[Unit]
+Description=NuanYue sync server
+After=network.target
+
+[Service]
+User=nuanyue
+Group=nuanyue
+WorkingDirectory=/opt/nuanyue/app
+Environment=NUANYUE_DATA=/var/lib/nuanyue
+Environment=NUANYUE_DIST=/opt/nuanyue/web
+ExecStart=/opt/nuanyue/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8090 --workers 1 --proxy-headers
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/nuanyue
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

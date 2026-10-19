@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- crescent moon -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M58,32 C46,32 37,41.5 37,54 C37,66.5 46.5,76 59,76 C66,76 72,72.8 76,67.8 C73.8,68.6 71.4,69 69,69 C57.4,69 48,59.6 48,48 C48,41.6 50.8,35.9 55.3,32.2 C56.2,32.1 57.1,32 58,32 Z" />
+    <!-- heart -->
+    <path android:fillColor="#FFF5D1"
+        android:pathData="M66,47.5 C64.2,44.6 59.8,45 59.8,48.8 C59.8,52.4 66,56.5 66,56.5 C66,56.5 72.2,52.4 72.2,48.8 C72.2,45 67.8,44.6 66,47.5 Z" />
+    <!-- sparkles -->
+    <path android:fillColor="#FFFFFF" android:pathData="M74,36 l1.2,3 3,1.2 -3,1.2 -1.2,3 -1.2,-3 -3,-1.2 3,-1.2z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M40,72 l0.8,2 2,0.8 -2,0.8 -0.8,2 -0.8,-2 -2,-0.8 2,-0.8z" />
+</vector>

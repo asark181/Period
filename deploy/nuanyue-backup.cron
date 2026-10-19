@@ -1,0 +1,2 @@
+# Daily snapshot of the (already encrypted) sync database, keep 14 days.
+17 3 * * * nuanyue sqlite3 /var/lib/nuanyue/nuanyue.db ".backup /var/lib/nuanyue/backups/nuanyue-$(date +\%F).db" && find /var/lib/nuanyue/backups -name '*.db' -mtime +14 -delete

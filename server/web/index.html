@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>暖月 · 温柔的经期小助手</title>
+<meta name="description" content="记录经期、智能预测、贴心提醒、周期分析，端到端加密同步。">
+<meta name="theme-color" content="#FF8FA6">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --coral: #FF7A93; --coral-deep: #F25C7A; --rose-soft: #FFE4EA; --lemon: #FFD45E;
+    --lavender: #B08CFF; --ink: #4A3940; --ink-soft: #8C7A80; --cream: #FFFAF6;
+    --hero: linear-gradient(135deg, #FF8FA6 0%, #FFA98F 55%, #FFCB70 100%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #FFEEF2 0%, #FFF7EE 45%, var(--cream) 100%);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  header { display: flex; align-items: center; gap: 10px; padding: 22px 0; }
+  header img { width: 40px; height: 40px; border-radius: 12px; box-shadow: 0 6px 16px rgba(255,122,147,.35); }
+  header b { font-size: 20px; }
+  .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 30px 0 50px; }
+  h1 { font-size: 46px; line-height: 1.2; letter-spacing: 1px; }
+  h1 span { background: var(--hero); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { margin-top: 16px; color: var(--ink-soft); font-size: 17px; line-height: 1.8; }
+  .cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px; padding: 16px 30px; border-radius: 999px;
+    background: var(--hero); color: #fff; font-weight: 700; font-size: 17px; text-decoration: none;
+    box-shadow: 0 12px 28px rgba(242,92,122,.35); transition: transform .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .meta { color: var(--ink-soft); font-size: 13px; }
+  .phone {
+    width: 280px; height: 560px; margin: 0 auto; border-radius: 44px; background: #fff; padding: 14px;
+    box-shadow: 0 30px 70px rgba(242,92,122,.25), inset 0 0 0 8px #fff3f5; position: relative;
+  }
+  .screen { height: 100%; border-radius: 32px; background: linear-gradient(180deg,#FFEEF2,#FFF7EE); padding: 22px 16px; overflow: hidden; }
+  .greet { font-weight: 800; font-size: 20px; }
+  .sub { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+  .ring-card { margin-top: 16px; border-radius: 26px; background: var(--hero); padding: 18px; text-align: center; color: #fff; box-shadow: 0 12px 24px rgba(255,122,147,.35); }
+  .ring { width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(#fff 0 18%, rgba(255,255,255,.3) 18% 50%, #E9DDFF 50% 86%, rgba(255,255,255,.3) 86%);
+    -webkit-mask: radial-gradient(circle, transparent 58px, #000 59px); mask: radial-gradient(circle, transparent 58px, #000 59px); }
+  .ring-wrap { position: relative; width: 150px; margin: 0 auto; }
+  .ring-text { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ring-text small { display: block; font-size: 11px; opacity: .9; }
+  .ring-text b { font-size: 44px; line-height: 1; }
+  .pill { display: inline-block; margin-top: 12px; background: #fff; color: var(--coral-deep); font-weight: 700; font-size: 13px; padding: 8px 18px; border-radius: 999px; }
+  .week { display: flex; justify-content: space-between; margin-top: 14px; background: #fff; border-radius: 18px; padding: 10px 8px; }
+  .week i { font-style: normal; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .p { background: #FF6B8B; color: #fff; } .f { background: #F1EAFF; color: #9466FF; } .o { background: #9466FF; color: #fff; } .t { border: 1.5px solid var(--coral); }
+  .note { margin-top: 12px; border-radius: 18px; padding: 12px; background: linear-gradient(135deg,#FFE27A,#FFC56B); font-size: 12px; }
+  section h2 { font-size: 28px; text-align: center; margin-bottom: 8px; }
+  section .center { text-align: center; color: var(--ink-soft); margin-bottom: 30px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card { background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 10px 30px rgba(255,122,147,.12); }
+  .card .e { font-size: 30px; }
+  .card h3 { margin: 10px 0 6px; font-size: 17px; }
+  .card p { color: var(--ink-soft); font-size: 14px; line-height: 1.7; }
+  .steps { margin: 60px auto; max-width: 720px; }
+  .steps ol { background: #fff; border-radius: 24px; padding: 26px 26px 26px 48px; box-shadow: 0 10px 30px rgba(255,122,147,.12); line-height: 2; color: var(--ink); }
+  .qr { display: flex; align-items: center; gap: 14px; }
+  .qr img { width: 96px; height: 96px; border-radius: 14px; background: #fff; padding: 6px; box-shadow: 0 6px 16px rgba(255,122,147,.2); }
+  footer { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 30px 0 50px; }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; text-align: center; padding-top: 10px; }
+    h1 { font-size: 34px; }
+    .cta { justify-content: center; }
+    .qr { display: none; }
+    .grid { grid-template-columns: 1fr; }
+    .phone { transform: scale(.9); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="icon.svg" alt=""><b>暖月</b></header>
+
+  <div class="hero">
+    <div>
+      <h1>每个月的那几天<br><span>都有人温柔陪着你</span></h1>
+      <p class="lead">记录经期 · 智能预测 · 临近提醒 · 周期分析<br>温暖明媚的设计，数据端到端加密，只属于你。</p>
+      <div class="cta">
+        <a class="btn" id="dl" href="download/nuanyue.apk" download>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85a.637.637 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.643.643 0 0 0-.87-.2c-.28.18-.37.54-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+          下载安卓版
+        </a>
+        <div class="qr"><img src="qr.png" alt="扫码下载"><span class="meta">手机扫码<br>直接下载</span></div>
+      </div>
+      <p class="meta" id="ver" style="margin-top:14px">Android 8.0 及以上</p>
+    </div>
+    <div class="phone"><div class="screen">
+      <div class="greet">早安，宝贝 ☀️</div>
+      <div class="sub">身体在慢慢充满能量，适合做喜欢的事</div>
+      <div class="ring-card">
+        <div class="ring-wrap"><div class="ring"></div>
+          <div class="ring-text"><div><small>距离下次大姨妈</small><b>12</b><small>天 · 安全期</small></div></div>
+        </div>
+        <span class="pill">💧 大姨妈来了</span>
+      </div>
+      <div class="week"><i class="f">9</i><i class="f">10</i><i class="o">11</i><i class="f t">12</i><i class="f">13</i><i>14</i><i>15</i></div>
+      <div class="note">💌 <b>TA 留给你的小纸条</b><br>今天也要开开心心的，我一直都在 ♡</div>
+    </div></div>
+  </div>
+
+  <section>
+    <h2>贴心，但不打扰</h2>
+    <p class="center">像柠檬一样清新明亮，像拥抱一样温暖</p>
+    <div class="grid">
+      <div class="card"><div class="e">📅</div><h3>智能预测</h3><p>根据历史周期自动学习，预测经期、易孕期和排卵日，越用越准。</p></div>
+      <div class="card"><div class="e">🔔</div><h3>临近提醒</h3><p>经期前 N 天、当天、推迟、结束确认、排卵日，按你设定的时间准时提醒。</p></div>
+      <div class="card"><div class="e">📊</div><h3>周期分析</h3><p>周期趋势、规律度、经期历史、症状与心情统计、体温体重曲线。</p></div>
+      <div class="card"><div class="e">📝</div><h3>每日记录</h3><p>流量、痛经、心情、15 种身体症状、爱爱、体温体重和小日记。</p></div>
+      <div class="card"><div class="e">🛡️</div><h3>伴侣守护</h3><p>另一半可以只读查看你的周期，并同步收到提醒，提前备好红糖水。</p></div>
+      <div class="card"><div class="e">🔒</div><h3>加密同步</h3><p>数据在手机上 AES-256 加密后才上传，服务器也看不到任何内容。</p></div>
+    </div>
+  </section>
+
+  <div class="steps">
+    <h2 style="text-align:center;margin-bottom:20px">安装小贴士</h2>
+    <ol>
+      <li>点击上方「下载安卓版」，下载 <b>nuanyue.apk</b></li>
+      <li>如果提示「禁止安装未知来源应用」，按提示允许浏览器安装即可</li>
+      <li>如果用微信打开本页面，请点右上角「…」选择「在浏览器中打开」再下载</li>
+      <li>首次打开请允许<b>通知权限</b>，才能收到经期提醒哦</li>
+      <li>小米 / 华为 / OPPO / vivo 建议在「我的 → 防止提醒被杀」里设置后台权限</li>
+    </ol>
+  </div>
+
+  <footer>暖月 · 用心记录每一个温柔的日子 ♡<br>预测结果仅供参考，不能作为避孕或医疗依据</footer>
+</div>
+<script>
+  fetch('/api/version').then(r => r.ok ? r.json() : null).then(v => {
+    if (!v) return;
+    document.getElementById('ver').textContent = 'v' + v.versionName + (v.size ? ' · ' + v.size : '') + ' · Android 8.0 及以上';
+  }).catch(() => {});
+</script>
+</body>
+</html>

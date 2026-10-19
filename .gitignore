@@ -1,0 +1,14 @@
+.gradle/
+build/
+local.properties
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild
+.cxx
+android/keystore/*.jks
+android/keystore/keystore.properties
+server/.venv/
+__pycache__/
+*.apk
+dist/
