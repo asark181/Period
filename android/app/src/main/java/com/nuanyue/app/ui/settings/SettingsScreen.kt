@@ -63,8 +63,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -122,7 +120,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
             Spacer(Modifier.height(4.dp))
             if (!notifGranted) {
                 Row(
-                    Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(14.dp)).background(Palette.LemonSoft)
+                    Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(14.dp)).background(Palette.OrangeSoft)
                         .clickable { if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -169,7 +167,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
         // ---- Love note ----
         SoftCard(onClick = { dialog = "note" }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(Icons.Rounded.Favorite, Palette.Ink, Palette.PaperDeep)
+                IconBadge(Icons.Rounded.Favorite, Palette.Ink, Palette.Panel)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("首页留言", style = MaterialTheme.typography.titleSmall)
@@ -182,32 +180,48 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
 
         // ---- Sync ----
         SoftCard {
-            SectionTitle("同步")
+            SectionTitle("同步和邀请码")
             Spacer(Modifier.height(8.dp))
             if (!s.syncEnabled) {
                 Text(
-                    "数据在手机上加密后再上传，服务器只保存密文，换手机登录同一个账号就能恢复。\n另一半可以用同一个账号以「伴侣」身份登录，只读查看，也会收到提醒。",
+                    "数据先在手机上加密再上传，服务器看不到内容。换手机输入邀请码就能找回；把邀请码发给他，他也能一起看着日子、收到提醒。",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Spacer(Modifier.height(12.dp))
-                PrimaryButton("开启同步", { dialog = "sync" }, Modifier.fillMaxWidth(), height = 46.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PrimaryButton("生成邀请码", { vm.createInvite() }, Modifier.weight(1f), height = 46.dp)
+                    PrimaryButton("输入邀请码", { dialog = "sync" }, Modifier.weight(1f), height = 46.dp, container = Palette.PinkSoft, content = Palette.PinkDeep)
+                }
             } else {
+                val invite = com.nuanyue.app.sync.Crypto.isInviteAccount(s.syncAccount)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBadge(Icons.Rounded.Cloud, Palette.SageInk, Palette.Sage)
+                    IconBadge(Icons.Rounded.Cloud, Palette.Mint, Palette.MintSoft)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("账号：${s.syncAccount}", style = MaterialTheme.typography.titleSmall)
+                        if (invite) {
+                            Text("邀请码", style = MaterialTheme.typography.bodySmall)
+                            com.nuanyue.app.ui.components.Numeral(com.nuanyue.app.sync.Crypto.displayInvite(s.syncAccount), 18.sp)
+                        } else {
+                            Text("账号：${s.syncAccount}", style = MaterialTheme.typography.titleSmall)
+                        }
                         Text(
                             (if (s.isPartner) "伴侣 · 只读" else "本人") + " · " +
-                                if (s.lastSyncAt > 0) "上次同步 ${SimpleDateFormat("M月d日 HH:mm", Locale.CHINA).format(Date(s.lastSyncAt))}" else "尚未同步",
+                                if (s.lastSyncAt > 0) "上次同步 ${SimpleDateFormat("M月d日 HH:mm", Locale.CHINA).format(Date(s.lastSyncAt))}" else "还没同步过",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    if (syncing) CircularProgressIndicator(Modifier.size(22.dp), color = Palette.Ink, strokeWidth = 2.dp)
+                    if (syncing) CircularProgressIndicator(Modifier.size(22.dp), color = Palette.Pink, strokeWidth = 2.dp)
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill("立即同步", false, { vm.syncNow() })
+                    if (invite) {
+                        Pill("复制邀请码", false, {
+                            val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
+                            cm.setPrimaryClip(android.content.ClipData.newPlainText("暖月邀请码", com.nuanyue.app.sync.Crypto.displayInvite(s.syncAccount)))
+                            vm.toast("邀请码复制好啦")
+                        })
+                    }
                     Pill("退出", false, { dialog = "logout" })
                 }
             }
@@ -245,7 +259,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            "暖月 ${BuildConfig.VERSION_NAME}\n预测仅供参考，不能用于避孕",
+            "暖月 ${BuildConfig.VERSION_NAME} · 小月会一直陪着你\n预测仅供参考，不能用来避孕哦",
             style = MaterialTheme.typography.bodySmall, color = Palette.InkFaint,
             modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
@@ -262,9 +276,9 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
         "time" -> TimeDialog(s.remindHour, s.remindMinute, onDismiss = { dialog = null }) { h, m ->
             vm.updateSettings { it.copy(remindHour = h, remindMinute = m) }
         }
-        "sync" -> SyncDialog(syncing, syncError, onDismiss = { dialog = null; syncError = null }) { account, pwd, partner ->
+        "sync" -> SyncDialog(syncing, syncError, onDismiss = { dialog = null; syncError = null }) { code, partner ->
             syncError = null
-            vm.syncLogin(account, pwd, partner) { ok, err -> if (ok) dialog = null else syncError = err }
+            vm.joinInvite(code, partner) { ok, err -> if (ok) dialog = null else syncError = err }
         }
         "logout" -> ConfirmDialog("退出同步？", "本机和云端的数据都会保留。", onDismiss = { dialog = null }) { vm.syncLogout() }
         "clear" -> ConfirmDialog("清空所有记录？", "经期和每日记录会全部删除，无法恢复。", onDismiss = { dialog = null }) { vm.clearAll() }
@@ -279,14 +293,12 @@ private fun ProfileCard(state: UiState, onEditName: () -> Unit) {
     val s = state.settings
     SoftCard(onClick = onEditName) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(52.dp).clip(CircleShape).background(Palette.Rouge), contentAlignment = Alignment.Center) {
-                Text(s.nickname.take(1).ifBlank { "暖" }, color = Palette.Paper, fontSize = 22.sp)
-            }
+            com.nuanyue.app.ui.components.Mascot(Modifier.size(56.dp))
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(s.nickname.ifBlank { "设置称呼" }, style = MaterialTheme.typography.titleLarge)
+                Text(s.nickname.ifBlank { "给自己起个昵称吧" }, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    if (s.isPartner) "伴侣 · 只读" else "已记录 ${state.snapshot.periods.size} 次经期",
+                    if (s.isPartner) "陪她一起看着日子" else "小月已经陪你记了 ${state.snapshot.periods.size} 次啦",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -311,7 +323,7 @@ private fun Stepper(title: String, value: Int, unit: String, range: IntRange, en
 @Composable
 private fun StepButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(30.dp).clip(CircleShape).background(if (enabled) Palette.PaperDeep else Palette.Line).clickable(enabled = enabled, onClick = onClick),
+        Modifier.size(30.dp).clip(CircleShape).background(if (enabled) Palette.Panel else Palette.Line).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, null, tint = if (enabled) Palette.Ink else Palette.InkFaint, modifier = Modifier.size(18.dp)) }
 }
@@ -319,10 +331,10 @@ private fun StepButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit)
 @Composable
 private fun ActionRow(icon: ImageVector, title: String, subtitle: String, danger: Boolean = false, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconBadge(icon, if (danger) Palette.Rouge else Palette.Ink, if (danger) Palette.RougeSoft else Palette.PaperDeep, 34.dp)
+        IconBadge(icon, if (danger) Palette.Pink else Palette.Ink, if (danger) Palette.PinkSoft else Palette.Panel, 34.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = if (danger) Palette.Rouge else Palette.Ink)
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = if (danger) Palette.Pink else Palette.Ink)
             Text(subtitle, style = MaterialTheme.typography.bodySmall)
         }
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
@@ -331,8 +343,8 @@ private fun ActionRow(icon: ImageVector, title: String, subtitle: String, danger
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Palette.Ink, unfocusedBorderColor = Palette.Line,
-    focusedLabelColor = Palette.Ink, cursorColor = Palette.Ink,
+    focusedBorderColor = Palette.Pink, unfocusedBorderColor = Palette.Line,
+    focusedLabelColor = Palette.Pink, cursorColor = Palette.Pink,
 )
 
 @Composable
@@ -349,7 +361,7 @@ private fun TextDialog(title: String, initial: String, max: Int, placeholder: St
                 shape = RoundedCornerShape(16.dp), colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
             )
         },
-        confirmButton = { TextButton({ onSave(text.trim()); onDismiss() }) { Text("保存", color = Palette.Ink, fontWeight = FontWeight.SemiBold) } },
+        confirmButton = { TextButton({ onSave(text.trim()); onDismiss() }) { Text("保存", color = Palette.Pink, fontWeight = FontWeight.SemiBold) } },
         dismissButton = { TextButton(onDismiss) { Text("取消", color = Palette.InkSoft) } },
     )
 }
@@ -365,60 +377,55 @@ private fun TimeDialog(hour: Int, minute: Int, onDismiss: () -> Unit, onSave: (I
             TimePicker(
                 st,
                 colors = TimePickerDefaults.colors(
-                    clockDialColor = Palette.PaperDeep, selectorColor = Palette.Ink,
-                    timeSelectorSelectedContainerColor = Palette.PaperDeep, timeSelectorSelectedContentColor = Palette.Ink,
-                    timeSelectorUnselectedContainerColor = Palette.Paper,
+                    clockDialColor = Palette.Panel, selectorColor = Palette.Ink,
+                    timeSelectorSelectedContainerColor = Palette.Panel, timeSelectorSelectedContentColor = Palette.Ink,
+                    timeSelectorUnselectedContainerColor = Palette.Bg,
                 ),
             )
         },
-        confirmButton = { TextButton({ onSave(st.hour, st.minute); onDismiss() }) { Text("确定", color = Palette.Ink, fontWeight = FontWeight.SemiBold) } },
+        confirmButton = { TextButton({ onSave(st.hour, st.minute); onDismiss() }) { Text("确定", color = Palette.Pink, fontWeight = FontWeight.SemiBold) } },
         dismissButton = { TextButton(onDismiss) { Text("取消", color = Palette.InkSoft) } },
     )
 }
 
 @Composable
-private fun SyncDialog(syncing: Boolean, error: String?, onDismiss: () -> Unit, onSubmit: (String, String, Boolean) -> Unit) {
-    var account by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+private fun SyncDialog(syncing: Boolean, error: String?, onDismiss: () -> Unit, onSubmit: (String, Boolean) -> Unit) {
+    var code by remember { mutableStateOf("") }
     var partner by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
-        title = { Text("开启同步", style = MaterialTheme.typography.titleLarge) },
+        title = { Text("输入邀请码", style = MaterialTheme.typography.titleLarge) },
         text = {
             Column {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill("本人记录", !partner, { partner = false })
-                    Pill("伴侣查看", partner, { partner = true })
+                    Pill("我是本人", !partner, { partner = false })
+                    Pill("我是伴侣", partner, { partner = true }, color = Palette.Sky)
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    if (partner) "输入她设置的账号和密码。只能查看，不能修改，提醒会同步发到这台手机。"
-                    else "第一次使用会自动创建账号。密码用来加密数据，忘了就找不回云端数据，请记好。",
+                    if (partner) "只能查看，不能修改。她的经期提醒也会发到这台手机上。"
+                    else "接上之后，这台手机上的记录会和云端的合在一起。",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
-                    account, { account = it.take(32) }, label = { Text("账号（自己起，至少 3 位）") },
-                    singleLine = true, shape = RoundedCornerShape(16.dp), colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    password, { password = it.take(64) }, label = { Text("密码（至少 6 位）") },
-                    singleLine = true, visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    code, { code = it.take(20) },
+                    placeholder = { Text("NY-XXXX-XXXX-XXXX", color = Palette.InkFaint) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters),
                     shape = RoundedCornerShape(16.dp), colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
                 )
                 if (error != null) {
                     Spacer(Modifier.height(8.dp))
-                    Text(error, color = Palette.Ink, fontSize = 13.sp)
+                    Text(error, color = Palette.PinkDeep, fontSize = 13.sp)
                 }
             }
         },
         confirmButton = {
-            TextButton({ onSubmit(account, password, partner) }, enabled = !syncing) {
-                if (syncing) CircularProgressIndicator(Modifier.size(18.dp), color = Palette.Ink, strokeWidth = 2.dp)
-                else Text("连接", color = Palette.Ink, fontWeight = FontWeight.SemiBold)
+            TextButton({ onSubmit(code, partner) }, enabled = !syncing && code.isNotBlank()) {
+                if (syncing) CircularProgressIndicator(Modifier.size(18.dp), color = Palette.Pink, strokeWidth = 2.dp)
+                else Text("连接", color = Palette.Pink, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = { TextButton(onDismiss) { Text("取消", color = Palette.InkSoft) } },
@@ -432,7 +439,7 @@ private fun ConfirmDialog(title: String, body: String, onDismiss: () -> Unit, on
         containerColor = Palette.Card,
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = { Text(body, style = MaterialTheme.typography.bodyMedium) },
-        confirmButton = { TextButton({ onConfirm(); onDismiss() }) { Text("确定", color = Palette.Ink, fontWeight = FontWeight.SemiBold) } },
+        confirmButton = { TextButton({ onConfirm(); onDismiss() }) { Text("确定", color = Palette.Pink, fontWeight = FontWeight.SemiBold) } },
         dismissButton = { TextButton(onDismiss) { Text("取消", color = Palette.InkSoft) } },
     )
 }
@@ -451,7 +458,7 @@ private fun BatteryDialog(onDismiss: () -> Unit, onOpen: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
         },
-        confirmButton = { TextButton({ onOpen(); onDismiss() }) { Text("去设置", color = Palette.Ink, fontWeight = FontWeight.SemiBold) } },
+        confirmButton = { TextButton({ onOpen(); onDismiss() }) { Text("去设置", color = Palette.Pink, fontWeight = FontWeight.SemiBold) } },
         dismissButton = { TextButton(onDismiss) { Text("好", color = Palette.InkSoft) } },
     )
 }

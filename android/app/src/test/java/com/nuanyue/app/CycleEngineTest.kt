@@ -91,6 +91,6 @@ class CycleEngineTest {
         assertTrue(partner[0].first.startsWith("她"))
         // Open period past its average length → ask whether it ended.
         val open = history.dropLast(1) + p("2026-08-24", null)
-        assertTrue(Reminders.due(open, settings, LocalDate.parse("2026-08-29")).any { it.first.contains("结束了吗") })
+        assertTrue(Reminders.due(open, settings, LocalDate.parse("2026-08-29")).any { it.first.contains("走了吗") })
     }
 }

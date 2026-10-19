@@ -1,344 +1,481 @@
 package com.nuanyue.app.ui.home
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.CloudDone
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.DonutLarge
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.data.DayRecordEntity
 import com.nuanyue.app.domain.Copy
 import com.nuanyue.app.domain.CycleEngine
+import com.nuanyue.app.domain.DayInfo
 import com.nuanyue.app.domain.DayType
 import com.nuanyue.app.domain.Phase
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
-import com.nuanyue.app.ui.components.Hairline
+import com.nuanyue.app.ui.components.ActionTile
+import com.nuanyue.app.ui.components.DateChip
+import com.nuanyue.app.ui.components.LegendDot
+import com.nuanyue.app.ui.components.Mascot
+import com.nuanyue.app.ui.components.MoonMood
 import com.nuanyue.app.ui.components.Numeral
-import com.nuanyue.app.ui.components.SectionTitle
 import com.nuanyue.app.ui.components.SoftCard
-import com.nuanyue.app.ui.components.StatTile
 import com.nuanyue.app.ui.components.TagChip
-import com.nuanyue.app.ui.components.VerticalHairline
 import com.nuanyue.app.ui.theme.Palette
+import com.nuanyue.app.ui.theme.Rounded
+import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.sin
 
-private fun md(d: LocalDate) = "${d.monthValue} 月 ${d.dayOfMonth} 日"
+private const val MONTHS_BACK = 40
+private const val MONTHS_FORWARD = 12
 
-/** Hero colors follow the phase so it can be read at a glance. */
-private data class Tone(val bg: Color, val fg: Color, val soft: Color)
-
-private fun toneFor(phase: Phase) = when (phase) {
-    Phase.MENSTRUAL, Phase.LATE -> Tone(Palette.Rouge, Palette.Paper, Palette.Paper.copy(alpha = 0.78f))
-    Phase.FERTILE, Phase.OVULATION -> Tone(Palette.Lemon, Palette.Ink, Palette.Ink.copy(alpha = 0.62f))
-    Phase.NONE -> Tone(Palette.PaperDeep, Palette.Ink, Palette.InkSoft)
-    else -> Tone(Palette.Sage, Palette.Ink, Palette.SageInk)
-}
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun HomeScreen(state: UiState, vm: AppViewModel, onEdit: (LocalDate) -> Unit, onOpenCalendar: () -> Unit) {
-    val snap = state.snapshot
-    val t = snap.today
-    val s = state.settings
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding().padding(horizontal = 20.dp),
-    ) {
-        Spacer(Modifier.height(18.dp))
-        Header(state)
-        Spacer(Modifier.height(18.dp))
-        HeroCard(state, vm)
-        Spacer(Modifier.height(12.dp))
-        WeekStrip(state, onOpenCalendar)
-        if (s.loveNote.isNotBlank()) {
-            Spacer(Modifier.height(12.dp))
-            Note(s.loveNote)
-        }
-        Spacer(Modifier.height(12.dp))
-        TodayRecordCard(state, onEdit)
-        if (snap.hasData) {
-            Spacer(Modifier.height(12.dp))
-            SoftCard(padding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatTile("${snap.avgCycle}", "天", "平均周期", Modifier.weight(1f))
-                    VerticalHairline()
-                    Spacer(Modifier.width(16.dp))
-                    StatTile("${snap.avgPeriod}", "天", "平均经期", Modifier.weight(1f))
-                    VerticalHairline()
-                    Spacer(Modifier.width(16.dp))
-                    StatTile(t.nextOvulation?.let { "${it.monthValue}.${it.dayOfMonth}" } ?: "–", "", "下次排卵", Modifier.weight(1f))
-                }
-            }
-        }
-        Spacer(Modifier.height(28.dp))
-        SectionTitle(if (t.phase == Phase.NONE) "开始之前" else "${t.phase.title}这几天")
-        Spacer(Modifier.height(4.dp))
-        Tips(t.phase)
-        Spacer(Modifier.height(28.dp))
-    }
-}
-
-@Composable
-private fun Header(state: UiState) {
+fun HomeScreen(state: UiState, vm: AppViewModel, onEdit: (LocalDate) -> Unit) {
+    var ringMode by rememberSaveable { mutableStateOf(false) }
+    var selectedEpoch by rememberSaveable { mutableStateOf(state.today.toEpochDay()) }
+    val selected = LocalDate.ofEpochDay(selectedEpoch)
     val today = state.today
-    val name = state.settings.nickname.takeIf { it.isNotBlank() && !state.settings.isPartner }
-    Row(verticalAlignment = Alignment.Bottom) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                "${today.monthValue} 月 ${today.dayOfMonth} 日  ${today.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.CHINA)}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(Copy.greeting() + (name?.let { "，$it" } ?: ""), style = MaterialTheme.typography.headlineMedium)
-            if (state.settings.isPartner) {
-                Text("只读查看 · ${state.settings.syncAccount}", style = MaterialTheme.typography.bodySmall)
+    val base = YearMonth.from(today)
+    val from = base.minusMonths(MONTHS_BACK.toLong()).atDay(1).minusDays(7)
+    val to = base.plusMonths(MONTHS_FORWARD.toLong()).atEndOfMonth().plusDays(60)
+    val infos = remember(state.snapshot, today) { CycleEngine.dayInfos(state.snapshot, from, to, today) }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Column(Modifier.background(Color.White).statusBarsPadding().padding(horizontal = 18.dp)) {
+            Spacer(Modifier.height(10.dp))
+            TopBar(state, ringMode) { ringMode = it }
+            Spacer(Modifier.height(14.dp))
+            AnimatedContent(ringMode, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "view") { ring ->
+                if (ring) CycleRingView(state, infos, selected) { selectedEpoch = it.toEpochDay() }
+                else MonthView(state, infos, selected) { selectedEpoch = it.toEpochDay() }
             }
+            Spacer(Modifier.height(10.dp))
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
+            ) {
+                LegendDot(Palette.Pink, "经期")
+                LegendDot(Palette.PinkLine, "预测经期", hollow = true)
+                LegendDot(Palette.Orange, "易孕期")
+                LegendDot(Palette.Orange, "排卵日", heart = true)
+            }
+            Spacer(Modifier.height(22.dp))
         }
-        if (state.settings.syncEnabled) {
-            Icon(Icons.Rounded.CloudDone, "已同步", tint = Palette.InkFaint, modifier = Modifier.padding(bottom = 4.dp).size(18.dp))
-        }
+        BottomPanel(state, vm, selected, infos[selected], onEdit) { selectedEpoch = today.toEpochDay() }
     }
 }
+
+// ---------------------------------------------------------------- top
 
 @Composable
-private fun HeroCard(state: UiState, vm: AppViewModel) {
-    val snap = state.snapshot
-    val t = snap.today
-    val tone = toneFor(t.phase)
-    val h = heroText(state)
-
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(tone.bg).padding(22.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(h.label, color = tone.soft, fontSize = 13.sp)
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Numeral(h.big, if (h.big.length > 2) 64.sp else 104.sp, tone.fg)
-                    if (h.unit.isNotEmpty()) {
-                        Text(h.unit, color = tone.fg, fontSize = 16.sp, modifier = Modifier.padding(start = 4.dp, bottom = 16.dp))
-                    }
-                }
-                Text(h.sub, color = tone.soft, fontSize = 13.sp)
-            }
-            if (snap.hasData) {
-                Box(Modifier.size(108.dp)) { CycleRing(state, tone) }
-            }
-        }
-        Spacer(Modifier.height(18.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(tone.fg.copy(alpha = 0.15f)))
-        Spacer(Modifier.height(14.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (snap.hasData) "周期第 ${t.cycleDay} 天 · 受孕几率${t.pregnancyChance}" else "还没有记录",
-                color = tone.soft, fontSize = 13.sp, modifier = Modifier.weight(1f),
-            )
-            if (!state.settings.isPartner) PeriodAction(state, vm, tone)
-        }
-    }
-}
-
-private data class HeroText(val label: String, val big: String, val unit: String, val sub: String)
-
-private fun heroText(state: UiState): HeroText {
+private fun TopBar(state: UiState, ringMode: Boolean, onMode: (Boolean) -> Unit) {
     val t = state.snapshot.today
-    return when {
-        !state.snapshot.hasData -> HeroText("暖月", "–", "", "来的那天，点一下右下角")
-        t.phase == Phase.MENSTRUAL -> HeroText("经期第", "${t.periodDay}", "天", "预计还有 ${t.periodDaysLeft} 天")
-        t.lateDays > 0 -> HeroText("已推迟", "${t.lateDays}", "天", "原本预计 ${state.snapshot.nextStart?.let(::md) ?: ""}")
-        t.daysUntilNext == 0 -> HeroText("下次经期", "今天", "", "可能就是今天")
-        else -> HeroText("距下次经期", "${t.daysUntilNext}", "天", "${t.nextStart?.let(::md) ?: ""}左右")
-    }
-}
-
-/** Thin ring: period arc, fertile arc, and a dot for today. */
-@Composable
-private fun CycleRing(state: UiState, tone: Tone) {
-    val snap = state.snapshot
-    val cycle = snap.avgCycle.coerceAtLeast(1)
-    val period = snap.avgPeriod
-    // 1-based cycle day of ovulation: 14 days before the next start.
-    val ovDay = cycle - 13
-    val todayDay = snap.today.cycleDay ?: 0
-    val anim = remember { Animatable(0f) }
-    LaunchedEffect(todayDay, cycle) { anim.snapTo(0f); anim.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
-    val fertileColor = if (tone.bg == Palette.Lemon) Palette.Ink else Palette.Lemon
-    val periodColor = if (tone.bg == Palette.Rouge) Palette.Paper else Palette.Rouge
-
-    Canvas(Modifier.fillMaxSize()) {
-        val stroke = 6.dp.toPx()
-        val r = size.minDimension / 2 - stroke
-        val topLeft = Offset(center.x - r, center.y - r)
-        val arcSize = Size(r * 2, r * 2)
-        fun sweep(days: Int) = 360f * days / cycle
-        fun startAngle(day: Int) = -90f + 360f * (day - 1) / cycle
-
-        drawArc(tone.fg.copy(alpha = 0.18f), 0f, 360f, false, topLeft, arcSize, style = Stroke(1.5.dp.toPx()))
-        drawArc(periodColor, startAngle(1), sweep(period) * anim.value, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-        drawArc(fertileColor, startAngle(ovDay - 5), sweep(10) * anim.value, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-        if (todayDay in 1..cycle) {
-            val a = Math.toRadians((startAngle(1) + 360f * (todayDay - 0.5f) / cycle * anim.value).toDouble())
-            val p = Offset(center.x + r * cos(a).toFloat(), center.y + r * sin(a).toFloat())
-            drawCircle(tone.bg, stroke * 1.15f, p)
-            drawCircle(tone.fg, stroke * 0.75f, p)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.shadow(4.dp, CircleShape, spotColor = Color(0x22404A70)).clip(CircleShape).background(Color.White)
+                .padding(5.dp),
+        ) {
+            ModeIcon(Icons.Rounded.CalendarMonth, "月历", !ringMode) { onMode(false) }
+            ModeIcon(Icons.Rounded.DonutLarge, "周期环", ringMode) { onMode(true) }
         }
+        Spacer(Modifier.weight(1f))
+        StatusPill(state)
+        Spacer(Modifier.width(8.dp))
+        Mascot(Modifier.size(46.dp), if (t.phase == Phase.MENSTRUAL) MoonMood.SLEEPY else MoonMood.HAPPY)
     }
-}
-
-@Composable
-private fun PeriodAction(state: UiState, vm: AppViewModel, tone: Tone) {
-    val snap = state.snapshot
-    val today = state.today
-    val last = snap.periods.lastOrNull { !it.start.isAfter(today) }
-    val inPeriod = snap.today.phase == Phase.MENSTRUAL
-    val (label, action) = when {
-        last?.end == today -> "撤销「走了」" to { vm.unmarkEnd(today) }
-        inPeriod && last?.start == today -> "撤销「来了」" to { vm.unmarkStart(today) }
-        inPeriod -> "大姨妈走了" to { vm.markEnd(today) }
-        else -> "大姨妈来了" to { vm.markStart(today) }
-    }
+    Spacer(Modifier.height(14.dp))
+    val name = state.settings.nickname.takeIf { it.isNotBlank() && !state.settings.isPartner }
+    Text(Copy.greeting() + (name?.let { "，$it" } ?: ""), style = MaterialTheme.typography.headlineMedium)
     Text(
-        label,
-        color = tone.bg, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-        modifier = Modifier.clip(CircleShape).background(tone.fg).clickable(onClick = action)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+        if (state.settings.isPartner) "正在陪她一起看着日子" else Copy.mood(t.phase),
+        style = MaterialTheme.typography.bodySmall,
     )
 }
 
 @Composable
-private fun WeekStrip(state: UiState, onOpenCalendar: () -> Unit) {
-    val today = state.today
-    val infos = remember(state.snapshot, today) {
-        CycleEngine.dayInfos(state.snapshot, today.minusDays(3), today.plusDays(3), today)
+private fun ModeIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(40.dp).clip(CircleShape).background(if (selected) Palette.OrangeSoft else Color.Transparent).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, desc, tint = if (selected) Palette.Orange else Palette.InkSoft, modifier = Modifier.size(22.dp))
     }
-    SoftCard(padding = PaddingValues(horizontal = 10.dp, vertical = 14.dp), onClick = onOpenCalendar) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            for (i in -3..3) {
-                val d = today.plusDays(i.toLong())
-                val type = infos[d]?.type ?: DayType.UNKNOWN
-                val isToday = i == 0
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text(
-                        if (isToday) "今天" else d.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.CHINA),
-                        fontSize = 11.sp, color = if (isToday) Palette.Ink else Palette.InkFaint,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    DayDot(d.dayOfMonth, type, isToday)
-                    Spacer(Modifier.height(5.dp))
-                    Box(
-                        Modifier.size(4.dp).clip(CircleShape)
-                            .background(if (state.records[d] != null) Palette.InkFaint else Color.Transparent),
-                    )
+}
+
+@Composable
+private fun StatusPill(state: UiState) {
+    val snap = state.snapshot
+    val t = snap.today
+    val text = when {
+        !snap.hasData -> "还没有记录"
+        t.phase == Phase.MENSTRUAL -> "经期第 ${t.periodDay} 天"
+        t.lateDays > 0 -> "已推迟 ${t.lateDays} 天"
+        t.daysUntilNext == 0 -> "可能今天来"
+        t.phase == Phase.OVULATION -> "今天排卵日"
+        else -> "还有 ${t.daysUntilNext} 天"
+    }
+    Text(
+        text, color = Palette.PinkDeep, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clip(CircleShape).background(Palette.PinkSoft).border(1.dp, Palette.PinkLine, CircleShape)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+}
+
+// ---------------------------------------------------------------- month view
+
+@Composable
+private fun MonthView(state: UiState, infos: Map<LocalDate, DayInfo>, selected: LocalDate, onSelect: (LocalDate) -> Unit) {
+    val base = YearMonth.from(state.today)
+    val pager = rememberPagerState(initialPage = MONTHS_BACK) { MONTHS_BACK + MONTHS_FORWARD + 1 }
+    val scope = rememberCoroutineScope()
+    val month = base.plusMonths((pager.currentPage - MONTHS_BACK).toLong())
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("${month.year}", fontFamily = Rounded, fontSize = 14.sp, color = Palette.InkSoft)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Numeral("${month.monthValue}", 30.sp)
+                    Text(" 月", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 4.dp))
+                }
+            }
+            if (pager.currentPage != MONTHS_BACK) {
+                Text(
+                    "回今天", fontSize = 12.sp, color = Palette.Pink,
+                    modifier = Modifier.clip(CircleShape).background(Palette.PinkSoft).clickable {
+                        scope.launch { pager.animateScrollToPage(MONTHS_BACK) }
+                        onSelect(state.today)
+                    }.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
+            ArrowBtn(Icons.AutoMirrored.Rounded.KeyboardArrowLeft) { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }
+            ArrowBtn(Icons.AutoMirrored.Rounded.KeyboardArrowRight) { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth()) {
+            listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { i, d ->
+                Text(
+                    d, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 13.sp,
+                    color = if (i >= 5) Palette.Pink else Palette.Sky,
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        HorizontalPager(pager, verticalAlignment = Alignment.Top) { page ->
+            val ym = base.plusMonths((page - MONTHS_BACK).toLong())
+            MonthGrid(ym, infos, state.records, state.today, selected, onSelect)
+        }
+    }
+}
+
+@Composable
+private fun ArrowBtn(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    Box(Modifier.size(36.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = Palette.InkSoft)
+    }
+}
+
+@Composable
+private fun MonthGrid(
+    ym: YearMonth,
+    infos: Map<LocalDate, DayInfo>,
+    records: Map<LocalDate, DayRecordEntity>,
+    today: LocalDate,
+    selected: LocalDate,
+    onSelect: (LocalDate) -> Unit,
+) {
+    val first = ym.atDay(1)
+    val lead = first.dayOfWeek.value - DayOfWeek.MONDAY.value
+    val rows = (lead + ym.lengthOfMonth() + 6) / 7
+    Column {
+        for (r in 0 until 6) {
+            Row(Modifier.fillMaxWidth()) {
+                for (c in 0 until 7) {
+                    val idx = r * 7 + c - lead
+                    Box(Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                        if (r < rows && idx in 0 until ym.lengthOfMonth()) {
+                            val d = first.plusDays(idx.toLong())
+                            DateChip(
+                                "${d.dayOfMonth}", infos[d]?.type ?: DayType.UNKNOWN, d == today, d == selected, 40.dp,
+                                hasRecord = records[d] != null, muted = d.isAfter(today),
+                            ) { onSelect(d) }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-fun DayDot(day: Int, type: DayType, isToday: Boolean, size: Dp = 34.dp) {
-    val (bg, fg) = when (type) {
-        DayType.PERIOD -> Palette.Rouge to Palette.Paper
-        DayType.OVULATION -> Palette.Lemon to Palette.Ink
-        DayType.FERTILE -> Palette.LemonSoft to Palette.Ochre
-        DayType.PREDICTED_PERIOD -> Color.Transparent to Palette.Rouge
-        else -> Color.Transparent to Palette.Ink
-    }
-    Box(
-        Modifier.size(size).clip(CircleShape).background(bg)
-            .then(
-                when {
-                    type == DayType.PREDICTED_PERIOD -> Modifier.border(1.2.dp, Palette.Rouge, CircleShape)
-                    isToday -> Modifier.border(1.5.dp, Palette.Ink, CircleShape)
-                    else -> Modifier
-                },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("$day", fontSize = 14.sp, color = fg, fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal)
-    }
-}
+// ---------------------------------------------------------------- cycle ring view
 
 @Composable
-private fun Note(note: String) {
-    SoftCard(padding = PaddingValues(0.dp)) {
-        Row(Modifier.fillMaxWidth()) {
-            Box(Modifier.width(3.dp).height(58.dp).background(Palette.Rouge))
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                Text("留言", style = MaterialTheme.typography.bodySmall)
-                Text(note, style = MaterialTheme.typography.bodyLarge)
+private fun CycleRingView(state: UiState, infos: Map<LocalDate, DayInfo>, selected: LocalDate, onSelect: (LocalDate) -> Unit) {
+    val snap = state.snapshot
+    if (!snap.hasData) {
+        Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Mascot(Modifier.size(90.dp))
+                Spacer(Modifier.height(10.dp))
+                Text("记录第一次经期后，这里会画出你的周期", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        return
+    }
+    // 0 = previous, 1 = current, 2 = next
+    var which by remember { mutableIntStateOf(1) }
+    val today = state.today
+    val starts = snap.periods.map { it.start }.filter { !it.isAfter(today) }
+    val curStart = starts.last()
+    val curLen = maxOf(snap.avgCycle, CycleEngine.days(curStart, today) + 1)
+    val (start, len) = when (which) {
+        0 -> if (starts.size >= 2) starts[starts.size - 2] to CycleEngine.days(starts[starts.size - 2], curStart) else curStart to curLen
+        2 -> curStart.plusDays(curLen.toLong()) to snap.avgCycle
+        else -> curStart to curLen
+    }
+    val days = (0 until len.coerceIn(15, 60)).map { start.plusDays(it.toLong()) }
+
+    Column {
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            listOf("上次", "本次", "下次").forEachIndexed { i, label ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { which = i }.padding(4.dp),
+                ) {
+                    Text(
+                        label, fontSize = 16.sp,
+                        fontWeight = if (which == i) FontWeight.Bold else FontWeight.Normal,
+                        color = if (which == i) Palette.Ink else Palette.InkFaint,
+                    )
+                    Box(Modifier.padding(top = 3.dp).size(5.dp).clip(CircleShape).background(if (which == i) Palette.Pink else Color.Transparent))
+                }
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth().aspectRatio(1f)) {
+            val w = maxWidth
+            val chip = min(30f, (w.value * 0.42f * 2 * PI.toFloat() / days.size) * 0.86f).dp
+            val radius = w / 2 - chip / 2 - 6.dp
+            // track
+            Box(
+                Modifier.align(Alignment.Center).size(radius * 2 + chip + 6.dp).clip(CircleShape)
+                    .background(Palette.Bg),
+            )
+            Box(Modifier.align(Alignment.Center).size(radius * 2 - chip - 6.dp).clip(CircleShape).background(Color.White))
+            days.forEachIndexed { i, d ->
+                val angle = -PI / 2 + 2 * PI * i / days.size
+                val x = (radius.value * cos(angle)).dp
+                val y = (radius.value * sin(angle)).dp
+                Box(Modifier.align(Alignment.Center).offset(x, y)) {
+                    DateChip(
+                        "${d.dayOfMonth}", infos[d]?.type ?: DayType.UNKNOWN, d == today, d == selected, chip,
+                        hasRecord = false, muted = d.isAfter(today),
+                    ) { onSelect(d) }
+                }
+                if (d.dayOfMonth == 1 || i == 0) {
+                    val lr = radius - chip
+                    Text(
+                        "${d.monthValue}月", fontSize = 11.sp, color = Palette.InkSoft,
+                        modifier = Modifier.align(Alignment.Center)
+                            .offset((lr.value * cos(angle)).dp, (lr.value * sin(angle)).dp),
+                    )
+                }
+            }
+            // centre
+            val info = infos[selected]
+            val centre = radius * 2 - chip * 2 - 40.dp
+            Column(
+                Modifier.align(Alignment.Center).size(centre).clip(CircleShape).background(Palette.SkySoft),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(phaseLabel(info?.type), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Palette.Ink)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("第", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
+                    Numeral("${info?.cycleDay ?: "-"}", 40.sp)
+                    Text("天", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "%d-%02d-%02d".format(selected.year, selected.monthValue, selected.dayOfMonth),
+                    fontFamily = Rounded, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Palette.Sky,
+                )
             }
         }
     }
 }
 
+private fun phaseLabel(t: DayType?) = when (t) {
+    DayType.PERIOD -> "经期"
+    DayType.PREDICTED_PERIOD -> "预测经期"
+    DayType.FERTILE -> "易孕期"
+    DayType.OVULATION -> "排卵日"
+    DayType.SAFE -> "安全期"
+    else -> "周期"
+}
+
+// ---------------------------------------------------------------- bottom panel
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TodayRecordCard(state: UiState, onEdit: (LocalDate) -> Unit) {
-    val r = state.records[state.today]
+private fun BottomPanel(
+    state: UiState,
+    vm: AppViewModel,
+    date: LocalDate,
+    info: DayInfo?,
+    onEdit: (LocalDate) -> Unit,
+    onToday: () -> Unit,
+) {
+    val snap = state.snapshot
     val partner = state.settings.isPartner
-    SoftCard(onClick = { onEdit(state.today) }) {
+    val isFuture = date.isAfter(state.today)
+    val startHere = snap.periods.any { it.start == date }
+    val endHere = snap.periods.any { it.end == date }
+    val canEnd = snap.periods.any { !it.start.isAfter(date) && CycleEngine.days(it.start, date) < CycleEngine.MAX_PERIOD_DAYS }
+    val record = state.records[date]
+
+    Column(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .background(Palette.Panel)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+    ) {
+        Box(Modifier.align(Alignment.CenterHorizontally).width(32.dp).height(4.dp).clip(CircleShape).background(Palette.InkFaint))
+        Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("今天", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text(
-                when {
-                    partner -> if (r == null) "" else "查看"
-                    r == null -> "记一笔"
-                    else -> "修改"
-                },
-                fontSize = 13.sp, color = Palette.InkSoft,
+                "${date.monthValue}月${date.dayOfMonth}日 ${date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.CHINA)}",
+                style = MaterialTheme.typography.titleMedium,
             )
-            Spacer(Modifier.width(4.dp))
-            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = Palette.InkSoft, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            info?.type?.takeIf { it != DayType.UNKNOWN }?.let {
+                Text(
+                    phaseLabel(it) + (info.cycleDay?.let { d -> " · 第${d}天" } ?: ""),
+                    fontSize = 12.sp, color = Palette.InkSoft,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (date != state.today) {
+                Text("今天", fontSize = 12.sp, color = Palette.Sky, modifier = Modifier.clip(CircleShape).clickable(onClick = onToday).padding(6.dp))
+            }
         }
-        if (r == null) {
-            Spacer(Modifier.height(4.dp))
-            Text(if (partner) "她今天还没有记录。" else "心情、症状、体温、备注。", style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(14.dp))
+
+        if (partner) {
+            Text("这是她的记录，只能查看哦", style = MaterialTheme.typography.bodySmall)
         } else {
-            Spacer(Modifier.height(12.dp))
-            RecordTags(r)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ActionTile(Icons.Rounded.PlayArrow, "月经开始", Palette.Pink, active = startHere, enabled = true) {
+                    if (isFuture) vm.toast("这一天还没到哦") else if (startHere) vm.unmarkStart(date) else vm.markStart(date)
+                }
+                ActionTile(Icons.Rounded.Stop, "月经结束", Palette.Pink, active = endHere, enabled = true) {
+                    when {
+                        isFuture -> vm.toast("这一天还没到哦")
+                        endHere -> vm.unmarkEnd(date)
+                        canEnd -> vm.markEnd(date)
+                        else -> vm.toast("先标记月经开始，再标记结束哦")
+                    }
+                }
+                Box(Modifier.padding(horizontal = 6.dp).width(1.dp).height(44.dp).background(Palette.InkFaint.copy(alpha = 0.5f)))
+                ActionTile(if (record == null) Icons.Rounded.Add else Icons.Rounded.Edit, "记录", Palette.Mint, active = true) {
+                    if (isFuture) vm.toast("这一天还没到哦") else onEdit(date)
+                }
+            }
         }
+
+        if (record != null) {
+            Spacer(Modifier.height(14.dp))
+            SoftCard(Modifier.fillMaxWidth(), padding = PaddingValues(14.dp), onClick = { onEdit(date) }) {
+                RecordTags(record)
+            }
+        }
+
+        if (state.settings.loveNote.isNotBlank()) {
+            Spacer(Modifier.height(14.dp))
+            SoftCard(Modifier.fillMaxWidth(), padding = PaddingValues(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Favorite, null, tint = Palette.Pink, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(state.settings.loveNote, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+        Text("给你的小提醒", style = MaterialTheme.typography.titleSmall, color = Palette.InkSoft)
+        Spacer(Modifier.height(10.dp))
+        Copy.tips(state.snapshot.today.phase).forEach { tip ->
+            SoftCard(Modifier.fillMaxWidth().padding(bottom = 10.dp), padding = PaddingValues(14.dp)) {
+                Text(tip.title, style = MaterialTheme.typography.titleSmall, color = Palette.PinkDeep)
+                Spacer(Modifier.height(4.dp))
+                Text(tip.body, style = MaterialTheme.typography.bodyMedium, color = Palette.InkSoft)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -346,34 +483,16 @@ private fun TodayRecordCard(state: UiState, onEdit: (LocalDate) -> Unit) {
 @Composable
 fun RecordTags(r: DayRecordEntity) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (r.flow > 0) TagChip("流量 ${Copy.flows[r.flow]}", Palette.Rouge)
-        if (r.pain > 0) TagChip("痛经 ${Copy.pains[r.pain]}", Palette.Rouge)
-        r.moodList.forEach { TagChip(Copy.moodLabel(it), Palette.Lemon) }
-        r.symptomList.forEach { TagChip(Copy.symptomLabel(it), Palette.InkFaint) }
-        if (r.love > 0) TagChip("同房 · ${Copy.loves[r.love]}", Palette.InkSoft)
+        if (r.flow > 0) TagChip("流量 ${Copy.flows[r.flow]}", Palette.Pink)
+        if (r.pain > 0) TagChip("痛经 ${Copy.pains[r.pain]}", Palette.PinkDeep)
+        r.moodList.forEach { TagChip(Copy.moodLabel(it), Palette.Orange) }
+        r.symptomList.forEach { TagChip(Copy.symptomLabel(it), Palette.Sky) }
+        if (r.love > 0) TagChip("同房 · ${Copy.loves[r.love]}", Palette.Pink)
         r.temperature?.let { TagChip("$it ℃", Palette.Sky) }
-        r.weight?.let { TagChip("$it kg", Palette.SageInk) }
+        r.weight?.let { TagChip("$it kg", Palette.Mint) }
     }
     if (r.note.isNotBlank()) {
         Spacer(Modifier.height(10.dp))
         Text(r.note, style = MaterialTheme.typography.bodyMedium, color = Palette.InkSoft)
-    }
-}
-
-@Composable
-private fun Tips(phase: Phase) {
-    val tips = Copy.tips(phase)
-    Column {
-        tips.forEachIndexed { i, tip ->
-            Row(Modifier.padding(vertical = 14.dp)) {
-                Numeral("%02d".format(i + 1), 22.sp, Palette.InkFaint, Modifier.width(40.dp))
-                Column {
-                    Text(tip.title, style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(3.dp))
-                    Text(tip.body, style = MaterialTheme.typography.bodyMedium, color = Palette.InkSoft)
-                }
-            }
-            if (i != tips.lastIndex) Hairline()
-        }
     }
 }

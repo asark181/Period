@@ -4,119 +4,145 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>暖月</title>
-<meta name="description" content="一个简单的经期记录 App：记下每次经期，算出下一次，快到时提醒。">
-<meta name="theme-color" content="#FAF6F0">
+<meta name="description" content="暖月：帮你记着每个月的那几天，算好下一次什么时候来，快到的时候悄悄提醒你。">
+<meta name="theme-color" content="#FFE3E9">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
-  @font-face { font-family: "Instrument Serif"; src: url("fonts/InstrumentSerif.ttf") format("truetype"); font-display: swap; }
+  @font-face { font-family: "Nunito"; src: url("fonts/Nunito.ttf") format("truetype"); font-weight: 200 1000; font-display: swap; }
   :root {
-    --paper: #FAF6F0; --paper-deep: #F1EAE0; --line: #EAE2D8;
-    --ink: #2A2421; --ink-soft: #7A6E68; --rouge: #D9475A; --lemon: #F3C84B;
-    --serif: "Instrument Serif", "Songti SC", "STSong", serif;
+    --bg: #F7F8FC; --panel: #F1F2F8; --line: #ECEEF5;
+    --ink: #3B4057; --ink-soft: #8D93A8;
+    --pink: #F2708A; --pink-soft: #FFE8ED; --pink-line: #F6AABA;
+    --orange: #F7A928; --mint: #4FC6B0; --sky: #6E8CC6; --sky-soft: #E9F0FC;
+    --round: "Nunito", -apple-system, "PingFang SC", sans-serif;
     --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { background: var(--paper); }
-  body { font-family: var(--sans); color: var(--ink); background: var(--paper); line-height: 1.7; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 26px 0; border-bottom: 1px solid var(--line); }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; }
-  .brand img { width: 28px; height: 28px; border-radius: 7px; }
-  header .ver { font-size: 13px; color: var(--ink-soft); }
+  html { background: var(--bg); }
+  body { font-family: var(--sans); color: var(--ink); background: var(--bg); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 22px; }
 
-  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: end; padding: 72px 0 56px; }
-  h1 { font-family: var(--serif); font-weight: 400; font-size: 76px; line-height: 1.05; letter-spacing: -0.5px; }
-  .lead { margin-top: 22px; font-size: 18px; color: var(--ink-soft); max-width: 26em; }
-  .cta { margin-top: 32px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-  .btn { display: inline-block; padding: 15px 30px; border-radius: 999px; background: var(--ink); color: var(--paper); text-decoration: none; font-size: 16px; }
-  .btn:hover { background: #000; }
-  .meta { font-size: 13px; color: var(--ink-soft); }
-  .qr { display: flex; align-items: center; gap: 12px; }
-  .qr img { width: 76px; height: 76px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 4px; }
-  .aside { font-size: 14px; color: var(--ink-soft); border-left: 2px solid var(--rouge); padding-left: 16px; max-width: 22em; }
+  .hero { background: #fff; border-radius: 0 0 36px 36px; box-shadow: 0 8px 30px rgba(64,74,112,.06); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+  .brand img { width: 34px; height: 34px; border-radius: 10px; }
+  .ver { font: 600 13px var(--round); color: var(--ink-soft); background: var(--panel); padding: 4px 12px; border-radius: 99px; }
 
-  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-bottom: 72px; }
-  .shots figure { margin: 0; }
-  .shots img { width: 100%; display: block; border-radius: 22px; border: 1px solid var(--line); background: #fff; }
-  .shots figcaption { margin-top: 10px; font-size: 13px; color: var(--ink-soft); }
+  .intro { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 36px 0 56px; }
+  h1 { font-size: 44px; line-height: 1.3; font-weight: 800; }
+  h1 em { font-style: normal; color: var(--pink); }
+  .lead { margin-top: 16px; font-size: 17px; color: var(--ink-soft); }
+  .cta { margin-top: 30px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 15px 32px; border-radius: 99px; background: var(--pink); color: #fff; text-decoration: none; font-size: 17px; font-weight: 700; box-shadow: 0 10px 24px rgba(242,112,138,.35); }
+  .btn:active { transform: translateY(1px); }
+  .qr { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-soft); }
+  .qr img { width: 84px; height: 84px; border-radius: 14px; background: #fff; padding: 6px; border: 1px solid var(--line); }
+  .moon { justify-self: center; width: 240px; height: 240px; }
 
-  section { border-top: 1px solid var(--line); padding: 56px 0; display: grid; grid-template-columns: 220px 1fr; gap: 40px; }
-  section h2 { font-size: 15px; font-weight: 600; }
-  .list { list-style: none; }
-  .list li { display: grid; grid-template-columns: 56px 1fr; padding: 18px 0; border-bottom: 1px solid var(--line); }
-  .list li:first-child { padding-top: 0; }
-  .list li:last-child { border-bottom: 0; }
-  .n { font-family: var(--serif); font-size: 26px; color: #BDB2AA; line-height: 1.1; }
-  .list b { display: block; font-weight: 600; margin-bottom: 2px; }
-  .list span { color: var(--ink-soft); font-size: 15px; }
-  .steps { padding-left: 1.2em; color: var(--ink-soft); }
-  .steps li { padding: 4px 0; }
-  .steps b { color: var(--ink); font-weight: 600; }
-  footer { border-top: 1px solid var(--line); padding: 28px 0 48px; font-size: 13px; color: var(--ink-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 48px 0 20px; }
+  .shots figure { margin: 0; text-align: center; }
+  .shots img { width: 100%; display: block; border-radius: 28px; background: #fff; box-shadow: 0 12px 34px rgba(64,74,112,.10); }
+  .shots figcaption { margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+
+  h2 { font-size: 22px; font-weight: 800; margin: 46px 0 16px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: #fff; border-radius: 22px; padding: 22px; box-shadow: 0 6px 20px rgba(64,74,112,.06); }
+  .card .dot { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 12px; font: 800 16px var(--round); color: #fff; }
+  .card b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .card p { font-size: 14px; color: var(--ink-soft); }
+
+  .invite { background: #fff; border-radius: 26px; padding: 26px; box-shadow: 0 6px 20px rgba(64,74,112,.06); display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .invite ol { padding-left: 1.3em; color: var(--ink-soft); font-size: 15px; }
+  .invite li { padding: 3px 0; }
+  .invite li b { color: var(--ink); }
+  .code { font: 800 20px var(--round); letter-spacing: 1px; color: var(--pink); background: var(--pink-soft); border: 1.5px dashed var(--pink-line); border-radius: 14px; padding: 10px 16px; display: inline-block; margin: 6px 0; }
+  .note { font-size: 13px; color: var(--ink-soft); }
+
+  footer { padding: 40px 0 56px; text-align: center; font-size: 13px; color: var(--ink-soft); }
 
   @media (max-width: 760px) {
-    .hero { grid-template-columns: 1fr; gap: 28px; padding: 44px 0 36px; }
-    h1 { font-size: 56px; }
-    .lead { font-size: 16px; }
+    .intro { grid-template-columns: 1fr; text-align: center; padding: 16px 0 40px; gap: 18px; }
+    .moon { width: 150px; height: 150px; order: -1; }
+    h1 { font-size: 30px; }
+    .lead { font-size: 15px; }
+    .cta { justify-content: center; }
     .qr { display: none; }
-    .shots { grid-template-columns: repeat(3, 72%); overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -24px; padding: 0 24px 48px; }
-    .shots figure { scroll-snap-align: start; }
-    section { grid-template-columns: 1fr; gap: 18px; padding: 40px 0; }
+    .shots { grid-template-columns: repeat(3, 74%); overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -22px; padding: 32px 22px 16px; }
+    .shots figure { scroll-snap-align: center; }
+    .cards { grid-template-columns: 1fr; }
+    .invite { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="brand"><img src="icon.svg" alt="">暖月</div>
-    <div class="ver" id="ver">Android</div>
-  </header>
-
-  <div class="hero">
-    <div>
-      <h1>暖月</h1>
-      <p class="lead">记下每次经期，算出下一次什么时候来，快到的时候提醒你。没有广告，没有社区，也不用注册。</p>
-      <div class="cta">
-        <a class="btn" href="download/nuanyue.apk" download>下载安卓版</a>
-        <div class="qr"><img src="qr.png" alt="下载二维码"><span class="meta">手机扫码<br>直接下载</span></div>
+<div class="hero">
+  <div class="wrap">
+    <header>
+      <div class="brand"><img src="icon.svg" alt="">暖月</div>
+      <div class="ver" id="ver">Android</div>
+    </header>
+    <div class="intro">
+      <div>
+        <h1>每个月的那几天<br><em>小月</em>帮你记着</h1>
+        <p class="lead">记下经期，算好下一次什么时候来，快到的时候悄悄提醒你。<br>没有广告，不用注册，打开就能用。</p>
+        <div class="cta">
+          <a class="btn" href="download/nuanyue.apk" download>下载安卓版</a>
+          <div class="qr"><img src="qr.png" alt="下载二维码"><span>手机扫一扫<br>直接下载</span></div>
+        </div>
       </div>
+      <svg class="moon" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="104" r="88" fill="#FFD86B" opacity=".28"/>
+        <circle cx="100" cy="104" r="76" fill="#FFE08A"/>
+        <circle cx="134" cy="68" r="12" fill="#F7CF6A"/>
+        <circle cx="58" cy="85" r="7" fill="#F7CF6A"/>
+        <ellipse cx="60" cy="122" rx="13" ry="7.5" fill="#FFB3C1"/>
+        <ellipse cx="140" cy="122" rx="13" ry="7.5" fill="#FFB3C1"/>
+        <g fill="none" stroke="#5B4A3F" stroke-width="6" stroke-linecap="round">
+          <path d="M62 106 q13 -16 26 0"/><path d="M112 106 q13 -16 26 0"/><path d="M90 118 q10 11 20 0"/>
+        </g>
+      </svg>
     </div>
-    <p class="aside">首页卡片的颜色跟着周期变：经期是红色，易孕期是柠檬黄，其余日子是浅绿。打开看一眼就知道。</p>
   </div>
+</div>
 
+<div class="wrap">
   <div class="shots">
-    <figure><img src="shots/home.jpg" alt="首页截图" loading="lazy"><figcaption>今天：还有几天、处在哪个阶段</figcaption></figure>
-    <figure><img src="shots/cal.jpg" alt="日历截图" loading="lazy"><figcaption>日历：经期、预测和易孕期一目了然</figcaption></figure>
-    <figure><img src="shots/stats.jpg" alt="分析截图" loading="lazy"><figcaption>分析：周期长度、规律程度、历次记录</figcaption></figure>
+    <figure><img src="shots/home.jpg" alt="首页月历" loading="lazy"><figcaption>月历：经期、易孕期、排卵日一眼看清</figcaption></figure>
+    <figure><img src="shots/ring.jpg" alt="周期环" loading="lazy"><figcaption>周期环：这一轮走到第几天了</figcaption></figure>
+    <figure><img src="shots/stats.jpg" alt="统计" loading="lazy"><figcaption>统计：平均周期、最长最短、历次记录</figcaption></figure>
   </div>
 
-  <section>
-    <h2>它能做什么</h2>
-    <ol class="list">
-      <li><span class="n">01</span><div><b>预测</b><span>按最近六次的周期加权计算，漏记造成的异常周期会自动剔除。排卵日取下次经期前 14 天，易孕期前后共 10 天。</span></div></li>
-      <li><span class="n">02</span><div><b>提醒</b><span>经期前几天、当天、推迟、该结束了还没点「走了」、排卵日。每天在你设定的时间检查一次，重启手机后也会照常提醒。</span></div></li>
-      <li><span class="n">03</span><div><b>记录</b><span>流量、痛经、心情、十五种身体症状、同房、体温、体重和备注。过去的日子可以补记。</span></div></li>
-      <li><span class="n">04</span><div><b>分析</b><span>平均周期和经期、波动范围、历次经期、近半年最常出现的症状，以及体温和体重的曲线。</span></div></li>
-      <li><span class="n">05</span><div><b>同步</b><span>数据在手机上用 AES-256 加密后才上传，服务器只存密文。另一半可以用同一个账号只读查看，并收到提醒。</span></div></li>
-    </ol>
-  </section>
+  <h2>小月能帮你做什么</h2>
+  <div class="cards">
+    <div class="card"><div class="dot" style="background:var(--pink)">1</div><b>算好下一次</b><p>按最近 6 次周期来算，越近的越重要；偶尔漏记的那一次不会把预测带偏。</p></div>
+    <div class="card"><div class="dot" style="background:var(--orange)">2</div><b>快到了提醒你</b><p>提前几天、当天、推迟了、该结束了，都会在你设定的时间轻轻提醒一下。</p></div>
+    <div class="card"><div class="dot" style="background:var(--mint)">3</div><b>记录身体和心情</b><p>流量、痛经、心情、十五种身体小状况、体温体重，还能写几句小日记。</p></div>
+    <div class="card"><div class="dot" style="background:var(--sky)">4</div><b>看懂自己的规律</b><p>平均周期、最长最短、历次经期一览表，还有体温和体重的小曲线。</p></div>
+    <div class="card"><div class="dot" style="background:var(--pink)">5</div><b>他也能一起看着</b><p>把邀请码发给他，他只能看、不能改，你的经期快到了他也会收到提醒。</p></div>
+    <div class="card"><div class="dot" style="background:var(--orange)">6</div><b>数据只属于你</b><p>记录先在手机上加密再上传，服务器上只有一串看不懂的密文。</p></div>
+  </div>
 
-  <section>
-    <h2>安装</h2>
-    <ol class="steps">
-      <li>点「下载安卓版」，下载 <b>nuanyue.apk</b>。</li>
-      <li>如果提示禁止安装未知应用，按提示允许浏览器安装。</li>
-      <li>在微信里打开的话，先点右上角「…」，选「在浏览器中打开」。</li>
-      <li>第一次打开时允许<b>通知</b>，否则收不到提醒。</li>
-      <li>小米、华为、OPPO、vivo：在 App 的「我的 → 提醒不准时？」里按说明设置一下。</li>
+  <h2>用邀请码接上以前的记录</h2>
+  <div class="invite">
+    <ol>
+      <li>下载安装暖月，打开后点左下角「<b>我有邀请码</b>」。</li>
+      <li>输入收到的邀请码，比如 <span class="code">NY-XXXX-XXXX-XXXX</span></li>
+      <li>选「<b>我是本人</b>」，点连接，以前的经期记录就都在啦。</li>
+      <li>男朋友用同一个邀请码，选「<b>我是伴侣</b>」，就能一起看着日子。</li>
     </ol>
-  </section>
+    <ol start="5">
+      <li>如果提示不能安装未知应用，按提示允许浏览器安装就好。</li>
+      <li>在微信里打开的话，先点右上角「…」选「<b>在浏览器中打开</b>」。</li>
+      <li>第一次打开时记得允许<b>通知</b>，不然收不到提醒哦。</li>
+      <li>小米、华为、OPPO、vivo：在「我 → 提醒不准时？」里设置一下后台权限。</li>
+    </ol>
+  </div>
 
-  <footer><span>暖月</span><span>预测仅供参考，不能用于避孕。</span></footer>
+  <footer>暖月 · 小月会一直陪着你<br>预测仅供参考，不能用来避孕哦</footer>
 </div>
 <script>
   fetch('/api/version').then(r => r.ok ? r.json() : null).then(v => {
-    if (v) document.getElementById('ver').textContent = 'Android · ' + v.versionName + (v.size ? ' · ' + v.size : '');
+    if (v) document.getElementById('ver').textContent = 'Android ' + v.versionName + (v.size ? ' · ' + v.size : '');
   }).catch(() => {});
 </script>
 </body>

@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Open ring = the cycle, lemon dot in the gap = today. Geometry shared with BrandMark. -->
+<!-- 小月: the round moon mascot. Same face as the in-app Mascot composable. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M68.17,42.11 A18.5,18.5 0 1,1 54.00,35.50"
-        android:strokeColor="#FAF6F0" android:strokeWidth="6.0" android:strokeLineCap="round" android:fillColor="#00000000" />
-    <path android:fillColor="#F3C84B"
-        android:pathData="M61.82,37.23 m-5.70,0 a5.70,5.70 0 1,0 11.40,0 a5.70,5.70 0 1,0 -11.40,0" />
+    <path android:fillColor="#FFFFE08A" android:pathData="M30.00,55.00 a24.00,24.00 0 1,0 48.00,0 a24.00,24.00 0 1,0 -48.00,0" />
+    <path android:fillColor="#FFF7CF6A" android:pathData="M61.20,43.50 a3.80,3.80 0 1,0 7.60,0 a3.80,3.80 0 1,0 -7.60,0" />
+    <path android:fillColor="#FFF7CF6A" android:pathData="M38.80,49.00 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0" />
+    <path android:fillColor="#FFFFB3C1" android:pathData="M37.20,60.30 a4.10,2.40 0 1,0 8.20,0 a4.10,2.40 0 1,0 -8.20,0" />
+    <path android:fillColor="#FFFFB3C1" android:pathData="M62.60,60.30 a4.10,2.40 0 1,0 8.20,0 a4.10,2.40 0 1,0 -8.20,0" />
+    <path android:strokeColor="#FF5B4A3F" android:strokeWidth="1.9" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M42.10,55.50 q4.2,-5.5 8.4,0" />
+    <path android:strokeColor="#FF5B4A3F" android:strokeWidth="1.9" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M57.50,55.50 q4.2,-5.5 8.4,0" />
+    <path android:strokeColor="#FF5B4A3F" android:strokeWidth="1.9" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M51.20,59.00 q2.8,3.2 5.6,0" />
 </vector>

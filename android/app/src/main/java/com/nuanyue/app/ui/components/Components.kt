@@ -1,6 +1,7 @@
 package com.nuanyue.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -30,7 +35,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -39,9 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.domain.DayType
 import com.nuanyue.app.ui.theme.Palette
-import com.nuanyue.app.ui.theme.Serif
+import com.nuanyue.app.ui.theme.Rounded
 
-/** White card with a hairline edge. */
+private val cardShape = RoundedCornerShape(22.dp)
+
+/** White rounded card with a very soft neutral shadow. */
 @Composable
 fun SoftCard(
     modifier: Modifier = Modifier,
@@ -49,12 +61,11 @@ fun SoftCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(18.dp)
     Column(
         modifier
-            .clip(shape)
+            .shadow(6.dp, cardShape, ambientColor = Color(0x14404A70), spotColor = Color(0x14404A70))
+            .clip(cardShape)
             .background(Palette.Card)
-            .border(1.dp, Palette.Line, shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(padding),
         content = content,
@@ -69,30 +80,34 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: @Composa
     }
 }
 
-/** Big serif numeral, e.g. "14". */
+/** Rounded-font numeral. */
 @Composable
-fun Numeral(text: String, size: TextUnit, color: Color = Palette.Ink, modifier: Modifier = Modifier) {
-    Text(text, fontFamily = Serif, fontSize = size, color = color, lineHeight = size, modifier = modifier)
+fun Numeral(
+    text: String,
+    size: TextUnit,
+    color: Color = Palette.Ink,
+    modifier: Modifier = Modifier,
+    weight: FontWeight = FontWeight.Bold,
+) {
+    Text(text, fontFamily = Rounded, fontWeight = weight, fontSize = size, color = color, lineHeight = size * 1.1f, modifier = modifier)
 }
 
 @Composable
-fun Pill(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val bg by animateColorAsState(if (selected) Palette.Ink else Palette.Card, label = "pill")
+fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = Palette.Pink) {
+    val bg by animateColorAsState(if (selected) color.copy(alpha = 0.14f) else Palette.Card, label = "pill")
     Box(
         modifier
             .clip(CircleShape)
             .background(bg)
-            .border(1.dp, if (selected) Palette.Ink else Palette.Line, CircleShape)
+            .border(1.dp, if (selected) color else Palette.Line, CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 13.sp, color = if (selected) Palette.Paper else Palette.Ink)
+        Text(
+            text, fontSize = 13.sp, color = if (selected) color.darken(0.85f) else Palette.Ink,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        )
     }
 }
 
@@ -104,8 +119,8 @@ fun PrimaryButton(
     icon: ImageVector? = null,
     enabled: Boolean = true,
     height: Dp = 50.dp,
-    container: Color = Palette.Ink,
-    content: Color = Palette.Paper,
+    container: Color = Palette.Pink,
+    content: Color = Color.White,
 ) {
     Row(
         modifier
@@ -121,34 +136,54 @@ fun PrimaryButton(
             Icon(icon, null, tint = content, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, color = if (enabled) content else Palette.InkFaint, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+        Text(text, color = if (enabled) content else Palette.InkFaint, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
     }
 }
 
 @Composable
-fun IconBadge(icon: ImageVector, tint: Color = Palette.Ink, bg: Color = Palette.PaperDeep, size: Dp = 36.dp) {
-    Box(Modifier.size(size).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.5f))
+fun IconBadge(icon: ImageVector, tint: Color = Palette.Pink, bg: Color = Palette.PinkSoft, size: Dp = 36.dp) {
+    Box(Modifier.size(size).clip(RoundedCornerShape(size * 0.32f)).background(bg), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.55f))
     }
 }
 
-/** A numeral over a small label; used in rows separated by hairlines. */
+/** Big rounded-square action like 「月经开始」 with a label underneath. */
 @Composable
-fun StatTile(value: String, unit: String, label: String, modifier: Modifier = Modifier, accent: Color = Palette.Ink) {
-    Column(modifier.padding(vertical = 4.dp)) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Numeral(value, 34.sp, accent)
-            if (unit.isNotEmpty()) {
-                Spacer(Modifier.width(3.dp))
-                Text(unit, fontSize = 12.sp, color = Palette.InkSoft, modifier = Modifier.padding(bottom = 5.dp))
-            }
+fun ActionTile(icon: ImageVector, label: String, tint: Color, active: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(76.dp)) {
+        Box(
+            Modifier.size(60.dp)
+                .shadow(if (active) 6.dp else 0.dp, RoundedCornerShape(20.dp), spotColor = tint.copy(alpha = 0.35f))
+                .clip(RoundedCornerShape(20.dp))
+                .background(Palette.Card)
+                .border(2.dp, if (active) tint else Palette.Line, RoundedCornerShape(20.dp))
+                .clickable(enabled = enabled, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, label, tint = if (active) tint else Palette.InkFaint, modifier = Modifier.size(28.dp))
         }
-        Text(label, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label, fontSize = 13.sp, color = if (active) tint.darken(0.9f) else Palette.InkSoft,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+        )
     }
 }
 
 @Composable
-fun VerticalHairline(height: Dp = 40.dp) {
+fun StatTile(value: String, unit: String, label: String, modifier: Modifier = Modifier, accent: Color = Palette.Pink) {
+    Column(modifier.padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            Numeral(value, 22.sp, accent)
+            if (unit.isNotEmpty()) Text(unit, fontSize = 12.sp, color = accent, modifier = Modifier.padding(start = 1.dp, bottom = 3.dp))
+        }
+    }
+}
+
+@Composable
+fun VerticalHairline(height: Dp = 36.dp) {
     Box(Modifier.width(1.dp).height(height).background(Palette.Line))
 }
 
@@ -158,12 +193,16 @@ fun Hairline(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LegendDot(color: Color, label: String, hollow: Boolean = false) {
+fun LegendDot(color: Color, label: String, hollow: Boolean = false, heart: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(9.dp).clip(CircleShape)
-                .then(if (hollow) Modifier.border(1.2.dp, color, CircleShape) else Modifier.background(color)),
-        )
+        if (heart) {
+            Icon(if (hollow) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite, null, tint = color, modifier = Modifier.size(12.dp))
+        } else {
+            Box(
+                Modifier.size(10.dp).clip(RoundedCornerShape(3.dp))
+                    .then(if (hollow) Modifier.border(1.2.dp, color, RoundedCornerShape(3.dp)) else Modifier.background(color)),
+            )
+        }
         Spacer(Modifier.width(5.dp))
         Text(label, style = MaterialTheme.typography.bodySmall)
     }
@@ -192,55 +231,125 @@ fun CuteSwitch(checked: Boolean, enabled: Boolean = true, onChange: (Boolean) ->
         onCheckedChange = onChange,
         enabled = enabled,
         colors = SwitchDefaults.colors(
-            checkedTrackColor = Palette.Ink,
-            checkedThumbColor = Palette.Paper,
-            uncheckedTrackColor = Palette.PaperDeep,
-            uncheckedThumbColor = Palette.Card,
-            uncheckedBorderColor = Palette.Line,
+            checkedTrackColor = Palette.Pink,
+            checkedThumbColor = Color.White,
+            uncheckedTrackColor = Palette.Line,
+            uncheckedThumbColor = Color.White,
+            uncheckedBorderColor = Color.Transparent,
         ),
     )
 }
 
-/** Outlined tag with a small colored dot. */
 @Composable
 fun TagChip(text: String, color: Color) {
-    Row(
-        Modifier.clip(CircleShape).border(1.dp, Palette.Line, CircleShape).padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(6.dp).clip(CircleShape).background(color))
-        Spacer(Modifier.width(6.dp))
-        Text(text, color = Palette.Ink, fontSize = 12.sp)
-    }
+    Text(
+        text, color = color.darken(0.8f), fontSize = 12.sp,
+        modifier = Modifier.clip(CircleShape).background(color.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 5.dp),
+    )
 }
 
 fun Color.darken(f: Float = 0.82f) = Color(red * f, green * f, blue * f, alpha)
 
 fun DayType.color(): Color = when (this) {
-    DayType.PERIOD -> Palette.Rouge
-    DayType.PREDICTED_PERIOD -> Palette.Rouge
-    DayType.FERTILE -> Palette.Lemon
-    DayType.OVULATION -> Palette.Ochre
-    DayType.SAFE -> Palette.Sage
+    DayType.PERIOD -> Palette.Pink
+    DayType.PREDICTED_PERIOD -> Palette.PinkLine
+    DayType.FERTILE -> Palette.Orange
+    DayType.OVULATION -> Palette.Orange
+    DayType.SAFE -> Palette.Mint
     DayType.UNKNOWN -> Palette.InkFaint
 }
 
-/** The brand mark: an open ring (the cycle) with a lemon dot sitting in the gap (today). */
+/**
+ * One date chip: filled rounded square for period and fertile days, pink outline for a
+ * predicted period, a heart for ovulation, and a double pink ring for today.
+ */
 @Composable
-fun BrandMark(modifier: Modifier = Modifier, ring: Color = Palette.Rouge, dot: Color = Palette.Lemon) {
-    androidx.compose.foundation.Canvas(modifier) {
-        val stroke = size.minDimension * 0.11f
-        val r = size.minDimension / 2 - stroke
-        val topLeft = androidx.compose.ui.geometry.Offset(center.x - r, center.y - r)
-        drawArc(
-            ring, startAngle = -40f, sweepAngle = 310f, useCenter = false, topLeft = topLeft,
-            size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round),
-        )
-        val a = Math.toRadians(-65.0)
-        drawCircle(
-            dot, stroke * 0.95f,
-            androidx.compose.ui.geometry.Offset(center.x + r * kotlin.math.cos(a).toFloat(), center.y + r * kotlin.math.sin(a).toFloat()),
-        )
+fun DateChip(
+    label: String,
+    type: DayType,
+    isToday: Boolean,
+    isSelected: Boolean,
+    size: Dp,
+    hasRecord: Boolean = false,
+    muted: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val shape = RoundedCornerShape(size * 0.3f)
+    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
+    val bg = when (type) {
+        DayType.PERIOD -> Palette.Pink
+        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
+        DayType.PREDICTED_PERIOD -> Color.White
+        else -> Color.Transparent
+    }
+    val fg = if (filled) Color.White else if (muted) Palette.InkSoft else Palette.Ink
+    Box(
+        Modifier.size(size)
+            .then(if (isSelected) Modifier.border(2.dp, Palette.Sky, RoundedCornerShape(size * 0.34f)) else Modifier)
+            .padding(if (isSelected) 3.dp else 0.dp)
+            .clip(shape)
+            .background(bg)
+            .then(if (type == DayType.PREDICTED_PERIOD || (isToday && !filled)) Modifier.border(1.5.dp, Palette.PinkLine, shape) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isToday && !filled) {
+            Box(Modifier.fillMaxSize().padding(3.dp).border(1.dp, Palette.PinkLine, RoundedCornerShape(size * 0.22f)))
+        }
+        if (type == DayType.OVULATION && !isToday) {
+            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(size * 0.6f))
+            Text(label, fontFamily = Rounded, fontWeight = FontWeight.ExtraBold, fontSize = (size.value * 0.26f).sp, color = Palette.Orange)
+        } else {
+            Text(
+                if (isToday) "今" else label,
+                fontFamily = Rounded, fontWeight = FontWeight.Bold,
+                fontSize = (size.value * 0.4f).sp, color = fg,
+            )
+        }
+        if (hasRecord) {
+            Box(
+                Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.07f).size(4.dp).clip(CircleShape)
+                    .background(if (filled) Color.White else Palette.Mint),
+            )
+        }
+    }
+}
+
+enum class MoonMood { HAPPY, SLEEPY }
+
+/** 「小月」: a round little moon with a face. Drawn, not an emoji. */
+@Composable
+fun Mascot(modifier: Modifier = Modifier, mood: MoonMood = MoonMood.HAPPY) {
+    Canvas(modifier) {
+        val r = size.minDimension / 2 * 0.84f
+        val c = Offset(size.width / 2, size.height / 2 + size.height * 0.03f)
+        drawCircle(Palette.Lemon.copy(alpha = 0.28f), r * 1.15f, c)
+        drawCircle(Color(0xFFFFE08A), r, c)
+        drawCircle(Color(0xFFF7CF6A), r * 0.16f, Offset(c.x + r * 0.45f, c.y - r * 0.47f))
+        drawCircle(Color(0xFFF7CF6A), r * 0.09f, Offset(c.x - r * 0.55f, c.y - r * 0.25f))
+        drawOval(Palette.Blush, Offset(c.x - r * 0.7f, c.y + r * 0.12f), Size(r * 0.34f, r * 0.2f))
+        drawOval(Palette.Blush, Offset(c.x + r * 0.36f, c.y + r * 0.12f), Size(r * 0.34f, r * 0.2f))
+        val eyeY = c.y - r * 0.02f
+        val eyeDx = r * 0.32f
+        val ew = r * 0.24f
+        val stroke = Stroke(r * 0.08f, cap = StrokeCap.Round)
+        val ink = Color(0xFF5B4A3F)
+        // HAPPY: ^ ^ ; SLEEPY: u u
+        val (eyeStart, eyeTop) = if (mood == MoonMood.HAPPY) 200f to eyeY - ew / 3 else 20f to eyeY - ew * 0.7f
+        drawArc(ink, eyeStart, 140f, false, Offset(c.x - eyeDx - ew / 2, eyeTop), Size(ew, ew), style = stroke)
+        drawArc(ink, eyeStart, 140f, false, Offset(c.x + eyeDx - ew / 2, eyeTop), Size(ew, ew), style = stroke)
+        if (mood == MoonMood.SLEEPY) {
+            drawCircle(ink, r * 0.06f, Offset(c.x, c.y + r * 0.3f))
+            val zx = c.x + r * 0.9f
+            val zy = c.y - r * 0.95f
+            val z = r * 0.22f
+            val w = r * 0.07f
+            drawLine(Palette.Sky, Offset(zx, zy), Offset(zx + z, zy), w, StrokeCap.Round)
+            drawLine(Palette.Sky, Offset(zx + z, zy), Offset(zx, zy + z), w, StrokeCap.Round)
+            drawLine(Palette.Sky, Offset(zx, zy + z), Offset(zx + z, zy + z), w, StrokeCap.Round)
+        } else {
+            val mw = r * 0.24f
+            drawArc(ink, 20f, 140f, false, Offset(c.x - mw / 2, c.y + r * 0.1f), Size(mw, mw * 0.8f), style = stroke)
+        }
     }
 }

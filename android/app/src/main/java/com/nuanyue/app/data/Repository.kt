@@ -89,12 +89,27 @@ class Repository(
 
     // ---- Sync support ----
 
-    suspend fun exportSnapshot(): BackupData = BackupData(
-        version = 1,
-        exportedAt = System.currentTimeMillis(),
-        periods = db.periodDao().getAllIncludingDeleted(),
-        records = db.dayRecordDao().getAllIncludingDeleted(),
-    )
+    suspend fun exportSnapshot(): BackupData {
+        val s = settings.current()
+        return BackupData(
+            version = 1,
+            exportedAt = System.currentTimeMillis(),
+            periods = db.periodDao().getAllIncludingDeleted(),
+            records = db.dayRecordDao().getAllIncludingDeleted(),
+            profile = Profile(s.nickname, s.loveNote),
+        )
+    }
+
+    /** Fill in profile fields this phone has not set yet (e.g. a nickname prepared with an invite). */
+    private suspend fun adoptProfile(p: Profile?) {
+        if (p == null) return
+        settings.update {
+            it.copy(
+                nickname = it.nickname.ifBlank { p.nickname },
+                loveNote = it.loveNote.ifBlank { p.loveNote },
+            )
+        }
+    }
 
     /** Record-level merge: for each key keep the newest version (tombstones included). */
     suspend fun merge(remote: BackupData) {
@@ -104,6 +119,7 @@ class Repository(
         val localRecords = db.dayRecordDao().getAllIncludingDeleted().associateBy { it.day }
         val records = remote.records.filter { r -> (localRecords[r.day]?.updatedAt ?: -1) < r.updatedAt }
         db.dayRecordDao().upsertAll(records)
+        adoptProfile(remote.profile)
         if (periods.isNotEmpty() || records.isNotEmpty()) onChanged(false)
     }
 
@@ -135,6 +151,14 @@ data class BackupData(
     val exportedAt: Long,
     val periods: List<PeriodEntity>,
     val records: List<DayRecordEntity>,
+    val profile: Profile? = null,
+)
+
+/** Light per-person settings that travel with the backup. */
+@kotlinx.serialization.Serializable
+data class Profile(
+    val nickname: String = "",
+    val loveNote: String = "",
 )
 
 fun PeriodEntity.toDomain() = Period(

@@ -17,12 +17,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Brightness3
 import androidx.compose.material.icons.rounded.PersonOutline
-import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -47,7 +48,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nuanyue.app.data.DayRecordEntity
-import com.nuanyue.app.ui.calendar.CalendarScreen
 import com.nuanyue.app.ui.home.HomeScreen
 import com.nuanyue.app.ui.onboarding.OnboardingScreen
 import com.nuanyue.app.ui.record.RecordSheet
@@ -57,10 +57,9 @@ import com.nuanyue.app.ui.theme.Palette
 import java.time.LocalDate
 
 enum class Tab(val label: String, val icon: ImageVector) {
-    HOME("今天", Icons.Rounded.Home),
-    CALENDAR("日历", Icons.Rounded.CalendarMonth),
-    STATS("分析", Icons.Rounded.BarChart),
-    ME("我的", Icons.Rounded.PersonOutline),
+    HOME("暖月", Icons.Rounded.Brightness3),
+    STATS("统计", Icons.Rounded.BarChart),
+    ME("我", Icons.Rounded.PersonOutline),
 }
 
 @Composable
@@ -77,11 +76,16 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
     }
 
     if (!state.loaded) {
-        Box(Modifier.fillMaxSize().background(Palette.Paper))
+        Box(Modifier.fillMaxSize().background(Palette.Bg))
         return
     }
     if (!state.settings.onboarded) {
-        OnboardingScreen(onFinish = vm::finishOnboarding)
+        val syncing by vm.syncing.collectAsStateWithLifecycle()
+        OnboardingScreen(
+            syncing = syncing,
+            onFinish = vm::finishOnboarding,
+            onInvite = { code, partner, onError -> vm.joinInvite(code, partner) { ok, err -> if (!ok) onError(err ?: "连接失败") } },
+        )
         return
     }
 
@@ -89,13 +93,12 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { BottomBar(tab) { tab = it } },
-        modifier = Modifier.background(Palette.Paper),
+        modifier = Modifier.background(Palette.Bg),
     ) { inner ->
         Box(Modifier.fillMaxSize().padding(bottom = inner.calculateBottomPadding())) {
             AnimatedContent(tab, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "tab") { t ->
                 when (t) {
-                    Tab.HOME -> HomeScreen(state, vm, onEdit = { editing = it }, onOpenCalendar = { tab = Tab.CALENDAR })
-                    Tab.CALENDAR -> CalendarScreen(state, vm, onEdit = { editing = it })
+                    Tab.HOME -> HomeScreen(state, vm, onEdit = { editing = it })
                     Tab.STATS -> StatsScreen(state)
                     Tab.ME -> SettingsScreen(state, vm)
                 }
@@ -116,10 +119,10 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
 
 @Composable
 private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
-    Column(Modifier.fillMaxWidth().background(Palette.Paper)) {
+    Column(Modifier.fillMaxWidth().background(Color.White)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Line))
         Row(
-            Modifier.fillMaxWidth().navigationBarsPadding().height(60.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().height(64.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -128,14 +131,18 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 Column(
                     Modifier
                         .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(t) }
-                        .padding(horizontal = 18.dp, vertical = 6.dp),
+                        .padding(horizontal = 22.dp, vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(t.icon, t.label, tint = if (selected) Palette.Ink else Palette.InkFaint, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        Modifier.size(34.dp).clip(CircleShape).background(if (selected) Palette.PinkSoft else Color.Transparent),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(t.icon, t.label, tint = if (selected) Palette.Pink else Palette.InkFaint, modifier = Modifier.size(22.dp))
+                    }
                     Text(
                         t.label, fontSize = 11.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                         color = if (selected) Palette.Ink else Palette.InkFaint,
                     )
                 }

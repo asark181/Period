@@ -32,7 +32,13 @@ class SyncManager(
     private val mutex = Mutex()
 
     /** Verifies the credentials against the server and stores the derived key. */
-    suspend fun login(account: String, password: String, asPartner: Boolean): Result<String> = withContext(Dispatchers.IO) {
+    /** Joins the space behind an invite code. `create` makes a brand new space instead (her own fresh code). */
+    suspend fun joinInvite(code: String, asPartner: Boolean, create: Boolean = false): Result<String> {
+        val normalized = Crypto.normalizeInvite(code) ?: return Result.failure(IllegalArgumentException("邀请码格式不对，检查一下有没有输错哦"))
+        return login(Crypto.inviteAccount(normalized), normalized, asPartner, mustExist = !create)
+    }
+
+    suspend fun login(account: String, password: String, asPartner: Boolean, mustExist: Boolean = false): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             require(account.trim().length >= 3) { "账号至少 3 个字符" }
             require(password.length >= 6) { "密码至少 6 位" }
@@ -40,6 +46,7 @@ class SyncManager(
             val keys = Crypto.split(material)
             val remote = client.fetch(Crypto.spaceId(account), Crypto.hex(keys.authToken))
             if (remote != null) decode(keys.encKey, remote.blob) // throws on wrong password
+            if (mustExist && remote == null) error("没找到这个邀请码，检查一下有没有输错哦")
             if (asPartner && remote == null) error("这个账号还没有数据。先在她的手机上开启同步")
             settings.update {
                 it.copy(
@@ -49,7 +56,7 @@ class SyncManager(
                     lastSyncAt = 0,
                 )
             }
-            if (remote == null) "已创建同步账号" else "已连接"
+            if (remote == null) "已开启同步" else "已连接"
         }
     }
 

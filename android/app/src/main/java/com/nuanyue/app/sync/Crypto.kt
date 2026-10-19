@@ -45,6 +45,31 @@ object Crypto {
         return cipher.doFinal(data, 12, data.size - 12)
     }
 
+    // ---- Invite codes: one code = one space. Account and password are both derived from it. ----
+
+    private const val ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+
+    /** "ny-7k3p q9xm 4t2r" -> "NY7K3PQ9XM4T2R", or null if it is not a valid code. */
+    fun normalizeInvite(code: String): String? {
+        val c = code.uppercase().filter { it.isLetterOrDigit() }
+        return c.takeIf { it.length == 14 && it.startsWith("NY") && it.drop(2).all { ch -> ch in ALPHABET } }
+    }
+
+    fun inviteAccount(normalized: String) = "inv-" + normalized.lowercase()
+
+    fun isInviteAccount(account: String) = account.startsWith("inv-")
+
+    /** "inv-ny7k3pq9xm4t2r" -> "NY-7K3P-Q9XM-4T2R" */
+    fun displayInvite(account: String): String {
+        val c = account.removePrefix("inv-").uppercase()
+        return listOf(c.take(2), c.substring(2, 6), c.substring(6, 10), c.substring(10)).joinToString("-")
+    }
+
+    fun newInvite(): String {
+        val rnd = SecureRandom()
+        return "NY" + (1..12).map { ALPHABET[rnd.nextInt(ALPHABET.length)] }.joinToString("")
+    }
+
     fun hex(bytes: ByteArray) = bytes.joinToString("") { "%02x".format(it) }
 
     private fun sha256Hex(s: String) = hex(MessageDigest.getInstance("SHA-256").digest(s.toByteArray()))

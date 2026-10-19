@@ -104,17 +104,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         Reminders.notify(app, 1999, t, b)
     }
 
-    fun syncLogin(account: String, password: String, asPartner: Boolean, onDone: (ok: Boolean, error: String?) -> Unit) {
+    /** Onboarding or settings: join an existing space with an invite code. */
+    fun joinInvite(code: String, asPartner: Boolean, onDone: (ok: Boolean, error: String?) -> Unit) {
         viewModelScope.launch {
             _syncing.value = true
-            val r = app.sync.login(account, password, asPartner)
+            val r = app.sync.joinInvite(code, asPartner)
             if (r.isSuccess) {
                 app.sync.schedulePeriodic()
                 val sr = app.sync.syncNow()
-                toast(r.getOrNull() + if (sr.isSuccess) "，" + sr.getOrNull() else "")
+                app.settings.update { it.copy(onboarded = true) }
+                Reminders.schedule(app, app.settings.current())
+                toast(if (sr.isSuccess) "数据已经接上啦" else (sr.exceptionOrNull()?.message ?: "同步失败"))
             }
             _syncing.value = false
-            onDone(r.isSuccess, if (r.isSuccess) null else (r.exceptionOrNull()?.message ?: "连接失败，请检查网络"))
+            onDone(r.isSuccess, r.exceptionOrNull()?.message)
+        }
+    }
+
+    /** Her phone: create a fresh invite code from the data already on this phone. */
+    fun createInvite() {
+        viewModelScope.launch {
+            _syncing.value = true
+            val r = app.sync.joinInvite(com.nuanyue.app.sync.Crypto.newInvite(), asPartner = false, create = true)
+            if (r.isSuccess) {
+                app.sync.schedulePeriodic()
+                app.sync.syncNow()
+                toast("邀请码生成好啦，发给他就可以一起看了")
+            } else toast(r.exceptionOrNull()?.message ?: "生成失败，检查一下网络")
+            _syncing.value = false
         }
     }
 

@@ -12,3 +12,4 @@ server/.venv/
 __pycache__/
 *.apk
 dist/
+deploy/private/

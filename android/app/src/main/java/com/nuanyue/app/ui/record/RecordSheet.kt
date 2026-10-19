@@ -70,7 +70,7 @@ fun RecordSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
-        containerColor = Palette.Paper,
+        containerColor = Palette.Bg,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
         Column(
@@ -90,11 +90,11 @@ fun RecordSheet(
                 (1..4).forEach { level ->
                     Box(
                         Modifier.weight(1f).fillMaxHeight()
-                            .background(if (flow >= level) Palette.Rouge.copy(alpha = 0.25f + 0.25f * level) else Palette.Card)
+                            .background(if (flow >= level) Palette.Pink.copy(alpha = 0.25f + 0.25f * level) else Palette.Card)
                             .clickable(enabled = !readOnly) { flow = if (flow == level) 0 else level },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(Copy.flows[level], fontSize = 13.sp, color = if (flow >= level && level >= 2) Palette.Paper else Palette.Ink)
+                        Text(Copy.flows[level], fontSize = 13.sp, color = if (flow >= level && level >= 2) Color.White else Palette.Ink)
                     }
                     if (level < 4) Box(Modifier.width(1.dp).fillMaxHeight().background(Palette.Line))
                 }
@@ -150,7 +150,7 @@ fun RecordSheet(
                 readOnly = readOnly,
                 placeholder = { Text("选填", color = Palette.InkFaint) },
                 modifier = Modifier.fillMaxWidth().height(110.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = fieldColors(),
             )
 
@@ -188,7 +188,7 @@ private fun NumberField(value: String, onChange: (String) -> Unit, label: String
         suffix = { Text(unit, color = Palette.InkSoft) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = fieldColors(),
         modifier = modifier,
     )
@@ -196,12 +196,12 @@ private fun NumberField(value: String, onChange: (String) -> Unit, label: String
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Palette.Ink,
+    focusedBorderColor = Palette.Pink,
     unfocusedBorderColor = Palette.Line,
     focusedContainerColor = Palette.Card,
     unfocusedContainerColor = Palette.Card,
-    focusedLabelColor = Palette.Ink,
-    cursorColor = Palette.Ink,
+    focusedLabelColor = Palette.Pink,
+    cursorColor = Palette.Pink,
 )
 
 private fun Set<String>.toggle(k: String) = if (k in this) this - k else this + k
