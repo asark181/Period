@@ -153,7 +153,7 @@ fun SlidingSegmented(
     val haptic = LocalHapticFeedback.current
     val offset by animateDpAsState(itemSize * selected, spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow), label = "seg")
     Box(
-        Modifier.shadow(4.dp, CircleShape, spotColor = Color(0x22404A70)).clip(CircleShape).background(Color.White).padding(5.dp),
+        Modifier.shadow(8.dp, CircleShape, ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB)).clip(CircleShape).background(Color.White).padding(5.dp),
     ) {
         Box(Modifier.offset(x = offset).size(itemSize).clip(CircleShape).background(Palette.OrangeSoft))
         Row {

@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,7 +60,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -76,11 +79,14 @@ import com.nuanyue.app.ui.components.Pill
 import com.nuanyue.app.ui.components.SectionTitle
 import com.nuanyue.app.ui.components.SoftCard
 import com.nuanyue.app.ui.components.SwitchRow
+import com.nuanyue.app.ui.components.pressScale
 import com.nuanyue.app.ui.theme.Palette
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val DialogShape = RoundedCornerShape(30.dp)
 
 @Composable
 fun SettingsScreen(state: UiState, vm: AppViewModel) {
@@ -183,7 +189,15 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                     Column(Modifier.weight(1f)) {
                         if (invite) {
                             Text("邀请码", style = MaterialTheme.typography.bodySmall)
-                            com.nuanyue.app.ui.components.Numeral(com.nuanyue.app.sync.Crypto.displayInvite(s.syncAccount), 18.sp)
+                            com.nuanyue.app.ui.components.Numeral(
+                                com.nuanyue.app.sync.Crypto.displayInvite(s.syncAccount),
+                                16.sp,
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Palette.MintSoft)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                            )
                         } else {
                             Text("账号：${s.syncAccount}", style = MaterialTheme.typography.titleSmall)
                         }
@@ -242,7 +256,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            "暖月 ${BuildConfig.VERSION_NAME} · 小月会一直陪着你\n预测仅供参考，不能用来避孕哦",
+            "暖月 ${BuildConfig.VERSION_NAME} · 记录保存在这台手机上\n预测仅供参考，不能用来避孕",
             style = MaterialTheme.typography.bodySmall, color = Palette.InkFaint,
             modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
@@ -271,18 +285,27 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
 @Composable
 private fun ProfileCard(state: UiState, onEditName: () -> Unit) {
     val s = state.settings
-    SoftCard(onClick = onEditName) {
+    SoftCard(
+        onClick = onEditName,
+        brush = Brush.horizontalGradient(listOf(Color(0xFFFFE4EB), Color(0xFFFFF6F7), Color.White)),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            com.nuanyue.app.ui.components.Mascot(Modifier.size(56.dp))
+            com.nuanyue.app.ui.components.Mascot(Modifier.size(64.dp))
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(s.nickname.ifBlank { "给自己起个昵称吧" }, style = MaterialTheme.typography.titleLarge)
+                Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    if (s.isPartner) "陪她一起看着日子" else "小月已经陪你记了 ${state.snapshot.periods.size} 次啦",
+                    if (s.isPartner) "伴侣 · 只能查看，不能修改" else "已记录 ${state.snapshot.periods.size} 次经期",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            Text("编辑", fontSize = 13.sp, color = Palette.InkSoft)
+            Text(
+                "编辑",
+                fontSize = 12.sp,
+                color = Palette.PinkDeep,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clip(CircleShape).background(Color.White).padding(horizontal = 10.dp, vertical = 5.dp),
+            )
         }
     }
 }
@@ -302,15 +325,28 @@ private fun Stepper(title: String, value: Int, unit: String, range: IntRange, en
 
 @Composable
 private fun StepButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    val scale = pressScale(source, 0.88f)
     Box(
-        Modifier.size(30.dp).clip(CircleShape).background(if (enabled) Palette.Panel else Palette.Line).clickable(enabled = enabled, onClick = onClick),
+        Modifier.size(32.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
+            .background(if (enabled) Palette.PinkSoft else Palette.Line)
+            .clickable(source, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, null, tint = if (enabled) Palette.Ink else Palette.InkFaint, modifier = Modifier.size(18.dp)) }
+    ) { Icon(icon, null, tint = if (enabled) Palette.PinkDeep else Palette.InkFaint, modifier = Modifier.size(18.dp)) }
 }
 
 @Composable
 private fun ActionRow(icon: ImageVector, title: String, subtitle: String, danger: Boolean = false, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    val source = remember { MutableInteractionSource() }
+    val scale = pressScale(source, 0.98f)
+    Row(
+        Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(source, indication = null, onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         IconBadge(icon, if (danger) Palette.Pink else Palette.Ink, if (danger) Palette.PinkSoft else Palette.Panel, 34.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -333,6 +369,8 @@ private fun TextDialog(title: String, initial: String, max: Int, placeholder: St
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
+        shape = DialogShape,
+        tonalElevation = 0.dp,
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = {
             OutlinedTextField(
@@ -352,6 +390,8 @@ private fun TimeDialog(hour: Int, minute: Int, onDismiss: () -> Unit, onSave: (I
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
+        shape = DialogShape,
+        tonalElevation = 0.dp,
         title = { Text("提醒时间", style = MaterialTheme.typography.titleLarge) },
         text = {
             TimePicker(
@@ -375,6 +415,8 @@ private fun SyncDialog(syncing: Boolean, error: String?, onDismiss: () -> Unit, 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
+        shape = DialogShape,
+        tonalElevation = 0.dp,
         title = { Text("输入邀请码", style = MaterialTheme.typography.titleLarge) },
         text = {
             Column {
@@ -417,6 +459,8 @@ private fun ConfirmDialog(title: String, body: String, onDismiss: () -> Unit, on
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
+        shape = DialogShape,
+        tonalElevation = 0.dp,
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = { Text(body, style = MaterialTheme.typography.bodyMedium) },
         confirmButton = { TextButton({ onConfirm(); onDismiss() }) { Text("确定", color = Palette.Pink, fontWeight = FontWeight.SemiBold) } },
@@ -429,7 +473,9 @@ private fun BatteryDialog(onDismiss: () -> Unit, onOpen: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
-        icon = { Icon(Icons.Rounded.BatteryChargingFull, null, tint = Palette.InkSoft) },
+        shape = DialogShape,
+        tonalElevation = 0.dp,
+        icon = { Icon(Icons.Rounded.BatteryChargingFull, null, tint = Palette.Pink) },
         title = { Text("提醒不准时", style = MaterialTheme.typography.titleLarge) },
         text = {
             Text(
