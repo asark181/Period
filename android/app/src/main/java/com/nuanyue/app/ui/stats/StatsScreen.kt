@@ -1,13 +1,23 @@
 package com.nuanyue.app.ui.stats
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -38,23 +49,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nuanyue.app.R
 import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.ui.UiState
-import com.nuanyue.app.ui.components.Hairline
+import com.nuanyue.app.ui.components.FloatingSticker
 import com.nuanyue.app.ui.components.Mascot
 import com.nuanyue.app.ui.components.Numeral
 import com.nuanyue.app.ui.components.Pill
 import com.nuanyue.app.ui.components.SectionTitle
 import com.nuanyue.app.ui.components.SoftCard
 import com.nuanyue.app.ui.components.StatTile
+import com.nuanyue.app.ui.components.pressScale
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.Rounded
 import java.time.LocalDate
@@ -81,37 +96,70 @@ fun StatsScreen(state: UiState) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column(Modifier.background(Color.White).statusBarsPadding().padding(horizontal = 18.dp)) {
+        Column(
+            Modifier
+                .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFFFFEEF2), Color.White)))
+                .statusBarsPadding()
+                .padding(horizontal = 18.dp),
+        ) {
             Spacer(Modifier.height(14.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                listOf("经期图表", "经期数据").forEachIndexed { i, label ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { tab = i }.padding(horizontal = 16.dp, vertical = 6.dp),
-                    ) {
-                        Text(
-                            label, fontSize = 16.sp,
-                            fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
-                            color = if (tab == i) Palette.Pink else Palette.InkSoft,
-                        )
-                        Box(Modifier.padding(top = 4.dp).width(44.dp).height(2.dp).background(if (tab == i) Palette.Pink else Color.Transparent))
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
+            StatsTabs(tab) { tab = it }
+            Spacer(Modifier.height(8.dp))
             Summary(rows)
             Spacer(Modifier.height(16.dp))
         }
         if (!snap.hasData) {
-            Column(Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Mascot(Modifier.size(90.dp))
-                Spacer(Modifier.height(10.dp))
-                Text("还没有数据呢", style = MaterialTheme.typography.titleSmall)
-                Text("记满两次经期，小月就能帮你画出图表啦", style = MaterialTheme.typography.bodySmall)
+            Box(Modifier.fillMaxWidth().padding(top = 36.dp, bottom = 48.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(contentAlignment = Alignment.Center) {
+                        FloatingSticker(R.drawable.st_sparkle, Modifier.offset(x = (-96).dp, y = (-70).dp).size(18.dp), rotation = -12f, periodMs = 2000)
+                        Image(
+                            painter = painterResource(R.drawable.illu_empty_stats),
+                            contentDescription = null,
+                            modifier = Modifier.size(208.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("还没有经期记录", style = MaterialTheme.typography.titleSmall)
+                    Text("记满两次，这里才会算出平均周期和图表", style = MaterialTheme.typography.bodySmall)
+                }
             }
             return@Column
         }
-        if (tab == 1) Table(rows) else Charts(state, rows)
+        AnimatedContent(
+            tab,
+            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(140)) },
+            label = "statsTab",
+        ) { which ->
+            if (which == 1) Table(rows) else Charts(state, rows)
+        }
+    }
+}
+
+@Composable
+private fun StatsTabs(tab: Int, onTab: (Int) -> Unit) {
+    val labels = listOf("经期图表", "经期数据")
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
+        val slot = maxWidth / labels.size
+        val x by animateDpAsState(slot * tab, spring(dampingRatio = 0.7f, stiffness = 380f), label = "statsTab")
+        Box(Modifier.offset(x = x).width(slot).height(36.dp).clip(CircleShape).background(Palette.PinkSoft))
+        Row(Modifier.fillMaxWidth()) {
+            labels.forEachIndexed { i, label ->
+                val selected = tab == i
+                val color by animateColorAsState(if (selected) Palette.PinkDeep else Palette.InkSoft, label = "tabColor")
+                val source = remember(i) { MutableInteractionSource() }
+                val scale = pressScale(source, 0.96f)
+                Box(
+                    Modifier.weight(1f).height(36.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+                        .clip(CircleShape)
+                        .clickable(source, indication = null) { onTab(i) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(label, color = color, fontSize = 15.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+                }
+            }
+        }
     }
 }
 
@@ -140,13 +188,13 @@ private fun Table(rows: List<Row3>) {
     Column(Modifier.background(Color.White)) {
         Box(Modifier.fillMaxWidth().height(10.dp).background(Palette.Bg))
         TableRow("开始日期", "经期天数", "周期天数", header = true)
-        rows.forEach { r ->
-            Hairline()
+        rows.forEachIndexed { index, r ->
             TableRow(
                 "%d-%02d-%02d".format(r.start.year, r.start.monthValue, r.start.dayOfMonth),
                 "${r.periodDays}",
                 r.cycleDays?.toString() ?: "当前周期",
                 highlight = r.cycleDays != null && (r.cycleDays > 45 || r.cycleDays < 21),
+                zebra = index % 2 == 1,
             )
         }
         Spacer(Modifier.height(24.dp))
@@ -154,8 +202,12 @@ private fun Table(rows: List<Row3>) {
 }
 
 @Composable
-private fun TableRow(a: String, b: String, c: String, header: Boolean = false, highlight: Boolean = false) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+private fun TableRow(a: String, b: String, c: String, header: Boolean = false, highlight: Boolean = false, zebra: Boolean = false) {
+    Row(
+        Modifier.fillMaxWidth()
+            .background(if (zebra) Palette.PinkSoft.copy(alpha = 0.45f) else Color.Transparent)
+            .padding(vertical = 12.dp),
+    ) {
         listOf(a, b, c).forEachIndexed { i, s ->
             Text(
                 s, modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
@@ -226,7 +278,15 @@ private fun CycleBars(rows: List<Row3>, avg: Int) {
         }
         Spacer(Modifier.height(16.dp))
         if (data.isEmpty()) {
-            Text("至少两次经期才有周期长度哦", style = MaterialTheme.typography.bodySmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(R.drawable.illu_empty_stats),
+                    contentDescription = null,
+                    modifier = Modifier.size(88.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("至少两次经期才有周期长度哦", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            }
             return@SoftCard
         }
         val maxV = data.maxOf { it.second }.coerceAtLeast(avgLine) * 1.12f

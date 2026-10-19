@@ -17,23 +17,23 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Brightness3
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PersonOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +41,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -53,7 +55,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nuanyue.app.ui.components.Mascot
 import com.nuanyue.app.ui.components.SlidingIndicator
+import com.nuanyue.app.ui.components.WarmMessageHost
 import com.nuanyue.app.ui.home.HomeScreen
 import com.nuanyue.app.ui.onboarding.OnboardingScreen
 import com.nuanyue.app.ui.settings.SettingsScreen
@@ -70,16 +74,12 @@ enum class Tab(val label: String, val icon: ImageVector) {
 fun NuanYueRoot(vm: AppViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
-    LaunchedEffect(message) {
-        message?.let { snackbar.showSnackbar(it); vm.consumeMessage() }
-    }
 
     if (!state.loaded) {
-        Box(Modifier.fillMaxSize().background(Palette.Bg))
+        LoadingScreen()
         return
     }
     if (!state.settings.onboarded) {
@@ -94,7 +94,7 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
 
     Scaffold(
         containerColor = Palette.Bg,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { WarmMessageHost(message, vm::consumeMessage) },
         bottomBar = { BottomBar(tab) { tab = it } },
     ) { inner ->
         Box(Modifier.fillMaxSize().padding(bottom = inner.calculateBottomPadding())) {
@@ -118,24 +118,50 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
 }
 
 @Composable
+private fun LoadingScreen() {
+    Box(
+        Modifier.fillMaxSize().background(Palette.Bg),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Mascot(Modifier.size(108.dp), interactive = false)
+            Spacer(Modifier.height(14.dp))
+            Text("正在打开记录", color = Palette.InkSoft, fontSize = 14.sp)
+        }
+    }
+}
+
+private val barShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+
+@Composable
 private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
     val haptic = LocalHapticFeedback.current
-    Column(Modifier.fillMaxWidth().background(Color.White)) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Line))
-        Box(Modifier.fillMaxWidth().navigationBarsPadding().height(66.dp)) {
-            // the pink pill glides to the selected tab
-            SlidingIndicator(Tab.entries.size, current.ordinal, Modifier.fillMaxWidth().padding(top = 7.dp))
+    Column(
+        Modifier.fillMaxWidth()
+            .shadow(18.dp, barShape, clip = false, ambientColor = Color(0x18E59AAB), spotColor = Color(0x28E59AAB))
+            .clip(barShape)
+            .background(Color.White),
+    ) {
+        Box(Modifier.fillMaxWidth().navigationBarsPadding().height(64.dp)) {
+            SlidingIndicator(
+                Tab.entries.size, current.ordinal,
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                color = Palette.PinkSoft,
+                pillWidth = 64.dp,
+                pillHeight = 36.dp,
+            )
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 Tab.entries.forEach { t ->
                     val selected = t == current
                     val pop by animateFloatAsState(
-                        if (selected) 1.18f else 1f,
-                        spring(dampingRatio = 0.35f, stiffness = Spring.StiffnessMediumLow),
+                        if (selected) 1.16f else 1f,
+                        spring(dampingRatio = 0.38f, stiffness = Spring.StiffnessMediumLow),
                         label = "pop",
                     )
-                    val lift by animateFloatAsState(if (selected) -2f else 0f, spring(dampingRatio = 0.5f), label = "lift")
+                    val lift by animateFloatAsState(if (selected) -1.5f else 0f, spring(dampingRatio = 0.55f), label = "lift")
                     val tint by animateColorAsState(if (selected) Palette.Pink else Palette.InkFaint, label = "tint")
-                    val text by animateColorAsState(if (selected) Palette.Ink else Palette.InkFaint, label = "text")
+                    val text by animateColorAsState(if (selected) Palette.PinkDeep else Palette.InkFaint, label = "text")
+                    val icon = if (selected && t == Tab.ME) Icons.Rounded.Person else t.icon
                     Column(
                         Modifier.weight(1f).fillMaxSize()
                             .clickable(remember { MutableInteractionSource() }, indication = null) {
@@ -144,10 +170,14 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                             },
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(Modifier.padding(top = 12.dp).size(24.dp).graphicsLayer { scaleX = pop; scaleY = pop; translationY = lift * density }) {
-                            Icon(t.icon, t.label, tint = tint, modifier = Modifier.size(24.dp))
+                        Box(Modifier.padding(top = 11.dp).size(24.dp).graphicsLayer { scaleX = pop; scaleY = pop; translationY = lift * density }) {
+                            Icon(icon, t.label, tint = tint, modifier = Modifier.size(24.dp))
                         }
-                        Text(t.label, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = text, modifier = Modifier.padding(top = 6.dp))
+                        Text(
+                            t.label, fontSize = 11.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = text, modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
                 }
             }

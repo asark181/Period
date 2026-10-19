@@ -38,9 +38,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -51,22 +54,28 @@ import com.nuanyue.app.domain.DayType
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.Rounded
 
-private val cardShape = RoundedCornerShape(22.dp)
+private val cardShape = RoundedCornerShape(26.dp)
 
-/** White rounded card with a very soft neutral shadow. */
+/** White rounded card with a soft rose shadow. */
 @Composable
 fun SoftCard(
     modifier: Modifier = Modifier,
     padding: PaddingValues = PaddingValues(18.dp),
+    brush: Brush = SolidColor(Palette.Card),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val source = remember { MutableInteractionSource() }
+    val scale = if (onClick != null) pressScale(source, 0.985f) else 1f
     Column(
         modifier
-            .shadow(6.dp, cardShape, ambientColor = Color(0x14404A70), spotColor = Color(0x14404A70))
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .shadow(10.dp, cardShape, ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB))
             .clip(cardShape)
-            .background(Palette.Card)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .background(brush)
+            .then(
+                if (onClick != null) Modifier.clickable(source, indication = null, onClick = onClick) else Modifier,
+            )
             .padding(padding),
         content = content,
     )
@@ -75,6 +84,7 @@ fun SoftCard(
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: @Composable (() -> Unit)? = null) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.padding(end = 8.dp).size(width = 4.dp, height = 14.dp).clip(CircleShape).background(Palette.Pink))
         Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
@@ -94,19 +104,22 @@ fun Numeral(
 
 @Composable
 fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = Palette.Pink) {
-    val bg by animateColorAsState(if (selected) color.copy(alpha = 0.14f) else Palette.Card, label = "pill")
+    val source = remember { MutableInteractionSource() }
+    val scale = pressScale(source, 0.94f)
+    val bg by animateColorAsState(if (selected) color.copy(alpha = 0.16f) else Palette.Card, label = "pill")
     Box(
         modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, if (selected) color else Palette.Line, CircleShape)
-            .clickable(onClick = onClick)
+            .clickable(source, indication = null, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text, fontSize = 13.sp, color = if (selected) color.darken(0.85f) else Palette.Ink,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
         )
     }
 }
@@ -122,12 +135,15 @@ fun PrimaryButton(
     container: Color = Palette.Pink,
     content: Color = Color.White,
 ) {
+    val source = remember { MutableInteractionSource() }
+    val scale = pressScale(source, 0.95f)
     Row(
         modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .height(height)
             .clip(CircleShape)
             .background(if (enabled) container else Palette.Line)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(source, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 26.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -142,8 +158,8 @@ fun PrimaryButton(
 
 @Composable
 fun IconBadge(icon: ImageVector, tint: Color = Palette.Pink, bg: Color = Palette.PinkSoft, size: Dp = 36.dp) {
-    Box(Modifier.size(size).clip(RoundedCornerShape(size * 0.32f)).background(bg), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.55f))
+    Box(Modifier.size(size).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.52f))
     }
 }
 

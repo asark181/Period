@@ -1,5 +1,5 @@
 <resources>
-    <color name="paper">#F7F8FC</color>
-    <color name="ink">#3B4057</color>
-    <color name="rouge">#FFE3E9</color>
+    <color name="paper">#FFF6F7</color>
+    <color name="ink">#4A3540</color>
+    <color name="rouge">#FFE4EA</color>
 </resources>

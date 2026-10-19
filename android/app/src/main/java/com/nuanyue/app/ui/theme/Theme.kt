@@ -18,20 +18,26 @@ import androidx.compose.ui.unit.sp
 import com.nuanyue.app.R
 
 /**
- * Soft and friendly: cool off-white background, coral pink for the period,
- * warm orange for the fertile window, mint for actions, pale sky for the dial.
+ * Soft and warm, in the 柠檬小月 direction: blush paper, coral pink for the period,
+ * warm orange for the fertile window, mint for sync, pale sky for weekday labels.
+ *
+ * [Ink] and [ToastBg] match [FeedbackColors]. Text styles below bake a color in on
+ * purpose (captions stay softer). Compose Text then ignores LocalContentColor, which
+ * is why feedback must not use the default Snackbar. See WarmToast.
  */
 object Palette {
-    val Bg = Color(0xFFF7F8FC)
-    val Panel = Color(0xFFF1F2F8)
+    val Bg = Color(0xFFFFF6F7)
+    val Panel = Color(0xFFFFF0F3)
     val Card = Color(0xFFFFFFFF)
-    val Line = Color(0xFFECEEF5)
+    val Line = Color(0xFFF3E3E8)
 
-    val Ink = Color(0xFF3B4057)
-    val InkSoft = Color(0xFF8D93A8)
-    val InkFaint = Color(0xFFC3C7D4)
+    val Ink = Color(FeedbackColors.INK.toInt())
+    val InkSoft = Color(0xFF9A8490)
+    val InkFaint = Color(0xFFD5C4CC)
 
-    val Pink = Color(0xFFF2708A)
+    val ToastBg = Color(FeedbackColors.BACKGROUND.toInt())
+
+    val Pink = Color(FeedbackColors.ACCENT.toInt())
     val PinkDeep = Color(0xFFE25373)
     val PinkSoft = Color(0xFFFFE8ED)
     val PinkLine = Color(0xFFF6AABA)
@@ -79,6 +85,12 @@ private val colors = lightColorScheme(
     surfaceContainerHighest = Palette.Panel,
     outline = Palette.InkFaint,
     outlineVariant = Palette.Line,
+    // Snackbar and other "inverse" surfaces default to near-black. Keep them light
+    // even if a future screen forgets to use WarmToast.
+    inverseSurface = Palette.ToastBg,
+    inverseOnSurface = Palette.Ink,
+    inversePrimary = Palette.PinkDeep,
+    surfaceTint = Color.Transparent,
 )
 
 private val typography = Typography(
@@ -96,10 +108,10 @@ private val typography = Typography(
 )
 
 private val shapes = Shapes(
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(26.dp),
+    extraLarge = RoundedCornerShape(30.dp),
 )
 
 @Composable

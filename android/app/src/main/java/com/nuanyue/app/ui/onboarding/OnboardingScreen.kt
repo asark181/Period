@@ -5,18 +5,28 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -25,6 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +51,7 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,12 +61,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nuanyue.app.R
+import com.nuanyue.app.ui.components.FloatingSticker
 import com.nuanyue.app.ui.components.Mascot
 import com.nuanyue.app.ui.components.Numeral
 import com.nuanyue.app.ui.components.Pill
@@ -95,12 +114,24 @@ fun OnboardingScreen(
         onFinish(nickname.trim(), start, periodLen, cycleLen)
     }
 
-    Box(Modifier.fillMaxSize().background(Palette.Bg)) {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFFFFE8EE), Palette.Bg, Palette.Bg)),
+        ),
+    ) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp)) {
             Spacer(Modifier.height(18.dp))
             if (step > 0) StepDots(step)
             Box(Modifier.weight(1f)) {
-                AnimatedContent(step, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "step") { s ->
+                AnimatedContent(
+                    step,
+                    transitionSpec = {
+                        val dir = if (targetState > initialState) 1 else -1
+                        (slideInHorizontally(tween(340)) { it / 5 * dir } + fadeIn(tween(240))) togetherWith
+                            (slideOutHorizontally(tween(240)) { -it / 6 * dir } + fadeOut(tween(160)))
+                    },
+                    label = "step",
+                ) { s ->
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         when (s) {
                             0 -> Welcome()
@@ -164,20 +195,39 @@ fun OnboardingScreen(
 private fun StepDots(step: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         (1..3).forEach { i ->
-            Box(Modifier.height(6.dp).width(if (i == step) 22.dp else 6.dp).clip(CircleShape).background(if (i <= step) Palette.Pink else Palette.Line))
+            val w by animateDpAsState(if (i == step) 22.dp else 6.dp, spring(dampingRatio = 0.7f), label = "dot")
+            Box(Modifier.height(6.dp).width(w).clip(CircleShape).background(if (i <= step) Palette.Pink else Palette.PinkLine.copy(alpha = 0.7f)))
         }
     }
 }
 
 @Composable
 private fun Welcome() {
-    Column(Modifier.fillMaxWidth().padding(top = 80.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Mascot(Modifier.size(140.dp))
-        Spacer(Modifier.height(28.dp))
+    val pop = remember { Animatable(0.86f) }
+    LaunchedEffect(Unit) {
+        pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow))
+    }
+    Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Square art with wide empty margins. A 16:10 crop keeps 小月 and the notebook
+        // and leaves room for the title underneath.
+        Box(contentAlignment = Alignment.Center) {
+            FloatingSticker(R.drawable.st_cloud, Modifier.offset(x = (-128).dp, y = (-92).dp).size(34.dp), rotation = -8f, periodMs = 2800)
+            Image(
+                painter = painterResource(R.drawable.illu_welcome),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth(0.88f)
+                    .widthIn(max = 380.dp)
+                    .aspectRatio(1.6f)
+                    .graphicsLayer { scaleX = pop.value; scaleY = pop.value },
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text("你好呀，我是小月", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(12.dp))
         Text(
-            "帮你记着每个月的那几天，\n算好下一次什么时候来，\n快到的时候悄悄提醒你。",
+            "帮你记下每次月经开始和结束，\n算出下一次大概哪天来，\n快到的时候提醒你。",
             style = MaterialTheme.typography.bodyLarge, color = Palette.InkSoft, textAlign = TextAlign.Center, lineHeight = 26.sp,
         )
     }
@@ -249,7 +299,11 @@ private fun InviteStep(syncing: Boolean, onSubmit: (String, Boolean, (String) ->
 @Composable
 private fun NumberPicker(title: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color.White).padding(horizontal = 18.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(26.dp), ambientColor = Color(0x1AE59AAB), spotColor = Color(0x22E59AAB))
+            .clip(RoundedCornerShape(26.dp))
+            .background(Color.White)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

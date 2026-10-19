@@ -54,6 +54,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -72,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -152,7 +154,15 @@ fun HomeScreen(state: UiState, vm: AppViewModel) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Box(Modifier.background(Color.White)) {
+        Box(
+            Modifier.background(
+                Brush.verticalGradient(
+                    0f to Color(0xFFFFEEF2),
+                    0.42f to Color.White,
+                    1f to Color.White,
+                ),
+            ),
+        ) {
             // planner doodles in the header
             FloatingSticker(R.drawable.st_star, Modifier.statusBarsPadding().padding(start = 186.dp, top = 22.dp).size(24.dp), rotation = -12f)
             FloatingSticker(R.drawable.st_sparkle, Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 92.dp, top = 12.dp).size(18.dp), periodMs = 1900)
@@ -464,7 +474,12 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
 @Composable
 private fun MonthPickerSheet(current: YearMonth, min: YearMonth, max: YearMonth, onDismiss: () -> Unit, onPick: (YearMonth) -> Unit) {
     var year by remember { mutableIntStateOf(current.year) }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(true), containerColor = Color.White) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(true),
+        containerColor = Palette.Card,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Palette.PinkLine) },
+    ) {
         Column(Modifier.padding(horizontal = 22.dp).navigationBarsPadding()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("跳到", style = MaterialTheme.typography.titleLarge)
@@ -515,9 +530,13 @@ private fun CycleRingView(state: UiState, infos: Map<LocalDate, DayInfo>, select
     if (!snap.hasData) {
         Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Mascot(Modifier.size(110.dp), MoonMood.HAPPY)
+                Box(contentAlignment = Alignment.Center) {
+                    FloatingSticker(R.drawable.st_cloud, Modifier.offset(x = (-78).dp, y = (-36).dp).size(36.dp), rotation = -8f, periodMs = 2800)
+                    FloatingSticker(R.drawable.st_star, Modifier.offset(x = 74.dp, y = (-28).dp).size(22.dp), rotation = 12f, periodMs = 2200)
+                    Mascot(Modifier.size(110.dp), MoonMood.HAPPY)
+                }
                 Spacer(Modifier.height(10.dp))
-                Text("记录第一次经期后，这里会画出你的周期", style = MaterialTheme.typography.bodySmall)
+                Text("记下第一次月经开始，这里会按周期把日子排成一圈", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
         }
         return
@@ -628,11 +647,11 @@ private fun BottomPanel(
 
     Column(
         Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(Palette.Panel)
+            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+            .background(Brush.verticalGradient(listOf(Color(0xFFFFF3F6), Palette.Bg)))
             .padding(horizontal = 18.dp, vertical = 14.dp),
     ) {
-        Box(Modifier.align(Alignment.CenterHorizontally).width(32.dp).height(4.dp).clip(CircleShape).background(Palette.InkFaint))
+        Box(Modifier.align(Alignment.CenterHorizontally).width(36.dp).height(4.dp).clip(CircleShape).background(Palette.PinkLine))
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             AnimatedContent(date, transitionSpec = { monthSlide(targetState > initialState) }, label = "date") { d ->
@@ -700,16 +719,16 @@ private fun PhraseCard(vm: AppViewModel) {
                     cameraDistance = 14f * density
                     scaleX = press; scaleY = press
                 }
-                .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = Color(0x22404A70))
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color.White)
+                .shadow(10.dp, RoundedCornerShape(22.dp), ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB))
+                .clip(RoundedCornerShape(22.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFFFFF8F9), Color.White)))
                 .clickable(src, indication = null) {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     scope.launch { vm.nextPhrase() }
                 }
                 .padding(start = 20.dp, end = 20.dp, top = 26.dp, bottom = 16.dp),
         ) {
-            Text(shown?.text ?: "小月正在想今天要对你说什么……", style = MaterialTheme.typography.bodyLarge, lineHeight = 25.sp)
+            Text(shown?.text ?: "正在挑今天的一句", style = MaterialTheme.typography.bodyLarge, lineHeight = 25.sp)
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Sticker(R.drawable.st_heart, Modifier.size(14.dp))
@@ -734,7 +753,12 @@ private fun ConfirmSheet(p: Pending, onDismiss: () -> Unit, onConfirm: () -> Uni
     }
     val wobble = remember { Animatable(-14f) }
     LaunchedEffect(Unit) { wobble.animateTo(0f, spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow)) }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet, containerColor = Color.White) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheet,
+        containerColor = Palette.Card,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Palette.PinkLine) },
+    ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
             Sticker(sticker, Modifier.size(72.dp).graphicsLayer { rotationZ = wobble.value })
             Spacer(Modifier.height(12.dp))
