@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/eyes_open.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M68.50,110.00 a9.50,11.50 0 1,0 19.00,0 a9.50,11.50 0 1,0 -19.00,0 Z"
+        android:fillColor="#FF4A3A35" />
+    <path android:pathData="M112.50,110.00 a9.50,11.50 0 1,0 19.00,0 a9.50,11.50 0 1,0 -19.00,0 Z"
+        android:fillColor="#FF4A3A35" />
+    <path android:pathData="M77.70,105.00 a3.80,3.80 0 1,0 7.60,0 a3.80,3.80 0 1,0 -7.60,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M121.70,105.00 a3.80,3.80 0 1,0 7.60,0 a3.80,3.80 0 1,0 -7.60,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M73.30,115.50 a1.70,1.70 0 1,0 3.40,0 a1.70,1.70 0 1,0 -3.40,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M117.30,115.50 a1.70,1.70 0 1,0 3.40,0 a1.70,1.70 0 1,0 -3.40,0 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

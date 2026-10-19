@@ -88,7 +88,6 @@ object Reminders {
                 }
             }
         }
-        if (s.remindDaily && !partner && out.isEmpty()) out += Copy.daily()
         return out
     }
 

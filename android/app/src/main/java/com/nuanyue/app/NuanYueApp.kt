@@ -2,6 +2,7 @@ package com.nuanyue.app
 
 import android.app.Application
 import com.nuanyue.app.data.AppDatabase
+import com.nuanyue.app.data.PhraseRepository
 import com.nuanyue.app.data.Repository
 import com.nuanyue.app.data.SettingsStore
 import com.nuanyue.app.notify.Reminders
@@ -20,6 +21,8 @@ class NuanYueApp : Application() {
         private set
     lateinit var sync: SyncManager
         private set
+    lateinit var phrases: PhraseRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -27,7 +30,9 @@ class NuanYueApp : Application() {
         val db = AppDatabase.create(this)
         repository = Repository(db, settings) { local -> onDataChanged(local) }
         sync = SyncManager(this, repository, settings)
+        phrases = PhraseRepository(this, db.phraseDao())
         Reminders.createChannel(this)
+        appScope.launch { phrases.ensureSeeded() }
         appScope.launch {
             val s = settings.current()
             Reminders.schedule(this@NuanYueApp, s)

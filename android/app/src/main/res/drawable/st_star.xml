@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/stickers/star.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp" android:height="64dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <path android:pathData="M32.0,7.0 L39.6,23.5 L57.7,25.7 L44.4,38.0 L47.9,55.8 L32.0,47.0 L16.1,55.8 L19.6,38.0 L6.3,25.7 L24.4,23.5 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M32.0,9.0 L39.1,24.3 L55.8,26.3 L43.4,37.7 L46.7,54.2 L32.0,46.0 L17.3,54.2 L20.6,37.7 L8.2,26.3 L24.9,24.3 Z"
+        android:fillColor="#FFFFD45E"
+        android:strokeColor="#FFF2B53A"
+        android:strokeWidth="2.2"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M25.20,34.00 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z"
+        android:fillColor="#FF4A3A35" />
+    <path android:pathData="M35.20,34.00 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z"
+        android:fillColor="#FF4A3A35" />
+    <path android:pathData="M29.5 38 Q32 40.5 34.5 38"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF4A3A35"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <path android:pathData="M20.40,38.00 a2.60,1.60 0 1,0 5.20,0 a2.60,1.60 0 1,0 -5.20,0 Z"
+        android:fillColor="#FFFFAFC0" />
+    <path android:pathData="M38.40,38.00 a2.60,1.60 0 1,0 5.20,0 a2.60,1.60 0 1,0 -5.20,0 Z"
+        android:fillColor="#FFFFAFC0" />
+</vector>

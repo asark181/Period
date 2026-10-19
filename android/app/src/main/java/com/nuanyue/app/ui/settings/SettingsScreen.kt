@@ -150,9 +150,6 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                 SwitchRow("问一下结束没有", "超过平均经期还没点「走了」时", s.remindEnd, on) { v -> vm.updateSettings { it.copy(remindEnd = v) } }
             }
             SwitchRow("易孕期和排卵日", "进入易孕期、排卵日当天", s.remindFertile, on) { v -> vm.updateSettings { it.copy(remindFertile = v) } }
-            if (!s.isPartner) {
-                SwitchRow("每天记一下", "没有其他提醒的日子", s.remindDaily, on) { v -> vm.updateSettings { it.copy(remindDaily = v) } }
-            }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill("发一条试试", false, {
@@ -160,20 +157,6 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                     else vm.testNotification()
                 })
                 Pill("提醒不准时？", false, { dialog = "battery" })
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-
-        // ---- Love note ----
-        SoftCard(onClick = { dialog = "note" }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(Icons.Rounded.Favorite, Palette.Ink, Palette.Panel)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("首页留言", style = MaterialTheme.typography.titleSmall)
-                    Text(s.loveNote.ifBlank { "显示在首页的一句话" }, style = MaterialTheme.typography.bodySmall, maxLines = 2)
-                }
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -269,9 +252,6 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
     when (dialog) {
         "nickname" -> TextDialog("称呼", s.nickname, 10, placeholder = "首页问候时使用，可以留空", onDismiss = { dialog = null }) { v ->
             vm.updateSettings { it.copy(nickname = v) }
-        }
-        "note" -> TextDialog("首页留言", s.loveNote, 60, placeholder = "留空就不显示", onDismiss = { dialog = null }) { v ->
-            vm.updateSettings { it.copy(loveNote = v) }
         }
         "time" -> TimeDialog(s.remindHour, s.remindMinute, onDismiss = { dialog = null }) { h, m ->
             vm.updateSettings { it.copy(remindHour = h, remindMinute = m) }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/stickers/teacup.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp" android:height="64dp"
+    android:viewportWidth="72" android:viewportHeight="64">
+    <path android:pathData="M22 6 Q18 11 22 16 Q26 21 22 26"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFC9D6EE"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path android:pathData="M34 4 Q30 9 34 14 Q38 19 34 24"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFC9D6EE"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path android:pathData="M12 28 L52 28 L48 52 Q47 58 41 58 L23 58 Q17 58 16 52 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2.4"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M52 33 Q64 33 62 42 Q60 50 49 48"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round" />
+    <path android:pathData="M32 50 C26 46 24 43 26.5 40.5 C28.5 38.5 31 40 32 41.5 C33 40 35.5 38.5 37.5 40.5 C40 43 38 46 32 50 Z"
+        android:fillColor="#FFFF8FAB" />
+    <path android:pathData="M14 32 L50 32"
+        android:fillColor="#FF000000"
+        android:strokeColor="#FFFFE08A"
+        android:strokeWidth="3" />
+</vector>

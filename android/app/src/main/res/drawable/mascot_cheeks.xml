@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/cheeks.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M48.00,128.00 a12.00,7.50 0 1,0 24.00,0 a12.00,7.50 0 1,0 -24.00,0 Z"
+        android:fillColor="#D9FFAFC0" />
+    <path android:pathData="M128.00,128.00 a12.00,7.50 0 1,0 24.00,0 a12.00,7.50 0 1,0 -24.00,0 Z"
+        android:fillColor="#D9FFAFC0" />
+    <path android:pathData="M55 125 L52 131 M61 125 L58 131 M67 125 L64 131"
+        android:fillColor="#FF000000"
+        android:strokeColor="#FFFF8AA3"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+    <path android:pathData="M135 125 L132 131 M141 125 L138 131 M147 125 L144 131"
+        android:fillColor="#FF000000"
+        android:strokeColor="#FFFF8AA3"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+</vector>

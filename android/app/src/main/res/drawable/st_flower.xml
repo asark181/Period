@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/stickers/flower.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp" android:height="64dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <path android:pathData="M5.00,32.00 a27.00,27.00 0 1,0 54.00,0 a27.00,27.00 0 1,0 -54.00,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M22.00,19.00 a10.00,10.00 0 1,0 20.00,0 a10.00,10.00 0 1,0 -20.00,0 Z"
+        android:fillColor="#FFFFB3C6"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2" />
+    <path android:pathData="M34.40,28.00 a10.00,10.00 0 1,0 20.00,0 a10.00,10.00 0 1,0 -20.00,0 Z"
+        android:fillColor="#FFFFB3C6"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2" />
+    <path android:pathData="M29.60,42.50 a10.00,10.00 0 1,0 20.00,0 a10.00,10.00 0 1,0 -20.00,0 Z"
+        android:fillColor="#FFFFB3C6"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2" />
+    <path android:pathData="M14.40,42.50 a10.00,10.00 0 1,0 20.00,0 a10.00,10.00 0 1,0 -20.00,0 Z"
+        android:fillColor="#FFFFB3C6"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2" />
+    <path android:pathData="M9.60,28.00 a10.00,10.00 0 1,0 20.00,0 a10.00,10.00 0 1,0 -20.00,0 Z"
+        android:fillColor="#FFFFB3C6"
+        android:strokeColor="#FFF28AA6"
+        android:strokeWidth="2" />
+    <path android:pathData="M24.00,32.00 a8.00,8.00 0 1,0 16.00,0 a8.00,8.00 0 1,0 -16.00,0 Z"
+        android:fillColor="#FFFFD45E"
+        android:strokeColor="#FFF2B53A"
+        android:strokeWidth="2" />
+</vector>

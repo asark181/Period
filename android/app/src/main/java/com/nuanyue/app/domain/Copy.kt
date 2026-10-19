@@ -27,39 +27,6 @@ object Copy {
         Phase.NONE -> "来的那天点一下「月经开始」就好"
     }
 
-    data class Tip(val title: String, val body: String)
-
-    fun tips(phase: Phase): List<Tip> = when (phase) {
-        Phase.MENSTRUAL -> listOf(
-            Tip("肚子疼的话", "热水袋敷一敷小肚子，比红糖水管用。实在疼就吃一片布洛芬，记得饭后吃。"),
-            Tip("晚上睡得安心", "量多的头两天换夜用款或安睡裤，就不用半夜爬起来啦。"),
-            Tip("吃点补血的", "红肉、鸭血、猪肝都不错，再配点橙子，铁更好吸收。"),
-            Tip("别勉强运动", "散散步、拉拉伸就够了，这几天好好偷个懒。"),
-        )
-        Phase.FOLLICULAR -> listOf(
-            Tip("状态在变好", "这一周通常是精力最好、皮肤最稳的时候。"),
-            Tip("想运动就趁现在", "跑步、跳操、力量训练，这几天恢复快，效果也好。"),
-            Tip("试试新护肤品", "皮肤这周最不容易过敏，想换新品可以放在这几天。"),
-        )
-        Phase.FERTILE, Phase.OVULATION -> listOf(
-            Tip("易孕期要小心", "前后大概 10 天。暂时不想要宝宝的话，每次都要做好措施哦。"),
-            Tip("一点小信号", "一侧小肚子隐隐作痛、分泌物变多变透明，都是排卵前后的正常现象。"),
-            Tip("可以量量体温", "排卵后基础体温会升高 0.3–0.5℃，早上醒来先别起床，量一下最准。"),
-        )
-        Phase.LUTEAL -> listOf(
-            Tip("经前小情绪", "容易水肿、长痘、心情低落，都是激素在作怪，不是你的错。"),
-            Tip("想吃甜的", "很正常呀。黑巧克力和坚果比奶茶、蛋糕更不容易长痘。"),
-            Tip("提前准备好", "包里放两片卫生巾，到时候就不会手忙脚乱啦。"),
-        )
-        Phase.LATE -> listOf(
-            Tip("晚几天很常见", "熬夜、压力大、换季、体重变化，都可能让大姨妈迟到几天。"),
-            Tip("什么时候要留意", "推迟超过 7 天、最近又有同房的话，可以先用验孕棒测一下。"),
-        )
-        Phase.NONE -> listOf(
-            Tip("从下一次开始", "来的那天点一下「月经开始」，走的那天点「月经结束」。记满两次，预测就会按你自己的节奏来算。"),
-        )
-    }
-
     private fun md(d: LocalDate) = "${d.monthValue}月${d.dayOfMonth}日"
 
     // ---- Notifications. `partner` = the boyfriend's phone. ----
@@ -84,27 +51,4 @@ object Copy {
 
     fun ovulation(partner: Boolean): Pair<String, String> =
         (if (partner) "今天是她的排卵日" else "今天是排卵日") to "一个周期里受孕几率最高的一天。"
-
-    fun daily(): Pair<String, String> =
-        "今天过得怎么样" to "花几秒记一下心情和身体，小月帮你记着。"
-
-    // ---- Record vocabulary ----
-
-    val moods = listOf(
-        "happy" to "开心", "calm" to "平静", "energetic" to "元气",
-        "sensitive" to "敏感", "irritable" to "烦躁", "sad" to "低落",
-        "anxious" to "焦虑", "tired" to "累累的",
-    )
-    val symptoms = listOf(
-        "cramps" to "肚子疼", "backache" to "腰酸", "headache" to "头痛", "breast" to "胸胀",
-        "acne" to "长痘", "bloating" to "胀气", "insomnia" to "失眠", "appetite" to "嘴馋",
-        "nausea" to "恶心", "diarrhea" to "拉肚子", "constipation" to "便秘", "discharge" to "分泌物多",
-        "edema" to "水肿", "cold" to "手脚冰凉", "dizzy" to "头晕",
-    )
-    val flows = listOf("无", "少", "中", "多", "很多")
-    val pains = listOf("不痛", "一点点", "有点痛", "很痛", "疼哭了")
-    val loves = listOf("无", "有措施", "无措施")
-
-    fun moodLabel(key: String) = moods.firstOrNull { it.first == key }?.second ?: key
-    fun symptomLabel(key: String) = symptoms.firstOrNull { it.first == key }?.second ?: key
 }

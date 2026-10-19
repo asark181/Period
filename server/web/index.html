@@ -37,7 +37,15 @@
   .btn:active { transform: translateY(1px); }
   .qr { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-soft); }
   .qr img { width: 84px; height: 84px; border-radius: 14px; background: #fff; padding: 6px; border: 1px solid var(--line); }
-  .moon { justify-self: center; width: 240px; height: 240px; }
+  .moon-wrap { justify-self: center; position: relative; width: 260px; height: 260px; }
+  .moon { width: 100%; height: 100%; animation: bob 3.2s ease-in-out infinite; }
+  .st { position: absolute; animation: bob 2.6s ease-in-out infinite; }
+  .st1 { width: 46px; left: -8px; top: 28px; transform: rotate(-14deg); animation-delay: .4s; }
+  .st2 { width: 34px; right: 6px; top: 6px; animation-delay: .9s; }
+  .st3 { width: 38px; right: -6px; bottom: 40px; transform: rotate(12deg); animation-delay: 1.3s; }
+  .st4 { width: 40px; left: 4px; bottom: 18px; animation-delay: .2s; }
+  @keyframes bob { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+  .tape { display: block; width: 110px; margin: 0 auto -14px; position: relative; z-index: 1; transform: rotate(-3deg); }
 
   .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 48px 0 20px; }
   .shots figure { margin: 0; text-align: center; }
@@ -62,7 +70,7 @@
 
   @media (max-width: 760px) {
     .intro { grid-template-columns: 1fr; text-align: center; padding: 16px 0 40px; gap: 18px; }
-    .moon { width: 150px; height: 150px; order: -1; }
+    .moon-wrap { width: 180px; height: 180px; order: -1; }
     h1 { font-size: 30px; }
     .lead { font-size: 15px; }
     .cta { justify-content: center; }
@@ -90,17 +98,7 @@
           <div class="qr"><img src="qr.png" alt="下载二维码"><span>手机扫一扫<br>直接下载</span></div>
         </div>
       </div>
-      <svg class="moon" viewBox="0 0 200 200" aria-hidden="true">
-        <circle cx="100" cy="104" r="88" fill="#FFD86B" opacity=".28"/>
-        <circle cx="100" cy="104" r="76" fill="#FFE08A"/>
-        <circle cx="134" cy="68" r="12" fill="#F7CF6A"/>
-        <circle cx="58" cy="85" r="7" fill="#F7CF6A"/>
-        <ellipse cx="60" cy="122" rx="13" ry="7.5" fill="#FFB3C1"/>
-        <ellipse cx="140" cy="122" rx="13" ry="7.5" fill="#FFB3C1"/>
-        <g fill="none" stroke="#5B4A3F" stroke-width="6" stroke-linecap="round">
-          <path d="M62 106 q13 -16 26 0"/><path d="M112 106 q13 -16 26 0"/><path d="M90 118 q10 11 20 0"/>
-        </g>
-      </svg>
+      <div class="moon-wrap"><img class="moon" src="mascot.svg" alt="小月"><img class="st st1" src="stickers/star.svg" alt=""><img class="st st2" src="stickers/sparkle.svg" alt=""><img class="st st3" src="stickers/heart.svg" alt=""><img class="st st4" src="stickers/flower.svg" alt=""></div>
     </div>
   </div>
 </div>
@@ -108,21 +106,21 @@
 <div class="wrap">
   <div class="shots">
     <figure><img src="shots/home.jpg" alt="首页月历" loading="lazy"><figcaption>月历：经期、易孕期、排卵日一眼看清</figcaption></figure>
+    <figure><img src="shots/year.jpg" alt="整年视图" loading="lazy"><figcaption>整年：十二个月一页看完，点一下就跳过去</figcaption></figure>
     <figure><img src="shots/ring.jpg" alt="周期环" loading="lazy"><figcaption>周期环：这一轮走到第几天了</figcaption></figure>
-    <figure><img src="shots/stats.jpg" alt="统计" loading="lazy"><figcaption>统计：平均周期、最长最短、历次记录</figcaption></figure>
   </div>
 
   <h2>小月能帮你做什么</h2>
   <div class="cards">
     <div class="card"><div class="dot" style="background:var(--pink)">1</div><b>算好下一次</b><p>按最近 6 次周期来算，越近的越重要；偶尔漏记的那一次不会把预测带偏。</p></div>
     <div class="card"><div class="dot" style="background:var(--orange)">2</div><b>快到了提醒你</b><p>提前几天、当天、推迟了、该结束了，都会在你设定的时间轻轻提醒一下。</p></div>
-    <div class="card"><div class="dot" style="background:var(--mint)">3</div><b>记录身体和心情</b><p>流量、痛经、心情、十五种身体小状况、体温体重，还能写几句小日记。</p></div>
-    <div class="card"><div class="dot" style="background:var(--sky)">4</div><b>看懂自己的规律</b><p>平均周期、最长最短、历次经期一览表，还有体温和体重的小曲线。</p></div>
+    <div class="card"><div class="dot" style="background:var(--mint)">3</div><b>一千多句悄悄话</b><p>每次打开都会换一句，点一下也能换。经期、经前、易孕期说的话都不一样。</p></div>
+    <div class="card"><div class="dot" style="background:var(--sky)">4</div><b>看懂自己的规律</b><p>平均周期、最长最短、历次经期一览表，月历、整年、周期环三种看法随手切换。</p></div>
     <div class="card"><div class="dot" style="background:var(--pink)">5</div><b>他也能一起看着</b><p>把邀请码发给他，他只能看、不能改，你的经期快到了他也会收到提醒。</p></div>
     <div class="card"><div class="dot" style="background:var(--orange)">6</div><b>数据只属于你</b><p>记录先在手机上加密再上传，服务器上只有一串看不懂的密文。</p></div>
   </div>
 
-  <h2>用邀请码接上以前的记录</h2>
+  <img class="tape" src="stickers/washi_pink.svg" alt=""><h2 style="margin-top:28px">用邀请码接上以前的记录</h2>
   <div class="invite">
     <ol>
       <li>下载安装暖月，打开后点左下角「<b>我有邀请码</b>」。</li>

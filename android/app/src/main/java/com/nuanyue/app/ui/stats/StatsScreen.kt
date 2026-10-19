@@ -46,8 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nuanyue.app.data.DayRecordEntity
-import com.nuanyue.app.domain.Copy
 import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.Hairline
@@ -175,9 +173,10 @@ private fun Charts(state: UiState, rows: List<Row3>) {
     val snap = state.snapshot
     Column(Modifier.padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(4.dp))
-        SoftCard(Modifier.fillMaxWidth()) {
+        Box {
+        SoftCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Mascot(Modifier.size(44.dp))
+                Mascot(Modifier.size(52.dp))
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text("小月这样帮你预测", style = MaterialTheme.typography.titleSmall)
@@ -203,12 +202,11 @@ private fun Charts(state: UiState, rows: List<Row3>) {
                 )
             }
         }
+        com.nuanyue.app.ui.components.Sticker(com.nuanyue.app.R.drawable.st_washi_yellow, Modifier.align(Alignment.TopEnd).padding(end = 28.dp).size(width = 84.dp, height = 20.dp), rotation = 4f)
+        com.nuanyue.app.ui.components.FloatingSticker(com.nuanyue.app.R.drawable.st_star, Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 6.dp).size(26.dp), rotation = 10f)
+        }
         Spacer(Modifier.height(12.dp))
         CycleBars(rows.reversed(), snap.avgCycle)
-        Spacer(Modifier.height(12.dp))
-        FrequencyCard(state.records)
-        Spacer(Modifier.height(12.dp))
-        BodyCurves(state.records, state.today)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -270,119 +268,4 @@ private fun CycleBars(rows: List<Row3>, avg: Int) {
             style = MaterialTheme.typography.bodySmall,
         )
     }
-}
-
-@Composable
-private fun FrequencyCard(records: Map<LocalDate, DayRecordEntity>) {
-    var mode by remember { mutableIntStateOf(0) }
-    val since = LocalDate.now().minusDays(180)
-    val recent = records.filterKeys { !it.isBefore(since) }.values
-    val counts: List<Pair<String, Int>> = if (mode == 0) {
-        recent.flatMap { it.symptomList }.groupingBy { it }.eachCount().entries.sortedByDescending { it.value }
-            .take(8).map { Copy.symptomLabel(it.key) to it.value }
-    } else {
-        recent.flatMap { it.moodList }.groupingBy { it }.eachCount().entries.sortedByDescending { it.value }
-            .take(8).map { Copy.moodLabel(it.key) to it.value }
-    }
-    val painDays = recent.filter { it.pain > 0 }
-    SoftCard(Modifier.fillMaxWidth()) {
-        SectionTitle("近半年的身体和心情") {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Pill("身体", mode == 0, { mode = 0 }, color = Palette.Sky)
-                Pill("心情", mode == 1, { mode = 1 }, color = Palette.Orange)
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (counts.isEmpty()) {
-            Text("还没有这类记录，在首页点「记录」就能添加啦", style = MaterialTheme.typography.bodySmall)
-        } else {
-            val max = counts.maxOf { it.second }
-            counts.forEach { (label, n) ->
-                Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(label, fontSize = 13.sp, modifier = Modifier.width(72.dp))
-                    Box(Modifier.weight(1f).height(10.dp).clip(CircleShape).background(Palette.Panel)) {
-                        Box(
-                            Modifier.fillMaxWidth(n.toFloat() / max).fillMaxHeight().clip(CircleShape)
-                                .background(if (mode == 0) Palette.Sky else Palette.Orange),
-                        )
-                    }
-                    Text("$n 天", fontSize = 12.sp, color = Palette.InkSoft, modifier = Modifier.width(46.dp), textAlign = TextAlign.End)
-                }
-            }
-        }
-        if (painDays.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            val avgPain = painDays.map { it.pain }.average()
-            Text(
-                "有 ${painDays.size} 天记了痛经，平均「${Copy.pains[avgPain.roundToInt().coerceIn(0, 4)]}」。" +
-                    if (avgPain >= 3) "经常疼得厉害的话，去医院看看会更安心。" else "",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-    }
-}
-
-@Composable
-private fun BodyCurves(records: Map<LocalDate, DayRecordEntity>, today: LocalDate) {
-    val since = today.minusDays(90)
-    val recent = records.entries.filter { !it.key.isBefore(since) }
-    val temps = recent.mapNotNull { e -> e.value.temperature?.let { e.key to it } }.sortedBy { it.first }
-    val weights = recent.mapNotNull { e -> e.value.weight?.let { e.key to it } }.sortedBy { it.first }
-    SoftCard(Modifier.fillMaxWidth()) {
-        SectionTitle("体温和体重")
-        Text("近 90 天", style = MaterialTheme.typography.bodySmall)
-        Spacer(Modifier.height(12.dp))
-        if (temps.size < 2 && weights.size < 2) {
-            Text("记两天以上就能看到曲线。排卵后体温会升高一点点，坚持量能帮你看出排卵日哦。", style = MaterialTheme.typography.bodySmall)
-            return@SoftCard
-        }
-        if (temps.size >= 2) {
-            LineChart("基础体温", "℃", temps, Palette.Pink, minRange = 0.8f)
-            Spacer(Modifier.height(18.dp))
-        }
-        if (weights.size >= 2) LineChart("体重", "kg", weights, Palette.Mint, minRange = 4f)
-    }
-}
-
-@Composable
-private fun LineChart(title: String, unit: String, points: List<Pair<LocalDate, Float>>, color: Color, minRange: Float) {
-    val minV = points.minOf { it.second }
-    val maxV = points.maxOf { it.second }
-    // Keep small day-to-day noise from looking like dramatic swings.
-    val range = maxOf(maxV - minV, minRange)
-    val floor = (minV + maxV) / 2 - range / 2
-    val firstDay = points.first().first.toEpochDay()
-    val span = (points.last().first.toEpochDay() - firstDay).coerceAtLeast(1)
-    Row(verticalAlignment = Alignment.Bottom) {
-        Text(title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Numeral("${points.last().second}", 20.sp, color)
-        Text(" $unit", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 2.dp))
-    }
-    Spacer(Modifier.height(8.dp))
-    Canvas(Modifier.fillMaxWidth().height(96.dp)) {
-        val pad = 6.dp.toPx()
-        fun pos(i: Int): Offset {
-            val (d, v) = points[i]
-            val x = pad + (size.width - 2 * pad) * (d.toEpochDay() - firstDay) / span
-            val y = pad + (size.height - 2 * pad) * (1 - (v - floor) / range)
-            return Offset(x, y)
-        }
-        val line = Path()
-        val fill = Path()
-        points.indices.forEach { i ->
-            val p = pos(i)
-            if (i == 0) {
-                line.moveTo(p.x, p.y); fill.moveTo(p.x, size.height); fill.lineTo(p.x, p.y)
-            } else {
-                line.lineTo(p.x, p.y); fill.lineTo(p.x, p.y)
-            }
-        }
-        fill.lineTo(pos(points.lastIndex).x, size.height)
-        fill.close()
-        drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent)))
-        drawPath(line, color, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-        drawCircle(Color.White, 4.5.dp.toPx(), pos(points.lastIndex))
-        drawCircle(color, 3.dp.toPx(), pos(points.lastIndex))
-    }
-    Text("区间 $minV – $maxV", style = MaterialTheme.typography.bodySmall)
 }

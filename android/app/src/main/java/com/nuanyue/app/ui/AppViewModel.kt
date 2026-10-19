@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nuanyue.app.NuanYueApp
 import com.nuanyue.app.data.AppSettings
-import com.nuanyue.app.data.DayRecordEntity
 import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.domain.CycleSnapshot
 import com.nuanyue.app.notify.Reminders
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,7 +26,6 @@ data class UiState(
     val loaded: Boolean = false,
     val settings: AppSettings = AppSettings(),
     val snapshot: CycleSnapshot = CycleEngine.snapshot(emptyList(), 28, 5),
-    val records: Map<LocalDate, DayRecordEntity> = emptyMap(),
     val today: LocalDate = LocalDate.now(),
 )
 
@@ -37,22 +36,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
+    private val _phrase = MutableStateFlow<com.nuanyue.app.data.PhraseEntity?>(null)
+    val phrase: StateFlow<com.nuanyue.app.data.PhraseEntity?> = _phrase.asStateFlow()
     private val _syncing = MutableStateFlow(false)
     val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
 
-    val state: StateFlow<UiState> = combine(app.settings.flow, repo.periods, repo.records, today) { s, periods, records, day ->
+    val state: StateFlow<UiState> = combine(app.settings.flow, repo.periods, today) { s, periods, day ->
         UiState(
             loaded = true,
             settings = s,
             snapshot = CycleEngine.snapshot(periods, s.defaultCycle, s.defaultPeriod, day),
-            records = records.associateBy { LocalDate.ofEpochDay(it.day) },
             today = day,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState())
 
-    /** Called on resume so the app is right after midnight, and partner data is fresh. */
+    /** Picks another line for the phrase card, matched to today's phase. */
+    suspend fun nextPhrase() {
+        val st = state.first { it.loaded }
+        app.phrases.next(st.snapshot.today.phase, st.settings.isPartner, _phrase.value?.id ?: -1)?.let { _phrase.value = it }
+    }
+
+    /** Called on every resume: fresh date after midnight, a new phrase, fresh partner data. */
     fun refresh() {
         today.value = LocalDate.now()
+        viewModelScope.launch { nextPhrase() }
         viewModelScope.launch {
             val s = app.settings.current()
             if (s.syncEnabled) app.sync.syncNow()
@@ -73,14 +80,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun unmarkStart(date: LocalDate) = edit { repo.unmarkStart(date) }
     fun markEnd(date: LocalDate) = edit { repo.markEnd(date) }
     fun unmarkEnd(date: LocalDate) = edit { repo.unmarkEnd(date) }
-    fun saveRecord(r: DayRecordEntity) = edit { repo.saveRecord(r) }
 
     fun finishOnboarding(nickname: String, lastStart: LocalDate?, periodLen: Int, cycleLen: Int) {
         viewModelScope.launch {
             app.settings.update {
                 it.copy(onboarded = true, nickname = nickname.trim(), defaultCycle = cycleLen, defaultPeriod = periodLen)
             }
-            if (lastStart != null) {
+            if (lastStart != null && repo.periodsNow().isEmpty()) {
                 val end = lastStart.plusDays((periodLen - 1).toLong())
                 repo.addPeriod(lastStart, if (end.isBefore(LocalDate.now())) end else null)
             }
