@@ -65,7 +65,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val readOnly get() = state.value.settings.isPartner
 
     private fun edit(block: suspend () -> Unit) {
-        if (readOnly) { toast("伴侣模式下只能查看哦"); return }
+        if (readOnly) { toast("伴侣模式只能查看"); return }
         viewModelScope.launch { block() }
     }
 
@@ -78,7 +78,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun finishOnboarding(nickname: String, lastStart: LocalDate?, periodLen: Int, cycleLen: Int) {
         viewModelScope.launch {
             app.settings.update {
-                it.copy(onboarded = true, nickname = nickname.ifBlank { "宝贝" }, defaultCycle = cycleLen, defaultPeriod = periodLen)
+                it.copy(onboarded = true, nickname = nickname.trim(), defaultCycle = cycleLen, defaultPeriod = periodLen)
             }
             if (lastStart != null) {
                 val end = lastStart.plusDays((periodLen - 1).toLong())
@@ -98,7 +98,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun testNotification() {
         val s = state.value.settings
-        val (t, b) = com.nuanyue.app.domain.Copy.beforePeriod(s.remindBeforeDays, s.nickname, s.isPartner)
+        val (t, b) = com.nuanyue.app.domain.Copy.beforePeriod(
+            s.remindBeforeDays, LocalDate.now().plusDays(s.remindBeforeDays.toLong()), s.isPartner,
+        )
         Reminders.notify(app, 1999, t, b)
     }
 
@@ -127,7 +129,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun syncLogout() = viewModelScope.launch {
         app.sync.logout()
-        toast("已退出云同步，本机数据保留")
+        toast("已退出同步，本机数据还在")
     }
 
     fun clearAll() = edit {

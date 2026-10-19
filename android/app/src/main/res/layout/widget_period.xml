@@ -3,18 +3,18 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg"
-    android:gravity="center"
+    android:background="@drawable/widget_bg_paper"
+    android:gravity="start|center_vertical"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/widget_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="距离下次"
-        android:textColor="#F2FFFFFF"
-        android:textSize="13sp" />
+        android:text="暖月"
+        android:textColor="#2A2421"
+        android:textSize="12sp" />
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -26,28 +26,29 @@
             android:id="@+id/widget_number"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="--"
-            android:textColor="#FFFFFF"
-            android:textSize="40sp"
-            android:textStyle="bold" />
+            android:fontFamily="serif"
+            android:includeFontPadding="false"
+            android:text="–"
+            android:textColor="#2A2421"
+            android:textSize="48sp" />
 
         <TextView
             android:id="@+id/widget_unit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
-            android:paddingBottom="8dp"
-            android:text="天"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:layout_marginStart="3dp"
+            android:paddingBottom="6dp"
+            android:text=""
+            android:textColor="#2A2421"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/widget_sub"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="暖月"
-        android:textColor="#E6FFFFFF"
+        android:text=""
+        android:textColor="#2A2421"
+        android:alpha="0.7"
         android:textSize="11sp" />
 </LinearLayout>

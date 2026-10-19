@@ -40,7 +40,7 @@ class SyncManager(
             val keys = Crypto.split(material)
             val remote = client.fetch(Crypto.spaceId(account), Crypto.hex(keys.authToken))
             if (remote != null) decode(keys.encKey, remote.blob) // throws on wrong password
-            if (asPartner && remote == null) error("还没有这个账号的数据，请先让 TA 在自己手机上开启同步")
+            if (asPartner && remote == null) error("这个账号还没有数据。先在她的手机上开启同步")
             settings.update {
                 it.copy(
                     syncAccount = Crypto.normalizeAccount(account),
@@ -49,7 +49,7 @@ class SyncManager(
                     lastSyncAt = 0,
                 )
             }
-            if (remote == null) "已创建云端空间" else "已连接云端空间"
+            if (remote == null) "已创建同步账号" else "已连接"
         }
     }
 
@@ -62,17 +62,17 @@ class SyncManager(
         mutex.withLock {
             runCatching {
                 val s = settings.current()
-                if (!s.syncEnabled) error("未开启云同步")
+                if (!s.syncEnabled) error("还没开启同步")
                 val keys = Crypto.split(Base64.decode(s.syncKey, Base64.NO_WRAP))
                 val space = Crypto.spaceId(s.syncAccount)
                 val auth = Crypto.hex(keys.authToken)
                 val remote = client.fetch(space, auth)
 
                 if (s.isPartner) {
-                    if (remote == null) error("TA 还没有上传数据")
+                    if (remote == null) error("她还没有上传过数据")
                     repo.replaceWith(decode(keys.encKey, remote.blob))
                     settings.update { it.copy(lastSyncAt = System.currentTimeMillis()) }
-                    return@runCatching "已获取 TA 的最新记录"
+                    return@runCatching "已更新到最新"
                 }
 
                 if (remote != null && remote.updatedAt > s.lastSyncAt) {
@@ -95,7 +95,7 @@ class SyncManager(
         val plain = try {
             Crypto.decrypt(key, Base64.decode(blob, Base64.NO_WRAP))
         } catch (e: Exception) {
-            throw IllegalStateException("密码不对，无法解密云端数据")
+            throw IllegalStateException("密码不对，解不开云端数据")
         }
         return json.decodeFromString(BackupData.serializer(), String(plain))
     }

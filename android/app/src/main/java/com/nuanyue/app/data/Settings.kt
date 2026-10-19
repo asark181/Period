@@ -18,7 +18,7 @@ enum class Role { SELF, PARTNER }
 
 data class AppSettings(
     val onboarded: Boolean = false,
-    val nickname: String = "宝贝",
+    val nickname: String = "",
     val defaultCycle: Int = 28,
     val defaultPeriod: Int = 5,
     val remindEnabled: Boolean = true,
@@ -96,7 +96,7 @@ class SettingsStore(private val context: Context) {
 
     private fun Preferences.toSettings() = AppSettings(
         onboarded = this[K.onboarded] ?: false,
-        nickname = this[K.nickname] ?: "宝贝",
+        nickname = this[K.nickname] ?: "",
         defaultCycle = this[K.defaultCycle] ?: 28,
         defaultPeriod = this[K.defaultPeriod] ?: 5,
         remindEnabled = this[K.remindEnabled] ?: true,

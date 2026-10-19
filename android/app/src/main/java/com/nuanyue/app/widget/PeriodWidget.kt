@@ -38,13 +38,19 @@ class PeriodWidget : AppWidgetProvider() {
             val snap = CycleEngine.snapshot(app.repository.periodsNow(), s.defaultCycle, s.defaultPeriod)
             val t = snap.today
             val (label, number, unit) = when {
-                !snap.hasData -> Triple("暖月", "♡", "点我记录")
-                t.phase == Phase.MENSTRUAL -> Triple("月经期第", "${t.periodDay}", "天")
+                !snap.hasData -> Triple("暖月", "–", "")
+                t.phase == Phase.MENSTRUAL -> Triple("经期第", "${t.periodDay}", "天")
                 t.lateDays > 0 -> Triple("已推迟", "${t.lateDays}", "天")
-                t.daysUntilNext == 0 -> Triple("大姨妈", "今天", "可能到访")
-                else -> Triple("距离下次", "${t.daysUntilNext}", "天")
+                t.daysUntilNext == 0 -> Triple("下次经期", "今天", "")
+                else -> Triple("距下次经期", "${t.daysUntilNext}", "天")
             }
-            val sub = if (snap.hasData) "${t.phase.title} · 怀孕几率${t.pregnancyChance}" else "温暖每一天"
+            val sub = if (snap.hasData) t.phase.title else "还没有记录"
+            val (bg, fg) = when (t.phase) {
+                Phase.MENSTRUAL, Phase.LATE -> R.drawable.widget_bg_rouge to 0xFFFAF6F0.toInt()
+                Phase.FERTILE, Phase.OVULATION -> R.drawable.widget_bg_lemon to 0xFF2A2421.toInt()
+                Phase.NONE -> R.drawable.widget_bg_paper to 0xFF2A2421.toInt()
+                else -> R.drawable.widget_bg_sage to 0xFF2A2421.toInt()
+            }
             val open = PendingIntent.getActivity(
                 context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
             )
@@ -54,6 +60,8 @@ class PeriodWidget : AppWidgetProvider() {
                     setTextViewText(R.id.widget_number, number)
                     setTextViewText(R.id.widget_unit, unit)
                     setTextViewText(R.id.widget_sub, sub)
+                    setInt(R.id.widget_root, "setBackgroundResource", bg)
+                    listOf(R.id.widget_label, R.id.widget_number, R.id.widget_unit, R.id.widget_sub).forEach { setTextColor(it, fg) }
                     setOnClickPendingIntent(R.id.widget_root, open)
                 }
                 manager.updateAppWidget(id, views)

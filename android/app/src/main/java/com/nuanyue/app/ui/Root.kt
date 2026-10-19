@@ -17,11 +17,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Face
+import androidx.compose.material.icons.rounded.PersonOutline
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -37,8 +37,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -62,7 +60,7 @@ enum class Tab(val label: String, val icon: ImageVector) {
     HOME("今天", Icons.Rounded.Home),
     CALENDAR("日历", Icons.Rounded.CalendarMonth),
     STATS("分析", Icons.Rounded.BarChart),
-    ME("我的", Icons.Rounded.Face),
+    ME("我的", Icons.Rounded.PersonOutline),
 }
 
 @Composable
@@ -79,7 +77,7 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
     }
 
     if (!state.loaded) {
-        Box(Modifier.fillMaxSize().background(Palette.backgroundGradient))
+        Box(Modifier.fillMaxSize().background(Palette.Paper))
         return
     }
     if (!state.settings.onboarded) {
@@ -91,7 +89,7 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { BottomBar(tab) { tab = it } },
-        modifier = Modifier.background(Palette.backgroundGradient),
+        modifier = Modifier.background(Palette.Paper),
     ) { inner ->
         Box(Modifier.fillMaxSize().padding(bottom = inner.calculateBottomPadding())) {
             AnimatedContent(tab, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "tab") { t ->
@@ -118,13 +116,10 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
 
 @Composable
 private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
-    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().background(Palette.Paper)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Line))
         Row(
-            Modifier.fillMaxWidth().height(64.dp)
-                .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = Palette.Coral.copy(alpha = 0.3f))
-                .clip(RoundedCornerShape(32.dp))
-                .background(Color.White)
-                .padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().height(60.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -132,17 +127,16 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 val selected = t == current
                 Column(
                     Modifier
-                        .clip(RoundedCornerShape(24.dp))
                         .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(t) }
-                        .background(if (selected) Palette.RoseSoft else Color.Transparent)
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                        .padding(horizontal = 18.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(t.icon, t.label, tint = if (selected) Palette.CoralDeep else Palette.InkFaint, modifier = Modifier.size(24.dp))
+                    Icon(t.icon, t.label, tint = if (selected) Palette.Ink else Palette.InkFaint, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         t.label, fontSize = 11.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selected) Palette.CoralDeep else Palette.InkSoft,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selected) Palette.Ink else Palette.InkFaint,
                     )
                 }
             }

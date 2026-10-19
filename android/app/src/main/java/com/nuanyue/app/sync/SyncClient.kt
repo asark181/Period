@@ -51,10 +51,10 @@ class SyncClient(private val base: String = BuildConfig.SERVER_URL) {
     private fun error(code: Int, body: String) = SyncException(
         code,
         when (code) {
-            401, 403 -> "密码不对哦，请检查同步账号和密码"
+            401, 403 -> "账号或密码不对"
             413 -> "数据太大了"
-            429 -> "请求太频繁，稍后再试"
-            else -> "服务器开小差了 ($code)"
+            429 -> "操作太频繁，过一会儿再试"
+            else -> "服务器出错了（$code）"
         },
     )
 

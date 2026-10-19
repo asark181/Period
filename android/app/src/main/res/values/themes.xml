@@ -1,15 +1,15 @@
 <resources>
     <style name="Theme.NuanYue" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">@color/cream</item>
+        <item name="android:windowBackground">@color/paper</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="Theme.NuanYue.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/cream</item>
+        <item name="windowSplashScreenBackground">@color/paper</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="windowSplashScreenIconBackgroundColor">@color/launcher_bg</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/rouge</item>
         <item name="postSplashScreenTheme">@style/Theme.NuanYue</item>
     </style>
 </resources>

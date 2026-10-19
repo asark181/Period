@@ -81,16 +81,16 @@ class CycleEngineTest {
     }
 
     @Test fun remindersFireOnTheRightDays() {
-        val settings = AppSettings(nickname = "宝贝", remindBeforeDays = 2)
+        val settings = AppSettings(remindBeforeDays = 2)
         assertEquals(1, Reminders.due(history, settings, LocalDate.parse("2026-09-19")).size)
         assertTrue(Reminders.due(history, settings, LocalDate.parse("2026-09-19"))[0].first.contains("2 天后"))
         assertTrue(Reminders.due(history, settings, LocalDate.parse("2026-09-21"))[0].first.contains("今天"))
         assertTrue(Reminders.due(history, settings, LocalDate.parse("2026-09-18")).isEmpty())
         assertTrue(Reminders.due(history, settings, LocalDate.parse("2026-09-22"))[0].first.contains("推迟"))
         val partner = Reminders.due(history, settings.copy(role = com.nuanyue.app.data.Role.PARTNER), LocalDate.parse("2026-09-19"))
-        assertTrue(partner[0].first.startsWith("TA"))
+        assertTrue(partner[0].first.startsWith("她"))
         // Open period past its average length → ask whether it ended.
         val open = history.dropLast(1) + p("2026-08-24", null)
-        assertTrue(Reminders.due(open, settings, LocalDate.parse("2026-08-29")).any { it.first.contains("走了吗") })
+        assertTrue(Reminders.due(open, settings, LocalDate.parse("2026-08-29")).any { it.first.contains("结束了吗") })
     }
 }

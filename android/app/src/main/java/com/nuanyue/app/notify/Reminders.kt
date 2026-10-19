@@ -71,14 +71,14 @@ object Reminders {
             val inPeriod = t.phase == Phase.MENSTRUAL
             val until = t.daysUntilNext
             if (s.remindBefore && !inPeriod && t.lateDays == 0 && until != null) {
-                if (until == s.remindBeforeDays && until > 0) out += Copy.beforePeriod(until, s.nickname, partner)
-                else if (until == 0) out += Copy.periodToday(s.nickname, partner)
+                if (until == s.remindBeforeDays && until > 0) out += Copy.beforePeriod(until, today.plusDays(until.toLong()), partner)
+                else if (until == 0) out += Copy.periodToday(partner)
             }
-            if (s.remindLate && t.lateDays in setOf(1, 3, 7, 14)) out += Copy.late(t.lateDays, s.nickname, partner)
+            if (s.remindLate && t.lateDays in setOf(1, 3, 7, 14)) out += Copy.late(t.lateDays, partner)
             if (s.remindEnd && !partner) {
                 val last = snap.periods.last()
                 val day = CycleEngine.days(last.start, today) + 1
-                if (last.end == null && day == snap.avgPeriod + 1) out += Copy.endCheck(s.nickname)
+                if (last.end == null && day == snap.avgPeriod + 1) out += Copy.endCheck(day)
             }
             if (s.remindFertile && !inPeriod) {
                 val ov = t.nextOvulation
@@ -88,7 +88,7 @@ object Reminders {
                 }
             }
         }
-        if (s.remindDaily && !partner && out.isEmpty()) out += Copy.daily(s.nickname)
+        if (s.remindDaily && !partner && out.isEmpty()) out += Copy.daily()
         return out
     }
 
@@ -102,7 +102,7 @@ object Reminders {
         )
         val n = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setColor(0xFFFF7A93.toInt())
+            .setColor(0xFFD9475A.toInt())
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
