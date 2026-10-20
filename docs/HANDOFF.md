@@ -8,7 +8,7 @@
 
 - **App**：Kotlin + Jetpack Compose，本地 Room 数据库，离线可用。1.9.0 的界面是暖白底 `#FFF9F8`、白卡片、墨色文字 `#4A3540`。经期日是浅玫瑰块 `#F39BAE` 加墨色数字，易孕是浅杏 `#FFF1DC`，排卵是杏底上的橙点，预测是 `#EB8399` 虚线。吉祥物仍是「小月」，每屏最多一次。底栏是贴底的白条，选中项是一颗高出顶边的浅玫瑰圆。
 - **服务器**：域名 <https://leafy.fxxkopenai.com>（Cloudflare 代理 HTTPS，源站仍是 `129.151.21.101` 的 nginx :80）+ FastAPI（127.0.0.1:8090）+ SQLite。只存端到端加密的密文，同时托管下载页和 APK。443 被 xray 占用，源站不要加证书。
-- **当前代码版本**：1.10.0（versionCode 14，部署状态见文末）。发布走 `deploy/deploy.sh`，它按 APK 重写 `version.json`。
+- **当前版本**：1.10.0（versionCode 14，已部署，验证见文末）。发布走 `deploy/deploy.sh`，它按 APK 重写 `version.json`。
 - **版本线**：1.5.0 域名 HTTPS，网络失败才回退源站 IP。1.6.0 首页一屏放下月历、开始/结束和悄悄话。1.7.0 圆角方格月历，应用内下载更新。1.7.1 方格按内容高度排，余白留给选中日。1.8.0 换成浅灰白日历和浮起的底栏圆泡，同步、加密、Room、更新协议都没动。1.9.0 按 v0.5 色板改回暖色，底栏改成随选中项隆起的白条，更新下载和安装流程没动。
 
 用户的核心诉求（按优先级）：
@@ -230,3 +230,14 @@ adb exec-out screencap -p > /tmp/s.png
 - RemoteViews 提供 2×2 紧凑布局及宽度达到 300dp 后的 4×2 布局，两种尺寸都有下次日期、周期进度和已有小月头像；Android 12+ 交给桌面按尺寸选择，旧版通过尺寸回调重绘。保留既有数据变更、每日提醒及系统定期刷新入口。最小验证尺寸为 140×160dp 和 300×160dp，字号 1.0；更小尺寸和小米 HyperOS 的实际桌面行为仍需真机核验。
 - 验证：`android/gradlew -p android testDebugUnitTest assembleRelease assembleDebug --offline --console=plain` 成功；JUnit 77 项、失败/错误/跳过均为 0。新增 7 项展示逻辑测试和 5 项布局测试（每项覆盖两种尺寸），用真实 RemoteViews 膨胀并检查文字宽高，修复了窄布局标题及宽布局日期裁切。首页同时按 1440×3200／560dpi 和小屏渲染。服务端 `server/.venv/bin/python -m pytest -q server/test_app.py`：2 passed（依赖库一项弃用提示）。
 - 签名包：`dist/nuanyue-v1.10.0.apk`，签名证书 SHA-256 与 1.9.2 一致；APK SHA-256 为 `cc05585189fbba66a20e44d02d6070dba2eab675753389623d754bab901e213b`。`dist/widget-1.10.0-2x2.png`、`dist/widget-1.10.0-4x2.png` 是布局渲染结果，不代表 HyperOS 真机截图。
+
+
+### 最终发布与模拟器验证（2026-10-20）
+
+- **线上已更新到 1.10.0 / versionCode 14**。通过 Oracle Cloud Shell 执行现有 `deploy/deploy.sh`；公网 `/api/version` 返回 14 / 1.10.0，公网实际下载 APK、服务器 APK 和本机包的 SHA-256 三者相同，均为上文 `cc055851…e213b`；公网 `/api/health` 返回 `ok: true`，`nuanyue`、`nginx`、`x-ui` 均为 active。服务器 `/opt/nuanyue/releases/pre-1.10.0/` 保留 1.9.2 安装包和版本文件，`pre-1.9.2/` 保留此前版本；没有迁移或导入业务数据。
+- **Cloud Shell 的临时私钥文件已删除并核验不存在**，本机 `deploy/private/server_id_rsa` 及签名文件仍在。机密文档和签名密钥没有上传。发布核验截图：`dist/oracle-1.10.0-verification.png`。本机直连 SSH 的断连仍未定位，后续发布可使用已验证的 Cloud Shell 路径，按需临时上传原有私钥并在完成后删除；不要根据旧推断直接停用 fail2ban。
+- **模拟器运行环境已恢复**：`~/Library/Android/sdk`，emulator 37.2.12、API 35 Google APIs ARM64 镜像 revision 9；下载包先按 Google 仓库摘要校验再安装，完成后删除安装压缩包。adb 为 `~/Library/Android/sdk/platform-tools/adb`。
+- 从 `nuanyue` 的 `pre190` 快照以 `-read-only -no-snapshot-save` 启动，Android 15。快照恢复后的物理配置为 1080×2400 / 420dpi，本轮用 `adb -s emulator-5560 shell wm size 1440x3200` 和 `wm density 560` 设置目标测试尺寸；字号 1.0、手势导航已确认。QA190 首页、1.10.0 签名覆盖安装、桌面添加 2×2、拖动到 4×2 自动切换布局、点击返回应用均已实测通过，未写入经期记录。
+- 实测截图：`dist/emulator-home-1.10.0.png`、`dist/emulator-widget-2x2-1.10.0.png`、`dist/emulator-widget-4x2-1.10.0.png`。这些是 Pixel 7 原生 Android 15 按指定屏幕尺寸模拟的结果；小米 HyperOS 真机的桌面网格、后台刷新仍未验证。
+- 验证结束已关闭模拟器，没有保存新的测试快照；`ref160` 和 `pre190` 均保留。加载 `pre190` 会切换 QCOW2 活动快照，并更新 `snapshot.pb` 和活动盘的修改时间；本轮比较的 12 个原始文件大小均未变化，但不能声称所有文件逐字节不变。下次启动若需保留本轮覆盖安装或桌面摆放，需要另行决定是否保存状态；本次没有保存这些测试操作。
+- 代码保存在本地 `codex/nuanyue-widget` 分支，功能提交 `7d6e4ee`；本轮未推送 GitHub。
