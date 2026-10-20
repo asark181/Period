@@ -51,7 +51,7 @@ def main():
     ap.add_argument("--code")
     ap.add_argument("--nickname", default="")
     ap.add_argument("--note", default="")
-    ap.add_argument("--server", default="http://129.151.21.101")
+    ap.add_argument("--server", default="https://leafy.fxxkopenai.com")
     a = ap.parse_args()
 
     code = normalize(a.code) if a.code else "NY" + "".join(secrets.choice(ALPHABET) for _ in range(12))

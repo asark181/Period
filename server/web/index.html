@@ -4,144 +4,232 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>暖月</title>
-<meta name="description" content="暖月：帮你记着每个月的那几天，算好下一次什么时候来，快到的时候悄悄提醒你。">
-<meta name="theme-color" content="#FFE3E9">
+<meta name="description" content="暖月：记下经期从哪天到哪天，按最近 6 次周期算下一次，到了你设的时间提醒。安卓安装包在本页下载。">
+<meta name="theme-color" content="#FFF6F7">
+<meta name="color-scheme" content="light">
+<link rel="canonical" href="https://leafy.fxxkopenai.com/">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
-  @font-face { font-family: "Nunito"; src: url("fonts/Nunito.ttf") format("truetype"); font-weight: 200 1000; font-display: swap; }
   :root {
-    --bg: #F7F8FC; --panel: #F1F2F8; --line: #ECEEF5;
-    --ink: #3B4057; --ink-soft: #8D93A8;
-    --pink: #F2708A; --pink-soft: #FFE8ED; --pink-line: #F6AABA;
-    --orange: #F7A928; --mint: #4FC6B0; --sky: #6E8CC6; --sky-soft: #E9F0FC;
-    --round: "Nunito", -apple-system, "PingFang SC", sans-serif;
-    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", sans-serif;
+    --bg: #FFF6F7;
+    --panel: #FFF0F3;
+    --card: #fff;
+    --line: #F3E3E8;
+    --ink: #4A3540;
+    --soft: #7A6572;
+    --faint: #D5C4CC;
+    --pink: #F2708A;
+    --pink-deep: #E25373;
+    --pink-soft: #FFE8ED;
+    --pink-line: #F6AABA;
+    --orange: #F7A928;
+    --mint: #3EAF9A;
+    --shadow: 0 16px 40px rgba(226, 83, 115, .12);
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "MiSans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
   html { background: var(--bg); }
-  body { font-family: var(--sans); color: var(--ink); background: var(--bg); line-height: 1.7; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 22px; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    background:
+      radial-gradient(820px 380px at -10% -8%, #FFE4EA 0%, transparent 62%),
+      radial-gradient(640px 320px at 112% 0%, #FFF3D4 0%, transparent 58%),
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  img { max-width: 100%; height: auto; }
+  .wrap { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 18px 0 56px; }
 
-  .hero { background: #fff; border-radius: 0 0 36px 36px; box-shadow: 0 8px 30px rgba(64,74,112,.06); }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
-  .brand img { width: 34px; height: 34px; border-radius: 10px; }
-  .ver { font: 600 13px var(--round); color: var(--ink-soft); background: var(--panel); padding: 4px 12px; border-radius: 99px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 2px 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: .02em; }
+  .brand img { width: 40px; height: 40px; border-radius: 14px; box-shadow: 0 6px 16px rgba(226, 83, 115, .16); }
+  .ver {
+    margin: 0;
+    max-width: 58%;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #FFF7F8;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.4;
+    box-shadow: 0 6px 16px rgba(226, 83, 115, .10);
+  }
 
-  .intro { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 36px 0 56px; }
-  h1 { font-size: 44px; line-height: 1.3; font-weight: 800; }
-  h1 em { font-style: normal; color: var(--pink); }
-  .lead { margin-top: 16px; font-size: 17px; color: var(--ink-soft); }
-  .cta { margin-top: 30px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 15px 32px; border-radius: 99px; background: var(--pink); color: #fff; text-decoration: none; font-size: 17px; font-weight: 700; box-shadow: 0 10px 24px rgba(242,112,138,.35); }
+  .hero {
+    display: grid;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid rgba(243, 227, 232, .9);
+    border-radius: 32px;
+    box-shadow: var(--shadow);
+    padding: 8px 18px 22px;
+  }
+  .stage { position: relative; width: min(280px, 78%); margin: 0 auto; }
+  .stage .illu { display: block; width: 100%; height: auto; }
+  .st { position: absolute; width: 46px; pointer-events: none; filter: drop-shadow(0 6px 8px rgba(226, 83, 115, .12)); animation: bob 3.4s ease-in-out infinite; }
+  .st-star { width: 42px; left: -6px; top: 18px; animation-delay: .2s; }
+  .st-heart { width: 36px; right: -4px; top: 36px; animation-delay: .8s; }
+  .st-flower { width: 40px; right: 8px; bottom: 28px; animation-delay: 1.2s; }
+  .st-spark { width: 28px; left: 18px; bottom: 46px; animation-delay: .5s; }
+  @keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+
+  h1 { margin: 4px 0 0; font-size: 36px; line-height: 1.15; letter-spacing: .04em; }
+  .lead { margin: 10px 0 0; color: var(--soft); font-size: 16px; }
+  .cta { margin-top: 18px; display: grid; gap: 14px; }
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 58px;
+    padding: 14px 28px;
+    border-radius: 999px;
+    background: var(--pink-deep);
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    box-shadow: 0 12px 26px rgba(226, 83, 115, .34);
+  }
   .btn:active { transform: translateY(1px); }
-  .qr { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-soft); }
-  .qr img { width: 84px; height: 84px; border-radius: 14px; background: #fff; padding: 6px; border: 1px solid var(--line); }
-  .moon-wrap { justify-self: center; position: relative; width: 260px; height: 260px; }
-  .moon { width: 100%; height: 100%; animation: bob 3.2s ease-in-out infinite; }
-  .st { position: absolute; animation: bob 2.6s ease-in-out infinite; }
-  .st1 { width: 46px; left: -8px; top: 28px; transform: rotate(-14deg); animation-delay: .4s; }
-  .st2 { width: 34px; right: 6px; top: 6px; animation-delay: .9s; }
-  .st3 { width: 38px; right: -6px; bottom: 40px; transform: rotate(12deg); animation-delay: 1.3s; }
-  .st4 { width: 40px; left: 4px; bottom: 18px; animation-delay: .2s; }
-  @keyframes bob { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
-  .tape { display: block; width: 110px; margin: 0 auto -14px; position: relative; z-index: 1; transform: rotate(-3deg); }
+  .btn:focus-visible { outline: 3px solid var(--pink-deep); outline-offset: 3px; }
+  .filehint { margin: 8px 0 0; color: var(--soft); font-size: 13px; text-align: center; }
+  .qr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 22px;
+    background: var(--panel);
+  }
+  .qr img { width: 96px; height: 96px; border-radius: 12px; background: #fff; padding: 6px; }
+  .qr span { color: var(--soft); font-size: 13px; line-height: 1.55; }
+  .qr b { color: var(--ink); font-weight: 700; }
 
-  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 48px 0 20px; }
-  .shots figure { margin: 0; text-align: center; }
-  .shots img { width: 100%; display: block; border-radius: 28px; background: #fff; box-shadow: 0 12px 34px rgba(64,74,112,.10); }
-  .shots figcaption { margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+  .grid { display: grid; gap: 16px; margin-top: 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(243, 227, 232, .9);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    padding: 22px 20px 20px;
+  }
+  .tape { display: block; width: 108px; margin: -8px auto 8px; transform: rotate(-4deg); }
+  h2 { margin: 0 0 12px; font-size: 20px; letter-spacing: .02em; }
+  ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; font-size: 15px; }
+  .n {
+    width: 28px; height: 28px; border-radius: 999px;
+    display: grid; place-items: center;
+    background: var(--pink-soft); color: var(--pink-deep);
+    font-weight: 800; font-size: 14px;
+  }
+  li p { margin: 0; }
+  .facts { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .facts li { display: block; margin: 0; padding: 12px 14px; border-radius: 18px; background: var(--panel); font-size: 14.5px; }
+  .facts b { display: block; margin-bottom: 2px; }
+  .lock { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--pink-line); }
+  .lock p { margin: 6px 0 0; color: var(--soft); font-size: 14.5px; }
+  .mint { color: var(--mint); font-weight: 800; font-size: 13px; letter-spacing: .08em; }
 
-  h2 { font-size: 22px; font-weight: 800; margin: 46px 0 16px; }
-  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .card { background: #fff; border-radius: 22px; padding: 22px; box-shadow: 0 6px 20px rgba(64,74,112,.06); }
-  .card .dot { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 12px; font: 800 16px var(--round); color: #fff; }
-  .card b { display: block; font-size: 16px; margin-bottom: 4px; }
-  .card p { font-size: 14px; color: var(--ink-soft); }
+  footer { margin-top: 22px; text-align: center; color: var(--soft); font-size: 13px; }
+  footer strong { color: var(--ink); font-weight: 700; }
 
-  .invite { background: #fff; border-radius: 26px; padding: 26px; box-shadow: 0 6px 20px rgba(64,74,112,.06); display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
-  .invite ol { padding-left: 1.3em; color: var(--ink-soft); font-size: 15px; }
-  .invite li { padding: 3px 0; }
-  .invite li b { color: var(--ink); }
-  .code { font: 800 20px var(--round); letter-spacing: 1px; color: var(--pink); background: var(--pink-soft); border: 1.5px dashed var(--pink-line); border-radius: 14px; padding: 10px 16px; display: inline-block; margin: 6px 0; }
-  .note { font-size: 13px; color: var(--ink-soft); }
-
-  footer { padding: 40px 0 56px; text-align: center; font-size: 13px; color: var(--ink-soft); }
-
-  @media (max-width: 760px) {
-    .intro { grid-template-columns: 1fr; text-align: center; padding: 16px 0 40px; gap: 18px; }
-    .moon-wrap { width: 180px; height: 180px; order: -1; }
-    h1 { font-size: 30px; }
-    .lead { font-size: 15px; }
-    .cta { justify-content: center; }
-    .qr { display: none; }
-    .shots { grid-template-columns: repeat(3, 74%); overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -22px; padding: 32px 22px 16px; }
-    .shots figure { scroll-snap-align: center; }
-    .cards { grid-template-columns: 1fr; }
-    .invite { grid-template-columns: 1fr; }
+  @media (min-width: 860px) {
+    .wrap { width: min(1040px, calc(100% - 64px)); padding-top: 28px; }
+    .hero { grid-template-columns: minmax(280px, 380px) 1fr; gap: 12px 28px; align-items: center; padding: 18px 36px 28px 18px; }
+    .stage { width: 100%; }
+    h1 { font-size: 48px; }
+    .lead { font-size: 17px; max-width: 38em; }
+    .cta { grid-template-columns: auto 1fr; align-items: center; }
+    .btn { min-width: 220px; }
+    .filehint { grid-column: 1 / -1; text-align: left; margin-top: 0; }
+    .grid { grid-template-columns: 1.05fr .95fr; align-items: start; }
+    .ver { max-width: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .st { animation: none; }
   }
 </style>
 </head>
 <body>
-<div class="hero">
-  <div class="wrap">
-    <header>
-      <div class="brand"><img src="icon.svg" alt="">暖月</div>
-      <div class="ver" id="ver">Android</div>
-    </header>
-    <div class="intro">
-      <div>
-        <h1>每个月的那几天<br><em>小月</em>帮你记着</h1>
-        <p class="lead">记下经期，算好下一次什么时候来，快到的时候悄悄提醒你。<br>没有广告，不用注册，打开就能用。</p>
-        <div class="cta">
-          <a class="btn" href="download/nuanyue.apk" download>下载安卓版</a>
-          <div class="qr"><img src="qr.png" alt="下载二维码"><span>手机扫一扫<br>直接下载</span></div>
-        </div>
-      </div>
-      <div class="moon-wrap"><img class="moon" src="mascot.svg" alt="小月"><img class="st st1" src="stickers/star.svg" alt=""><img class="st st2" src="stickers/sparkle.svg" alt=""><img class="st st3" src="stickers/heart.svg" alt=""><img class="st st4" src="stickers/flower.svg" alt=""></div>
-    </div>
-  </div>
-</div>
-
 <div class="wrap">
-  <div class="shots">
-    <figure><img src="shots/home.jpg" alt="首页月历" loading="lazy"><figcaption>月历：经期、易孕期、排卵日一眼看清</figcaption></figure>
-    <figure><img src="shots/year.jpg" alt="整年视图" loading="lazy"><figcaption>整年：十二个月一页看完，点一下就跳过去</figcaption></figure>
-    <figure><img src="shots/ring.jpg" alt="周期环" loading="lazy"><figcaption>周期环：这一轮走到第几天了</figcaption></figure>
+  <header>
+    <div class="brand"><img src="icon.svg" alt="" width="40" height="40">暖月</div>
+    <p class="ver" id="ver">正在读取版本</p>
+  </header>
+
+  <section class="hero">
+    <div class="stage">
+      <img class="illu" src="illu_welcome.png" width="960" height="960" alt="小月抱着热水袋，身边有星星和花">
+      <img class="st st-star" src="stickers/star.svg" alt="">
+      <img class="st st-heart" src="stickers/heart.svg" alt="">
+      <img class="st st-flower" src="stickers/flower.svg" alt="">
+      <img class="st st-spark" src="stickers/sparkle.svg" alt="">
+    </div>
+    <div>
+      <h1>暖月</h1>
+      <p class="lead">记下经期从哪天开始、哪天结束。下一次按最近 6 次周期来算，越近的越算数。快到了，会在你设定的时间提醒，默认早上 9:00。</p>
+      <div class="cta">
+        <a class="btn" href="https://leafy.fxxkopenai.com/download/nuanyue.apk">下载安卓版</a>
+        <a class="qr" href="https://leafy.fxxkopenai.com/">
+          <img src="qr.png" width="248" height="248" alt="二维码，内容是 https://leafy.fxxkopenai.com/">
+          <span>另一台手机扫这个码，打开 <b>leafy.fxxkopenai.com</b> 再下载。</span>
+        </a>
+        <p class="filehint">安装包 nuanyue.apk · 需要 Android 8.0 或更高</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <img class="tape" src="stickers/washi_pink.svg" alt="">
+      <h2>在安卓手机上安装</h2>
+      <ol>
+        <li><span class="n">1</span><p>点「下载安卓版」，把 nuanyue.apk 存到手机。</p></li>
+        <li><span class="n">2</span><p>点开这个文件。如果系统说「禁止安装未知应用」，点允许，并选中你正在用的浏览器。</p></li>
+        <li><span class="n">3</span><p>装好后从桌面打开暖月。第一次问通知权限时选允许，否则到点不会响。</p></li>
+        <li><span class="n">4</span><p>从微信打开本页时，先点右上角，选「在浏览器中打开」。微信里直接下的安装包经常装不上。</p></li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <img class="tape" src="stickers/washi_yellow.svg" alt="">
+      <h2>装好之后能做什么</h2>
+      <ul class="facts">
+        <li><b>看日子</b>月历上经期是粉色，易孕期是橙色，排卵日是一颗心。整年十二个月可以一页看完。</li>
+        <li><b>到点提醒</b>时间在「我」里面改。提前几天、当天、推迟了，都会在那个时间再提一次。</li>
+        <li><b>邀请码给对方</b>他选「我是伴侣」，只能看，不能改你的记录。你的经期快到时，他也会收到提醒。</li>
+      </ul>
+      <div class="lock">
+        <div class="mint">端到端加密</div>
+        <p>记录先在手机上用邀请码加密，再上传。服务器只保存密文，没有这串邀请码就解不开。换手机时用同一个邀请码，记录会拉回来。</p>
+      </div>
+    </section>
   </div>
 
-  <h2>小月能帮你做什么</h2>
-  <div class="cards">
-    <div class="card"><div class="dot" style="background:var(--pink)">1</div><b>算好下一次</b><p>按最近 6 次周期来算，越近的越重要；偶尔漏记的那一次不会把预测带偏。</p></div>
-    <div class="card"><div class="dot" style="background:var(--orange)">2</div><b>快到了提醒你</b><p>提前几天、当天、推迟了、该结束了，都会在你设定的时间轻轻提醒一下。</p></div>
-    <div class="card"><div class="dot" style="background:var(--mint)">3</div><b>一千多句悄悄话</b><p>每次打开都会换一句，点一下也能换。经期、经前、易孕期说的话都不一样。</p></div>
-    <div class="card"><div class="dot" style="background:var(--sky)">4</div><b>看懂自己的规律</b><p>平均周期、最长最短、历次经期一览表，月历、整年、周期环三种看法随手切换。</p></div>
-    <div class="card"><div class="dot" style="background:var(--pink)">5</div><b>他也能一起看着</b><p>把邀请码发给他，他只能看、不能改，你的经期快到了他也会收到提醒。</p></div>
-    <div class="card"><div class="dot" style="background:var(--orange)">6</div><b>数据只属于你</b><p>记录先在手机上加密再上传，服务器上只有一串看不懂的密文。</p></div>
-  </div>
-
-  <img class="tape" src="stickers/washi_pink.svg" alt=""><h2 style="margin-top:28px">用邀请码接上以前的记录</h2>
-  <div class="invite">
-    <ol>
-      <li>下载安装暖月，打开后点左下角「<b>我有邀请码</b>」。</li>
-      <li>输入收到的邀请码，比如 <span class="code">NY-XXXX-XXXX-XXXX</span></li>
-      <li>选「<b>我是本人</b>」，点连接，以前的经期记录就都在啦。</li>
-      <li>男朋友用同一个邀请码，选「<b>我是伴侣</b>」，就能一起看着日子。</li>
-    </ol>
-    <ol start="5">
-      <li>如果提示不能安装未知应用，按提示允许浏览器安装就好。</li>
-      <li>在微信里打开的话，先点右上角「…」选「<b>在浏览器中打开</b>」。</li>
-      <li>第一次打开时记得允许<b>通知</b>，不然收不到提醒哦。</li>
-      <li>小米、华为、OPPO、vivo：在「我 → 提醒不准时？」里设置一下后台权限。</li>
-    </ol>
-  </div>
-
-  <footer>暖月 · 小月会一直陪着你<br>预测仅供参考，不能用来避孕哦</footer>
+  <footer>
+    <strong>暖月</strong><br>
+    预测只按你记过的周期来算，不能用来避孕。
+  </footer>
 </div>
 <script>
-  fetch('/api/version').then(r => r.ok ? r.json() : null).then(v => {
-    if (v) document.getElementById('ver').textContent = 'Android ' + v.versionName + (v.size ? ' · ' + v.size : '');
-  }).catch(() => {});
+  fetch('/version.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (v) {
+    var el = document.getElementById('ver');
+    if (!v || !v.versionName) {
+      el.textContent = '版本信息暂时读不到，安装包仍可下载';
+      return;
+    }
+    el.textContent = '当前版本 ' + v.versionName + (v.size ? ' · ' + v.size : '');
+  }).catch(function () {
+    document.getElementById('ver').textContent = '版本信息暂时读不到，安装包仍可下载';
+  });
 </script>
 </body>
 </html>

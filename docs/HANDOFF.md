@@ -6,9 +6,9 @@
 
 一个给女朋友用的安卓经期记录 App「暖月」，外加一个极小的加密同步服务。
 
-- **App**：Kotlin + Jetpack Compose，本地 Room 数据库，离线可用。界面风格参考「柠檬小月」：柔和冷白底、粉色经期、橙色易孕期、心形排卵日、吉祥物「小月」（会犯困的小月亮）、手账贴纸。
-- **服务器**：`129.151.21.101`，nginx（:80）+ FastAPI（127.0.0.1:8090）+ SQLite。只存端到端加密的密文，同时托管下载页和 APK。
-- **当前版本**：1.4.0（versionCode 5）。下载页 <http://129.151.21.101/> 上仍是已部署的包，要等这次发布脚本跑过才换成 1.4.0。
+- **App**：Kotlin + Jetpack Compose，本地 Room 数据库，离线可用。界面风格参考「柠檬小月」：暖粉纸底、圆角卡片、粉色经期、橙色易孕期、心形排卵日、吉祥物「小月」（会犯困的小月亮）、手账贴纸。
+- **服务器**：域名 <https://leafy.fxxkopenai.com>（Cloudflare 代理 HTTPS，源站仍是 `129.151.21.101` 的 nginx :80）+ FastAPI（127.0.0.1:8090）+ SQLite。只存端到端加密的密文，同时托管下载页和 APK。443 被 xray 占用，源站不要加证书。
+- **当前版本**：1.5.0（versionCode 6）。线上的下载页和 APK 要等 `deploy/deploy.sh` 跑过才会换成这一版。
 
 用户的核心诉求（按优先级）：
 1. 聚焦经期数据本身（开始 / 结束、预测、统计），**不要**做心情、症状、留言这类附加记录——已在 1.3.0 删掉。
@@ -30,7 +30,7 @@ android/                 安卓工程（Gradle 8.11.1, AGP 8.7.3, Kotlin 2.0.21,
     ui/                    Compose 界面：home / stats / settings / onboarding / components / theme
     widget/PeriodWidget.kt 桌面小组件（RemoteViews）
   app/src/main/assets/phrases.txt   1011 条短语（首启导入 Room）
-  app/src/test/…/CycleEngineTest.kt 7 个单测
+  app/src/test/…/CycleEngineTest.kt、FeedbackTest.kt、SyncClientFallbackTest.kt 单测
   app/schemas/            Room schema 导出（v1、v2）
 art/                     设计源文件（SVG），改图改这里
   mascot/                小月的分层 SVG（身体、腮红、三种眼睛、两种嘴、热水袋、Zzz）
@@ -59,7 +59,8 @@ dist/                    （gitignore）各版本签名 APK
 - 同步：一个「空间」对应一份数据。客户端用 PBKDF2-HMAC-SHA256(120k, 512 bit) 从 (账号, 密码) 派生：前 32 字节 = AES 密钥，后 32 字节 = 鉴权令牌。服务器只存 sha256(令牌) 和 AES-GCM 密文。
 - **邀请码**：`NY-XXXX-XXXX-XXXX`（字母表去掉易混字符）。账号 = `inv-` + 小写码，密码 = 大写码。她选「我是本人」（可写），男朋友选「我是伴侣」（只读拉取，提醒文案改用第三人称）。
 - 合并：按记录 id 取 `updatedAt` 较新者，墓碑参与合并；伴侣模式直接镜像。备份里带一个 `profile`（昵称），本机为空时采用。
-- `deploy/seed_invite.py`：用 CSV 生成邀请码数据并上传，算法与 App 完全一致；同一个码重复运行是幂等的（id 由码 + 日期确定性生成）。
+- 地址：`BuildConfig.SERVER_URL` = `https://leafy.fxxkopenai.com`，同步、检查更新都走它。请求如果在网络层失败（连不上、超时、TLS 失败，还没有 HTTP 状态码），同一请求再试一次 `BuildConfig.SERVER_FALLBACK_URL` = `http://129.151.21.101`。HTTP 4xx/5xx 不回退，避免把服务器的拒绝当成线路问题。明文只对这个 IP 放开（`res/xml/network_security_config.xml`）。加密、备份格式、Room、API 都没改，旧版本覆盖安装即可。
+- `deploy/seed_invite.py`：用 CSV 生成邀请码数据并上传，算法与 App 完全一致；同一个码重复运行是幂等的（id 由码 + 日期确定性生成）。默认打到域名；域名不通时加 `--server http://129.151.21.101`。
 
 ### 3.3 提醒
 - `AlarmManager` 每天在设定时间（默认 9:00）触发一次 `ReminderReceiver`，用 `Reminders.due()` 判断：经期前 N 天、当天、推迟 1/3/7/14 天、超平均经期未结束、易孕期开始 / 排卵日（默认关）。
@@ -79,7 +80,8 @@ dist/                    （gitignore）各版本签名 APK
 |---|---|
 | 系统 | Ubuntu 24.04 aarch64（Oracle Cloud） |
 | 不要动 | `x-ui`、`xray` 占用 443 / 2096 / 4396，是用户的代理服务 |
-| 入口 | nginx `:80`，配置 `/etc/nginx/sites-available/nuanyue` |
+| 域名 | `leafy.fxxkopenai.com`，Cloudflare 代理（橙云）终结 HTTPS，回源这台机器的 nginx `:80`。源站没有证书 |
+| 入口 | nginx `:80`，配置 `/etc/nginx/sites-available/nuanyue`。`server_name leafy.fxxkopenai.com 129.151.21.101 _`，并保持 `default_server`，IP 直连仍给旧版 App 用 |
 | 服务 | systemd `nuanyue.service`，uvicorn 监听 127.0.0.1:8090，用户 `nuanyue`，venv `/opt/nuanyue/venv` |
 | 代码 | `/opt/nuanyue/app/app.py` |
 | 静态 | `/opt/nuanyue/web/`（下载页、`download/nuanyue.apk`、`version.json`） |
@@ -87,7 +89,7 @@ dist/                    （gitignore）各版本签名 APK
 | 防火墙 | iptables 已放行 80；Oracle 安全组也已放行（外网可访问） |
 | API | `GET /api/health`、`GET /api/version`、`GET/PUT /api/backup/{space}`（头 `X-Auth`）；每 IP 120 次/分钟，错误密码每 IP 10 分钟 20 次 |
 
-没有 HTTPS：443 被 xray 占用且没有域名。安全性依赖端到端加密，App 只对这个 IP 放开明文（`res/xml/network_security_config.xml`）。如果以后有域名，可以在 nginx 加证书，同时改 `BuildConfig.SERVER_URL`。
+HTTPS 在 Cloudflare 上终结，回源仍是明文 `:80`。不要在这台机器上占 443，也不要给 nginx 加证书。App 1.5.0 优先走 `https://leafy.fxxkopenai.com`；域名在网络层失败时，同一请求回退一次到 `http://129.151.21.101`。`version.json` 里的 `url` 是 `https://leafy.fxxkopenai.com/`，检查更新打开的是下载页。安全性仍然靠端到端加密：回退走的明文通道上，服务器看到的也只是密文。
 
 ## 5. 常用操作
 
@@ -102,7 +104,7 @@ cd android && ./gradlew testDebugUnitTest assembleRelease
 # 服务端测试
 server/.venv/bin/python -m pytest -q server/test_app.py
 
-# 导入 / 更新她的历史数据（幂等）
+# 导入 / 更新她的历史数据（幂等）。域名不通时加 --server http://129.151.21.101
 server/.venv/bin/python deploy/seed_invite.py deploy/private/her_periods.csv --code <她的邀请码> --nickname 宝贝
 
 # 改形象或贴纸：编辑 art/ 下的 SVG，然后
@@ -141,9 +143,9 @@ adb exec-out screencap -p > /tmp/s.png
 - 国产 ROM（小米 / 华为 / OPPO / vivo）后台限制下的提醒准时性；App 内有「提醒不准时？」引导。
 - 她的柠檬小月截图只录入了能看到的 30 条（2023-10 起），更早的记录没有；柠檬小月显示最长经期 10 天，可能就在没截到的部分。
 - 暗色模式未适配（固定浅色）。
+- 域名在大陆网络上的实际成功率，以及回退到 IP 要多久。回退规则有单测（网络失败重试一次且请求不变，HTTP 错误不重试），没有在她的手机上遇到过 Cloudflare 抽风。
 
 ## 7. 可以继续做的
-- 有域名后上 HTTPS。
 - 小组件做成和首页一样的小月风格，或加一个 2×2 的「距离下次」小组件。
 - 经期开始 / 结束也可以从通知里一键确认（通知按钮 + 同样的二次确认）。
 - 统计页加「每个月几号来」的散点图，方便看规律。
