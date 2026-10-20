@@ -45,6 +45,7 @@ import com.nuanyue.app.ui.home.HOME_MODE_MONTH
 import com.nuanyue.app.ui.home.HOME_MODE_RING
 import com.nuanyue.app.ui.home.HOME_MODE_YEAR
 import com.nuanyue.app.ui.home.HomeContent
+import com.nuanyue.app.ui.home.LocalYearDayGridHeight
 import com.nuanyue.app.ui.home.Pending
 import com.nuanyue.app.ui.onboarding.RolePick
 import com.nuanyue.app.ui.settings.SettingsHooks
@@ -93,7 +94,18 @@ class HomeScreenshotTest {
 
     @Test fun yearOnASmallPhone() {
         paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "home-year-360x640") { HomeShot(HOME_MODE_YEAR) }
+        val gridHeights = mutableMapOf<Int, Int>()
+        paparazzi.snapshot(name = "home-year-360x640") {
+            CompositionLocalProvider(LocalYearDayGridHeight provides { month, height -> gridHeights[month] = height }) {
+                HomeShot(HOME_MODE_YEAR)
+            }
+        }
+        // A 4-week grid is 4/7 of the month width. At 360dp xhdpi that is well above 80px.
+        // Zero means the grid collapsed under the month title.
+        val missing = (1..12).filter { (gridHeights[it] ?: 0) < 80 }
+        check(missing.isEmpty()) {
+            "360dp year day grids collapsed (month to px): $gridHeights"
+        }
     }
 
     @Test fun ringOnASmallPhone() {

@@ -18,8 +18,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -59,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +81,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -518,6 +523,12 @@ private fun MonthGrid(
 
 // ---------------------------------------------------------------- year
 
+/**
+ * Latest measured day-grid height in px, keyed by month. The 360dp year snapshot
+ * reads this and fails when a grid lays out at zero.
+ */
+internal val LocalYearDayGridHeight = staticCompositionLocalOf<((Int, Int) -> Unit)?> { null }
+
 @Composable
 private fun YearView(
     modifier: Modifier,
@@ -531,7 +542,8 @@ private fun YearView(
     val minYear = today.minusMonths(MONTHS_BACK.toLong()).year
     val maxYear = today.plusMonths(MONTHS_FORWARD.toLong()).year
     BoxWithConstraints(modifier) {
-    val columns = if (maxWidth < 400.dp) 2 else 3
+    val narrow = maxWidth < 400.dp
+    val columns = if (narrow) 2 else 3
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -553,13 +565,17 @@ private fun YearView(
             transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
             label = "yearGrid",
         ) { y ->
-            Column(Modifier.fillMaxSize()) {
-                val rows = 12 / columns
-                for (row in 0 until rows) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        for (col in 0 until columns) {
-                            val ym = YearMonth.of(y, row * columns + col + 1)
-                            MiniMonth(ym, infos, today, Modifier.weight(1f).fillMaxHeight()) { onMonth(ym) }
+            if (narrow) {
+                NarrowYearGrid(y, infos, today, onMonth)
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    val rows = 12 / columns
+                    for (row in 0 until rows) {
+                        Row(Modifier.weight(1f).fillMaxWidth()) {
+                            for (col in 0 until columns) {
+                                val ym = YearMonth.of(y, row * columns + col + 1)
+                                MiniMonth(ym, infos, today, Modifier.weight(1f).fillMaxHeight(), stretch = true) { onMonth(ym) }
+                            }
                         }
                     }
                 }
@@ -569,8 +585,38 @@ private fun YearView(
     }
 }
 
+/** Two months per row. The day grid's height comes from its width, and the year body scrolls when six rows do not fit. */
 @Composable
-private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: LocalDate, modifier: Modifier, onClick: () -> Unit) {
+private fun NarrowYearGrid(
+    year: Int,
+    infos: Map<LocalDate, DayInfo>,
+    today: LocalDate,
+    onMonth: (YearMonth) -> Unit,
+) {
+    val scroll = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxWidth().verticalScroll(scroll).padding(bottom = 8.dp)) {
+            for (row in 0 until 6) {
+                Row(Modifier.fillMaxWidth()) {
+                    for (col in 0 until 2) {
+                        val ym = YearMonth.of(year, row * 2 + col + 1)
+                        MiniMonth(ym, infos, today, Modifier.weight(1f), stretch = false) { onMonth(ym) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniMonth(
+    ym: YearMonth,
+    infos: Map<LocalDate, DayInfo>,
+    today: LocalDate,
+    modifier: Modifier,
+    stretch: Boolean,
+    onClick: () -> Unit,
+) {
     val src = remember { MutableInteractionSource() }
     val s = pressScale(src, 0.96f)
     val isNow = ym == YearMonth.from(today)
@@ -585,49 +631,78 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
             Numeral("${ym.monthValue}", 14.sp, if (isNow) NyColors.RoseStrong else Palette.Ink)
             Text("月", fontSize = 10.sp, color = Palette.InkSoft, maxLines = 1, modifier = Modifier.padding(bottom = 1.dp))
         }
-        Column(Modifier.weight(1f).fillMaxWidth()) {
-                for (r in 0 until rows) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        for (c in 0 until 7) {
-                            val idx = r * 7 + c - lead
-                            Box(Modifier.weight(1f).fillMaxHeight().padding(0.5.dp), contentAlignment = Alignment.Center) {
-                                if (idx in 0 until ym.lengthOfMonth()) {
-                                    val d = first.plusDays(idx.toLong())
-                                    val type = infos[d]?.type ?: DayType.UNKNOWN
-                                    val visual = dayVisual(type.dayKind())
-                                    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        val side = minOf(maxWidth, maxHeight)
-                                        val shape = RoundedCornerShape(minOf(4.dp, side * 0.28f))
-                                        Box(
-                                            Modifier.size(side).clip(shape).background(visual.fill ?: Color.Transparent)
-                                                .then(
-                                                    when {
-                                                        visual.dashed && visual.stroke != null -> Modifier.border(1.dp, visual.stroke, shape)
-                                                        d == today -> Modifier.border(1.dp, NyColors.TodayRing, shape)
-                                                        else -> Modifier
-                                                    },
-                                                ),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                "${d.dayOfMonth}",
-                                                fontFamily = Rounded,
-                                                fontSize = 8.sp,
-                                                lineHeight = 8.sp,
-                                                fontWeight = visual.weight,
-                                                maxLines = 1,
-                                                softWrap = false,
-                                                overflow = TextOverflow.Clip,
-                                                color = visual.text,
-                                            )
-                                        }
-                                    }
+        val report = LocalYearDayGridHeight.current
+        // Wide phones share the leftover body by weight. Narrow phones must not:
+        // a weight child under the month title collapses to 0. Size the grid from
+        // its width instead (7 columns × week rows), then let the year scroll.
+        val grid = if (stretch) {
+            Modifier.weight(1f).fillMaxWidth()
+        } else {
+            Modifier
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    report?.invoke(ym.monthValue, placeable.height)
+                    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                }
+                .fillMaxWidth()
+                .aspectRatio(7f / rows)
+        }
+        DayGrid(ym, infos, today, first, lead, rows, grid)
+    }
+}
+
+@Composable
+private fun DayGrid(
+    ym: YearMonth,
+    infos: Map<LocalDate, DayInfo>,
+    today: LocalDate,
+    first: LocalDate,
+    lead: Int,
+    rows: Int,
+    modifier: Modifier,
+) {
+    Column(modifier) {
+        for (r in 0 until rows) {
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                for (c in 0 until 7) {
+                    val idx = r * 7 + c - lead
+                    Box(Modifier.weight(1f).fillMaxHeight().padding(0.5.dp), contentAlignment = Alignment.Center) {
+                        if (idx in 0 until ym.lengthOfMonth()) {
+                            val d = first.plusDays(idx.toLong())
+                            val type = infos[d]?.type ?: DayType.UNKNOWN
+                            val visual = dayVisual(type.dayKind())
+                            BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                val side = minOf(maxWidth, maxHeight)
+                                val shape = RoundedCornerShape(minOf(4.dp, side * 0.28f))
+                                Box(
+                                    Modifier.size(side).clip(shape).background(visual.fill ?: Color.Transparent)
+                                        .then(
+                                            when {
+                                                visual.dashed && visual.stroke != null -> Modifier.border(1.dp, visual.stroke, shape)
+                                                d == today -> Modifier.border(1.dp, NyColors.TodayRing, shape)
+                                                else -> Modifier
+                                            },
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "${d.dayOfMonth}",
+                                        fontFamily = Rounded,
+                                        fontSize = 8.sp,
+                                        lineHeight = 8.sp,
+                                        fontWeight = visual.weight,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip,
+                                        color = visual.text,
+                                    )
                                 }
                             }
                         }
                     }
                 }
             }
+        }
     }
 }
 
