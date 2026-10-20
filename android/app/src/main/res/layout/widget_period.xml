@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="暖月"
-        android:textColor="@color/ink"
+        android:textColor="@color/ny_ink"
         android:textSize="12sp" />
 
     <LinearLayout
@@ -29,7 +29,7 @@
             android:fontFamily="sans-serif-medium"
             android:includeFontPadding="false"
             android:text="–"
-            android:textColor="@color/ink"
+            android:textColor="@color/ny_ink"
             android:textSize="48sp" />
 
         <TextView
@@ -39,7 +39,7 @@
             android:layout_marginStart="3dp"
             android:paddingBottom="6dp"
             android:text=""
-            android:textColor="@color/ink"
+            android:textColor="@color/ny_ink"
             android:textSize="13sp" />
     </LinearLayout>
 
@@ -48,7 +48,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text=""
-        android:textColor="@color/ink"
+        android:textColor="@color/ny_ink"
         android:alpha="0.7"
         android:textSize="11sp" />
 </LinearLayout>

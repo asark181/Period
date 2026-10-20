@@ -39,6 +39,8 @@ import com.nuanyue.app.ui.home.HOME_MODE_YEAR
 import com.nuanyue.app.ui.home.HomeContent
 import com.nuanyue.app.ui.settings.SettingsHooks
 import com.nuanyue.app.ui.settings.SettingsPage
+import com.nuanyue.app.ui.settings.UpdateCheckRow
+import com.nuanyue.app.update.ManualCheck
 import com.nuanyue.app.ui.stats.StatsScreen
 import com.nuanyue.app.ui.theme.NuanYueTheme
 import com.nuanyue.app.ui.theme.Palette
@@ -92,6 +94,39 @@ class HomeScreenshotTest {
     @Test fun statsOnATallPhone() {
         paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
         paparazzi.snapshot(name = "stats-411x891") { Page { StatsScreen(sampleState(history = true)) } }
+    }
+
+    @Test fun updateCheckUpToDate() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 160))
+        paparazzi.snapshot(name = "update-check-uptodate") {
+            Page {
+                Box(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
+                    UpdateCheckRow(ManualCheck.UpToDate("1.9.0"), "1.9.0", newerName = null) {}
+                }
+            }
+        }
+    }
+
+    @Test fun updateCheckError() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 160))
+        paparazzi.snapshot(name = "update-check-error") {
+            Page {
+                Box(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
+                    UpdateCheckRow(ManualCheck.Failed, "1.9.0", newerName = null) {}
+                }
+            }
+        }
+    }
+
+    @Test fun updateCheckInProgress() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 160))
+        paparazzi.snapshot(name = "update-check-busy") {
+            Page {
+                Box(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
+                    UpdateCheckRow(ManualCheck.Checking, "1.9.0", newerName = null) {}
+                }
+            }
+        }
     }
 
     @Test fun meWithAnUpdateCard() {

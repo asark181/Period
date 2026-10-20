@@ -97,6 +97,7 @@ import com.nuanyue.app.domain.Phase
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.DateChip
+import com.nuanyue.app.ui.components.dayKind
 import com.nuanyue.app.ui.components.LegendDot
 import com.nuanyue.app.ui.components.LocalMotion
 import com.nuanyue.app.ui.components.Mascot
@@ -107,8 +108,10 @@ import com.nuanyue.app.ui.components.PrimaryButton
 import com.nuanyue.app.ui.components.SlidingSegmented
 import com.nuanyue.app.ui.components.Sticker
 import com.nuanyue.app.ui.components.pressScale
+import com.nuanyue.app.ui.theme.NyColors
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.Rounded
+import com.nuanyue.app.ui.theme.dayVisual
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -284,62 +287,82 @@ private fun moodFor(state: UiState, now: LocalTime): MoonMood = when {
 @Composable
 private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boolean, roomy: Boolean, onMode: (Int) -> Unit) {
     val t = state.snapshot.today
-    val name = state.settings.nickname.takeIf { it.isNotBlank() && !state.settings.isPartner }
-    val hello = Copy.greeting(now) + (name?.let { "，$it" } ?: "")
-    val mood = if (state.settings.isPartner) "正在陪她一起看着日子" else Copy.mood(t.phase)
-    Row(
-        Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = if (roomy) 2.dp else 0.dp, bottom = if (roomy) 6.dp else 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            SlidingSegmented(
-                listOf(Icons.Outlined.CalendarMonth, Icons.Outlined.CalendarViewMonth, Icons.Outlined.DonutLarge),
-                mode, onMode, itemSize = if (roomy) 34.dp else 30.dp, descriptions = listOf("月历", "整年", "周期环"),
-            )
-            Spacer(Modifier.height(if (roomy) 4.dp else 2.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    hello,
-                    style = if (roomy) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                StatusPill(state)
-            }
-            Text(mood, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val today = state.today
+    val week = listOf("一", "二", "三", "四", "五", "六", "日")[today.dayOfWeek.value - 1]
+    val number = t.cycleDay?.toString() ?: "–"
+    val hero = if (roomy) 52.sp else 36.sp
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (roomy) 4.dp else 0.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ViewSwitch(mode, onMode, Modifier.weight(1f))
+            Mascot(Modifier.padding(start = 8.dp).size(if (roomy) 40.dp else 32.dp), moodFor(state, now), motion = motion)
         }
-        Mascot(Modifier.padding(start = 6.dp).size(if (roomy) 44.dp else 36.dp), moodFor(state, now), motion = motion)
+        Text(
+            "${today.monthValue}月${today.dayOfMonth}日 周$week",
+            color = NyColors.InkSecondary,
+            fontSize = 12.sp,
+            maxLines = 1,
+            modifier = Modifier.padding(top = if (roomy) 8.dp else 2.dp),
+        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("第", fontSize = if (roomy) 22.sp else 16.sp, color = NyColors.Ink)
+            Numeral(number, hero, NyColors.Ink, weight = FontWeight.SemiBold)
+            Text("天", fontSize = if (roomy) 22.sp else 16.sp, color = NyColors.Ink, modifier = Modifier.padding(bottom = if (roomy) 6.dp else 2.dp))
+        }
+        HeroSubtitle(state)
     }
 }
 
 @Composable
-private fun StatusPill(state: UiState) {
-    val snap = state.snapshot
-    val t = snap.today
-    val (prefix, num, suffix) = when {
-        !snap.hasData -> Triple("还没有记录", "", "")
-        t.phase == Phase.MENSTRUAL -> Triple("经期第", "${t.periodDay}", "天")
-        t.lateDays > 0 -> Triple("已推迟", "${t.lateDays}", "天")
-        t.daysUntilNext == 0 -> Triple("可能今天来", "", "")
-        else -> Triple("还有", "${t.daysUntilNext}", "天")
-    }
+private fun ViewSwitch(mode: Int, onMode: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val items = listOf(
+        Icons.Outlined.CalendarMonth to "月历",
+        Icons.Outlined.CalendarViewMonth to "整年",
+        Icons.Outlined.DonutLarge to "周期环",
+    )
     Row(
-        Modifier.clip(CircleShape).background(Palette.PinkSoft).border(1.dp, Palette.Pink, CircleShape)
-            .padding(horizontal = 10.dp, vertical = 3.dp),
+        modifier.clip(CircleShape).background(Color.White).border(1.dp, NyColors.Hairline, CircleShape).padding(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val ink = Palette.Pink
-        Text(prefix, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        if (num.isNotEmpty()) {
-            AnimatedContent(
-                num,
-                transitionSpec = { slideInVertically { -it } + fadeIn() togetherWith slideOutVertically { it } + fadeOut() },
-                label = "num",
-            ) { n ->
-                Numeral(n, 15.sp, ink, weight = FontWeight.ExtraBold)
+        items.forEachIndexed { i, (icon, label) ->
+            val on = i == mode
+            Row(
+                Modifier.clip(CircleShape)
+                    .background(if (on) Color.White else Color.Transparent)
+                    .border(if (on) 1.dp else 0.dp, if (on) NyColors.Hairline else Color.Transparent, CircleShape)
+                    .clickable { onMode(i) }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(icon, label, tint = if (on) NyColors.Ink else NyColors.InkSecondary, modifier = Modifier.size(14.dp))
+                Text(
+                    label,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (on) NyColors.Ink else NyColors.InkSecondary,
+                    modifier = Modifier.padding(start = 2.dp),
+                )
             }
-            Text(suffix, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun HeroSubtitle(state: UiState) {
+    val t = state.snapshot.today
+    val next = t.nextStart
+    val nextText = if (next == null) "还不确定" else "${next.monthValue}月${next.dayOfMonth}日"
+    when {
+        !state.snapshot.hasData -> Text("记下第一次月经开始", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
+        t.phase == Phase.MENSTRUAL && t.periodDaysLeft != null -> Text(
+            "这次大概还有 ${t.periodDaysLeft} 天，下次月经预计 $nextText",
+            color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
+        t.lateDays > 0 -> Text("已推迟 ${t.lateDays} 天", color = NyColors.RoseStrong, fontSize = 12.sp, maxLines = 1)
+        else -> Row {
+            Text("距下次月经约 ", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
+            Text("${t.daysUntilNext ?: "–"}", color = NyColors.RoseStrong, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text(" 天 · 预计 $nextText", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
         }
     }
 }
@@ -382,7 +405,7 @@ private fun MonthView(
             Spacer(Modifier.weight(1f))
             if (pager.currentPage != MONTHS_BACK) {
                 Text(
-                    "回今天", fontSize = 12.sp, color = Palette.Pink, maxLines = 1,
+                    "回今天", fontSize = 12.sp, color = NyColors.RoseStrong, maxLines = 1,
                     modifier = Modifier.clip(CircleShape).background(Palette.PinkSoft).clickable {
                         scope.launch { pager.animateScrollToPage(MONTHS_BACK) }
                         onSelect(state.today)
@@ -396,21 +419,20 @@ private fun MonthView(
             listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { i, d ->
                 Text(
                     d, modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
-                    fontSize = 12.sp, maxLines = 1, color = if (i >= 5) Palette.Pink else Palette.Sky,
+                    fontSize = 12.sp, maxLines = 1, color = if (i >= 5) NyColors.Weekend else NyColors.InkSecondary,
                 )
             }
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val ym = base.plusMonths((pager.currentPage - MONTHS_BACK).toLong())
             val rows = weekRows(ym).coerceAtLeast(1)
-            val gap = 6.dp
-            val fontScale = LocalDensity.current.fontScale
-            val legendBlock = (20.dp * fontScale).coerceIn(18.dp, 28.dp)
-            val cellFromW = ((maxWidth - gap * 6) / 7).coerceAtLeast(0.dp)
+            val legendBlock = 22.dp
             val gridBudget = (maxHeight - legendBlock).coerceAtLeast(0.dp)
-            val cellFromH = ((gridBudget - gap * (rows - 1)) / rows).coerceAtLeast(0.dp)
-            val cell = minOf(cellFromW, cellFromH, 40.dp)
-            val gridH = (cell * rows + gap * (rows - 1)).coerceAtLeast(1.dp)
+            val preferredRow = if (roomy) 48.dp else 40.dp
+            val rowH = minOf(preferredRow, gridBudget / rows).coerceAtLeast(1.dp)
+            val chip = minOf(if (roomy) 36.dp else 32.dp, rowH - 4.dp).coerceAtLeast(16.dp)
+            val gridH = rowH * rows
+            val monthTypes = (1..ym.lengthOfMonth()).map { infos[ym.atDay(it)]?.type }.toSet()
             Column(Modifier.fillMaxSize()) {
                 HorizontalPager(
                     pager,
@@ -420,17 +442,17 @@ private fun MonthView(
                 ) { page ->
                     val pageYm = base.plusMonths((page - MONTHS_BACK).toLong())
                     val drift = if (LocalMotion.current) pager.currentPageOffsetFraction else 0f
-                    MonthGrid(pageYm, cell, gap, infos, state.today, selected, drift, onSelect)
+                    MonthGrid(pageYm, chip, rowH, infos, state.today, selected, drift, onSelect)
                 }
                 FlowRow(
                     Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    LegendDot(Palette.Pink, "经期")
-                    LegendDot(Palette.Pink, "预测", hollow = true)
-                    LegendDot(Palette.Orange, "易孕")
-                    LegendDot(Palette.Pink, "排卵", heart = true)
+                    if (DayType.PERIOD in monthTypes) LegendDot(NyColors.PeriodFill, "经期")
+                    if (DayType.PREDICTED_PERIOD in monthTypes) LegendDot(NyColors.PredictedOutline, "预测", dashed = true)
+                    if (DayType.FERTILE in monthTypes || DayType.OVULATION in monthTypes) LegendDot(NyColors.Fertile, "易孕期")
+                    if (DayType.OVULATION in monthTypes) LegendDot(NyColors.Ovulation, "排卵日")
                 }
                 Spacer(Modifier.weight(1f))
             }
@@ -454,8 +476,8 @@ private fun ArrowBtn(icon: ImageVector, onClick: () -> Unit) {
 @Composable
 private fun MonthGrid(
     ym: YearMonth,
-    cell: Dp,
-    gap: Dp,
+    chip: Dp,
+    rowH: Dp,
     infos: Map<LocalDate, DayInfo>,
     today: LocalDate,
     selected: LocalDate,
@@ -465,16 +487,13 @@ private fun MonthGrid(
     val first = ym.atDay(1)
     val lead = first.dayOfWeek.value - java.time.DayOfWeek.MONDAY.value
     val rows = weekRows(ym)
-    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+    Column {
         for (r in 0 until rows) {
-            Row(
-                Modifier.fillMaxWidth().height(cell),
-                horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
-            ) {
+            Row(Modifier.fillMaxWidth().height(rowH)) {
                 for (c in 0 until 7) {
                     val idx = r * 7 + c - lead
                     Box(
-                        Modifier.size(cell).graphicsLayer {
+                        Modifier.weight(1f).fillMaxHeight().graphicsLayer {
                             translationY = drift * (c - 3) * 6f
                             alpha = 1f - kotlin.math.abs(drift) * 0.15f
                         },
@@ -487,8 +506,7 @@ private fun MonthGrid(
                                 infos[d]?.type ?: DayType.UNKNOWN,
                                 d == today,
                                 d == selected,
-                                size = cell,
-                                muted = d.isAfter(today),
+                                size = chip,
                             ) { onSelect(d) }
                         }
                     }
@@ -560,13 +578,12 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
             .clickable(src, indication = null, onClick = onClick).padding(horizontal = 3.dp, vertical = 2.dp),
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Numeral("${ym.monthValue}", 14.sp, if (isNow) Palette.Pink else Palette.Ink)
+            Numeral("${ym.monthValue}", 14.sp, if (isNow) NyColors.RoseStrong else Palette.Ink)
             Text("月", fontSize = 10.sp, color = Palette.InkSoft, maxLines = 1, modifier = Modifier.padding(bottom = 1.dp))
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val rowH = if (rows == 0) maxHeight else maxHeight / rows
-            val font = (rowH.value * 0.62f).coerceIn(6f, 9f)
-            val showNumbers = rowH >= 8.dp
+            val font = (rowH.value * 0.5f).coerceIn(5f, 9f)
             Column(Modifier.fillMaxSize()) {
                 for (r in 0 until rows) {
                     Row(Modifier.weight(1f).fillMaxWidth()) {
@@ -576,42 +593,30 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
                                 if (idx in 0 until ym.lengthOfMonth()) {
                                     val d = first.plusDays(idx.toLong())
                                     val type = infos[d]?.type ?: DayType.UNKNOWN
-                                    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
-                                    val bg = when (type) {
-                                        DayType.PERIOD -> Palette.Pink
-                                        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
-                                        else -> Color.Transparent
-                                    }
-                                    val ink = when {
-                                        filled -> Color.White
-                                        type == DayType.PREDICTED_PERIOD || d == today -> Palette.Pink
-                                        else -> Palette.Ink.copy(alpha = 0.78f)
-                                    }
+                                    val visual = dayVisual(type.dayKind())
                                     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         val side = minOf(maxWidth, maxHeight)
-                                        val shape = RoundedCornerShape(minOf(3.dp, side * 0.28f))
+                                        val shape = RoundedCornerShape(minOf(4.dp, side * 0.28f))
                                         Box(
-                                            Modifier.size(side).clip(shape).background(bg)
+                                            Modifier.size(side).clip(shape).background(visual.fill ?: Color.Transparent)
                                                 .then(
                                                     when {
-                                                        type == DayType.PREDICTED_PERIOD -> Modifier.border(1.dp, Palette.Pink, shape)
-                                                        d == today && !filled -> Modifier.border(1.dp, Palette.Pink, shape)
+                                                        visual.dashed && visual.stroke != null -> Modifier.border(1.dp, visual.stroke, shape)
+                                                        d == today -> Modifier.border(1.dp, NyColors.TodayRing, shape)
                                                         else -> Modifier
                                                     },
                                                 ),
                                             contentAlignment = Alignment.Center,
                                         ) {
-                                            if (showNumbers) {
-                                                Text(
-                                                    if (d == today) "今" else "${d.dayOfMonth}",
-                                                    fontFamily = if (d == today) null else Rounded,
-                                                    fontSize = font.sp,
-                                                    lineHeight = font.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    maxLines = 1,
-                                                    color = ink,
-                                                )
-                                            }
+                                            Text(
+                                                "${d.dayOfMonth}",
+                                                fontFamily = Rounded,
+                                                fontSize = font.sp,
+                                                lineHeight = font.sp,
+                                                fontWeight = visual.weight,
+                                                maxLines = 1,
+                                                color = visual.text,
+                                            )
                                         }
                                     }
                                 }

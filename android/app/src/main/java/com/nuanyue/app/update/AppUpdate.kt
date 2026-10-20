@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -129,10 +130,27 @@ class AppUpdate(
         }
     }
 
-    /** The button on the Me screen. */
+    private val _manual = MutableStateFlow<ManualCheck>(ManualCheck.Idle)
+    val manual: StateFlow<ManualCheck> = _manual.asStateFlow()
+
+    /** The button on the Me screen. A second tap while a check is running is ignored. */
     fun checkFromUser() {
+        if (_manual.value == ManualCheck.Checking) return
         forceSheet = true
-        scope.launch { check(notify = false, present = true) }
+        _manual.value = ManualCheck.Checking
+        scope.launch {
+            val result = check(notify = false, present = true)
+            _manual.value = when (result) {
+                CheckResult.Current -> ManualCheck.UpToDate(BuildConfig.VERSION_NAME)
+                CheckResult.Failed -> ManualCheck.Failed
+                CheckResult.Newer -> ManualCheck.Idle
+            }
+        }
+    }
+
+    /** Drops the temporary “已是最新” hint so the row returns to the normal version label. */
+    fun clearUpToDate() {
+        if (_manual.value is ManualCheck.UpToDate) _manual.value = ManualCheck.Idle
     }
 
     private val _events = MutableStateFlow<String?>(null)
@@ -145,7 +163,10 @@ class AppUpdate(
             val info = try {
                 versions()
             } catch (e: Exception) {
-                if (present) _events.value = "检查失败：${e.message ?: "网络异常"}"
+                if (present) {
+                    Log.i(NY_UPDATE, manualCheckLog(null, currentCode, CheckResult.Failed))
+                    _events.value = "检查失败：${e.message ?: "网络异常"}"
+                }
                 return@withLock CheckResult.Failed
             }
             val now = System.currentTimeMillis()
@@ -153,10 +174,14 @@ class AppUpdate(
                 clearFiles()
                 _ui.value = null
                 save((saved ?: emptySaved()).copy(lastCheckAt = now, versionCode = info.versionCode))
-                if (present) _events.value = "已是最新版本"
+                if (present) {
+                    Log.i(NY_UPDATE, manualCheckLog(info.versionCode, currentCode, CheckResult.Current))
+                    _events.value = "已是最新版本"
+                }
                 return@withLock CheckResult.Current
             }
             val next = offerOf(info, serverUrl)
+            if (present) Log.i(NY_UPDATE, manualCheckLog(info.versionCode, currentCode, CheckResult.Newer))
             offer = next
             val same = saved != null && saved.versionCode == next.versionCode
             if (saved != null && !same) {
@@ -439,6 +464,8 @@ class AppUpdate(
 }
 
 enum class CheckResult { Newer, Current, Failed }
+
+private const val NY_UPDATE = "NyUpdate"
 
 private fun canInstall(context: Context): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()

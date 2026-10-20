@@ -50,6 +50,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,7 +73,11 @@ import com.nuanyue.app.data.AppSettings
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.update.UpdatePanel
+import com.nuanyue.app.ui.theme.NyColors
+import com.nuanyue.app.update.ManualCheck
 import com.nuanyue.app.update.UpdateUi
+import com.nuanyue.app.update.updateRowModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.nuanyue.app.ui.components.PrimaryButton
@@ -102,6 +107,8 @@ internal class SettingsHooks(
     val logout: () -> Unit = {},
     val clearAll: () -> Unit = {},
     val checkUpdate: () -> Unit = {},
+    val clearUpToDate: () -> Unit = {},
+    val manualCheck: StateFlow<ManualCheck> = MutableStateFlow(ManualCheck.Idle),
     val updatePrimary: () -> Unit = {},
     val openPage: () -> Unit = {},
 )
@@ -131,6 +138,8 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, update: UpdateUi? = null) {
             logout = vm::syncLogout,
             clearAll = vm::clearAll,
             checkUpdate = vm::checkFromUser,
+            clearUpToDate = vm::clearUpToDate,
+            manualCheck = vm.manualCheck,
             updatePrimary = { vm.updatePrimary(ctx) },
             openPage = { vm.openUpdatePage(ctx) },
         ),
@@ -153,7 +162,13 @@ internal fun SettingsPage(
     var dialog by remember { mutableStateOf<String?>(null) }
     var syncError by remember { mutableStateOf<String?>(null) }
     val syncing by hooks.syncing.collectAsStateWithLifecycle()
-
+    val manual by hooks.manualCheck.collectAsStateWithLifecycle()
+    LaunchedEffect(manual) {
+        if (manual is ManualCheck.UpToDate) {
+            delay(3_000)
+            hooks.clearUpToDate()
+        }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
         ProfileCard(state) { dialog = "nickname" }
@@ -290,13 +305,7 @@ internal fun SettingsPage(
                     ctx.startActivity(Intent.createChooser(send, "导出暖月数据"))
                 }
             }
-            ActionRow(
-                Icons.Outlined.Download,
-                "检查更新",
-                update?.let { "有新版本 ${it.versionName}" } ?: "当前 ${BuildConfig.VERSION_NAME}",
-                Palette.Mint,
-                Palette.MintSoft,
-            ) { hooks.checkUpdate() }
+            UpdateCheckRow(manual, BuildConfig.VERSION_NAME, update?.versionName) { hooks.checkUpdate() }
             if (!s.isPartner) {
                 ActionRow(Icons.Outlined.Delete, "清空所有记录", "无法恢复", Palette.Pink, Palette.PinkSoft, danger = true) { dialog = "clear" }
             }
@@ -374,6 +383,27 @@ private fun StepButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit)
 }
 
 @Composable
+internal fun UpdateCheckRow(
+    manual: ManualCheck,
+    versionName: String,
+    newerName: String?,
+    onCheck: () -> Unit,
+) {
+    val row = updateRowModel(manual, versionName, newerName)
+    ActionRow(
+        Icons.Outlined.Download,
+        "检查更新",
+        row.hint.orEmpty(),
+        Palette.Mint,
+        Palette.MintSoft,
+        hintColor = if (row.error) NyColors.RoseStrong else NyColors.InkSecondary,
+        enabled = row.clickable,
+        showSpinner = row.spinner,
+        onClick = onCheck,
+    )
+}
+
+@Composable
 private fun ActionRow(
     icon: ImageVector,
     title: String,
@@ -381,6 +411,9 @@ private fun ActionRow(
     tint: Color,
     bg: Color,
     danger: Boolean = false,
+    hintColor: Color = Palette.InkSoft,
+    enabled: Boolean = true,
+    showSpinner: Boolean = false,
     onClick: () -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
@@ -388,7 +421,7 @@ private fun ActionRow(
     Row(
         Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(16.dp))
-            .clickable(source, indication = null, onClick = onClick)
+            .clickable(source, indication = null, enabled = enabled, onClick = onClick)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -401,8 +434,12 @@ private fun ActionRow(
             maxLines = 1,
             modifier = Modifier.weight(1f),
         )
-        Text(hint, style = MaterialTheme.typography.bodySmall, color = Palette.InkSoft, maxLines = 1)
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
+        if (showSpinner) {
+            CircularProgressIndicator(Modifier.size(16.dp), color = NyColors.InkSecondary, strokeWidth = 2.dp)
+        } else {
+            Text(hint, style = MaterialTheme.typography.bodySmall, color = hintColor, maxLines = 1)
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
+        }
     }
 }
 

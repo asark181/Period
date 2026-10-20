@@ -48,8 +48,8 @@ class PeriodWidget : AppWidgetProvider() {
             val (bg, fg) = when (t.phase) {
                 Phase.MENSTRUAL, Phase.LATE -> R.drawable.widget_bg_period to 0xFF5C2438.toInt()
                 Phase.FERTILE, Phase.OVULATION -> R.drawable.widget_bg_fertile to 0xFF6B3E22.toInt()
-                Phase.NONE -> R.drawable.widget_bg_empty to context.getColor(R.color.ink)
-                else -> R.drawable.widget_bg_calm to context.getColor(R.color.ink)
+                Phase.NONE -> R.drawable.widget_bg_empty to context.getColor(R.color.ny_ink)
+                else -> R.drawable.widget_bg_calm to context.getColor(R.color.ny_ink)
             }
             val open = PendingIntent.getActivity(
                 context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,

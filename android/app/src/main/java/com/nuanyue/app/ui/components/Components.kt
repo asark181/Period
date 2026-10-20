@@ -61,7 +61,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.domain.DayType
 import com.nuanyue.app.ui.theme.FertileBrush
+import com.nuanyue.app.ui.theme.DayKind
+import com.nuanyue.app.ui.theme.NyColors
+import com.nuanyue.app.ui.theme.NyRadius
+import com.nuanyue.app.ui.theme.NySpace
 import com.nuanyue.app.ui.theme.Palette
+import com.nuanyue.app.ui.theme.dayVisual
 import com.nuanyue.app.ui.theme.PeriodBrush
 import com.nuanyue.app.ui.theme.Rounded
 
@@ -295,7 +300,7 @@ fun CuteSwitch(checked: Boolean, enabled: Boolean = true, onChange: (Boolean) ->
         onCheckedChange = onChange,
         enabled = enabled,
         colors = SwitchDefaults.colors(
-            checkedTrackColor = Palette.Pink,
+            checkedTrackColor = NyColors.Rose,
             checkedThumbColor = Color.White,
             uncheckedTrackColor = Palette.Line,
             uncheckedThumbColor = Color.White,
@@ -314,19 +319,22 @@ fun TagChip(text: String, color: Color) {
 
 fun Color.darken(f: Float = 0.82f) = Color(red * f, green * f, blue * f, alpha)
 
-fun DayType.color(): Color = when (this) {
-    DayType.PERIOD -> Palette.Pink
-    DayType.PREDICTED_PERIOD -> Palette.PinkLine
-    DayType.FERTILE -> Palette.Orange
-    DayType.OVULATION -> Palette.Orange
-    DayType.SAFE -> Palette.Mint
-    DayType.UNKNOWN -> Palette.InkFaint
+fun DayType.color(): Color = dayVisual(dayKind(muted = false)).let { it.fill ?: it.stroke ?: it.dot ?: NyColors.InkTertiary }
+
+fun DayType.dayKind(muted: Boolean = false): DayKind = when {
+    muted -> DayKind.OutOfMonth
+    this == DayType.PERIOD -> DayKind.Period
+    this == DayType.PREDICTED_PERIOD -> DayKind.Predicted
+    this == DayType.FERTILE -> DayKind.Fertile
+    this == DayType.OVULATION -> DayKind.Ovulation
+    else -> DayKind.Normal
 }
 
 /**
- * A compact rounded square. Period is flat rose, fertile is flat orange, both with
- * white numbers. Predicted and an unmarked today are a thin pink outline. Other days
- * are plain text. Ovulation adds a small heart.
+ * Rounded square from [dayVisual]. Every state uses the same outer size.
+ * Today draws an ink ring with a gap outside the fill. Predicted is a dashed
+ * outline. Ovulation adds a dot under the number. Numbers stay ink, including
+ * on the period fill.
  */
 @Composable
 fun DateChip(
@@ -339,66 +347,79 @@ fun DateChip(
     muted: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
-    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
-    val fill = when (type) {
-        DayType.PERIOD -> Palette.Pink
-        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
-        else -> Color.Transparent
-    }
-    val fg = when {
-        filled -> Color.White
-        type == DayType.PREDICTED_PERIOD || isToday -> Palette.Pink
-        muted -> Palette.InkSoft
-        else -> Palette.Ink
-    }
-    val shape = RoundedCornerShape(minOf(10.dp, size * 0.32f))
-    val visual = (size.value * 0.42f).coerceIn(8f, 14f)
-    val font = visual / LocalDensity.current.fontScale
+    val visual = dayVisual(type.dayKind(muted))
+    val shape = NyRadius.chip
+    val font = (if (size < 28.dp) 9f else if (size < 34.dp) 13f else 15f) / LocalDensity.current.fontScale
     val source = remember { MutableInteractionSource() }
-    val scale = pressScale(source, 0.9f)
-    val stroke = if (size < 32.dp) 1.2.dp else 1.5.dp
+    val scale = pressScale(source, 0.94f)
+    val ringPad = NySpace.todayRingGap + NySpace.todayRingWidth
     Box(
-        Modifier.size(size)
-            .graphicsLayer { scaleX = scale * if (scale < 1f) 1.04f else 1f; scaleY = scale }
-            .clip(shape)
-            .background(fill)
-            .then(
-                when {
-                    type == DayType.PREDICTED_PERIOD -> Modifier.border(stroke, Palette.Pink, shape)
-                    isToday && !filled -> Modifier.border(stroke, Palette.Pink, shape)
-                    isToday && filled -> Modifier.border(stroke, Color.White, shape)
-                    isSelected && !filled -> Modifier.border(stroke, Palette.InkFaint, shape)
-                    else -> Modifier
-                },
-            )
+        Modifier.size(size + ringPad * 2)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .then(if (onClick != null) Modifier.clickable(source, indication = null, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (type == DayType.OVULATION && size >= 22.dp) {
-            Icon(
-                Icons.Rounded.Favorite,
-                null,
-                tint = Color.White,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = size * 0.04f).size(size * 0.22f),
+        if (isToday) {
+            Box(
+                Modifier.size(size + NySpace.todayRingGap * 2 + NySpace.todayRingWidth)
+                    .border(NySpace.todayRingWidth, NyColors.TodayRing, RoundedCornerShape(14.dp)),
             )
         }
-        Text(
-            if (isToday) "今" else label,
-            maxLines = 1,
-            style = TextStyle(
-                fontFamily = if (isToday) null else Rounded,
-                fontWeight = FontWeight.Bold,
-                fontSize = font.sp,
-                lineHeight = font.sp,
-                color = fg,
-                platformStyle = PlatformTextStyle(includeFontPadding = false),
-            ),
-        )
-        if (hasRecord && !filled) {
-            Box(
-                Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.08f).size(3.dp).clip(CircleShape)
-                    .background(Palette.Pink),
-            )
+        Box(
+            Modifier.size(size)
+                .clip(shape)
+                .background(visual.fill ?: Color.Transparent)
+                .then(
+                    if (visual.dashed && visual.stroke != null) {
+                        Modifier.drawBehind {
+                            val stroke = NySpace.predictedStroke.toPx()
+                            val inset = stroke / 2f
+                            drawRoundRect(
+                                color = visual.stroke,
+                                topLeft = Offset(inset, inset),
+                                size = Size(this.size.width - stroke, this.size.height - stroke),
+                                cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx()),
+                                style = Stroke(
+                                    width = stroke,
+                                    pathEffect = PathEffect.dashPathEffect(
+                                        floatArrayOf(NySpace.predictedDash.toPx(), NySpace.predictedGap.toPx()),
+                                    ),
+                                ),
+                            )
+                        }
+                    } else if (isSelected && !isToday && visual.fill == null) {
+                        Modifier.border(1.dp, NyColors.Hairline, shape)
+                    } else {
+                        Modifier
+                    },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(
+                    label,
+                    maxLines = 1,
+                    style = TextStyle(
+                        fontFamily = Rounded,
+                        fontWeight = visual.weight,
+                        fontSize = font.sp,
+                        lineHeight = font.sp,
+                        color = visual.text,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    ),
+                )
+                if (visual.dot != null && size >= 28.dp) {
+                    Box(Modifier.padding(top = 1.dp).size(NySpace.ovulationDot).clip(CircleShape).background(visual.dot))
+                } else if (isToday && size >= 32.dp) {
+                    Text("今", fontSize = 8.sp, lineHeight = 8.sp, color = NyColors.InkSecondary, fontWeight = FontWeight.Medium)
+                }
+            }
+            if (hasRecord && visual.fill == null && visual.dot == null) {
+                Box(
+                    Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(3.dp).clip(CircleShape)
+                        .background(NyColors.Rose),
+                )
+            }
         }
     }
 }
