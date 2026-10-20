@@ -46,7 +46,7 @@ enum class MoonMood { HAPPY, SLEEPY, PERIOD }
  * and bounces with a little burst of hearts when tapped.
  */
 @Composable
-fun Mascot(modifier: Modifier = Modifier, mood: MoonMood = MoonMood.HAPPY, interactive: Boolean = true) {
+fun Mascot(modifier: Modifier = Modifier, mood: MoonMood = MoonMood.HAPPY, interactive: Boolean = true, motion: Boolean = true) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val bounce = remember { Animatable(1f) }
@@ -54,11 +54,19 @@ fun Mascot(modifier: Modifier = Modifier, mood: MoonMood = MoonMood.HAPPY, inter
     var giggle by remember { mutableStateOf(false) }
     var burst by remember { mutableIntStateOf(0) }
 
-    val idle = rememberInfiniteTransition(label = "idle")
-    val breathe by idle.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "breathe")
-    val zFloat by idle.animateFloat(0f, 1f, infiniteRepeatable(tween(2200, easing = LinearEasing), RepeatMode.Reverse), label = "z")
+    val breathe: Float
+    val zFloat: Float
+    if (motion) {
+        val idle = rememberInfiniteTransition(label = "idle")
+        breathe = idle.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "breathe").value
+        zFloat = idle.animateFloat(0f, 1f, infiniteRepeatable(tween(2200, easing = LinearEasing), RepeatMode.Reverse), label = "z").value
+    } else {
+        breathe = 0f
+        zFloat = 0f
+    }
 
-    LaunchedEffect(mood) {
+    LaunchedEffect(mood, motion) {
+        if (!motion) return@LaunchedEffect
         while (true) {
             delay(Random.nextLong(2600, 5200))
             if (mood == MoonMood.HAPPY) {

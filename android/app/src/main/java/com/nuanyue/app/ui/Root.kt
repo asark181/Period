@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,6 +51,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -97,7 +100,7 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
         snackbarHost = { WarmMessageHost(message, vm::consumeMessage) },
         bottomBar = { BottomBar(tab) { tab = it } },
     ) { inner ->
-        Box(Modifier.fillMaxSize().padding(bottom = inner.calculateBottomPadding())) {
+        Box(Modifier.fillMaxSize().padding(inner)) {
             AnimatedContent(
                 tab,
                 transitionSpec = {
@@ -120,7 +123,7 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
 @Composable
 private fun LoadingScreen() {
     Box(
-        Modifier.fillMaxSize().background(Palette.Bg),
+        Modifier.fillMaxSize().background(Palette.Bg).statusBarsPadding().navigationBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -134,7 +137,7 @@ private fun LoadingScreen() {
 private val barShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
 
 @Composable
-private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
+internal fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
     val haptic = LocalHapticFeedback.current
     Column(
         Modifier.fillMaxWidth()
@@ -142,7 +145,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             .clip(barShape)
             .background(Color.White),
     ) {
-        Box(Modifier.fillMaxWidth().navigationBarsPadding().height(64.dp)) {
+        Box(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 62.dp)) {
             SlidingIndicator(
                 Tab.entries.size, current.ordinal,
                 Modifier.fillMaxWidth().padding(top = 6.dp),
@@ -150,7 +153,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 pillWidth = 64.dp,
                 pillHeight = 36.dp,
             )
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 62.dp), verticalAlignment = Alignment.CenterVertically) {
                 Tab.entries.forEach { t ->
                     val selected = t == current
                     val pop by animateFloatAsState(
@@ -163,18 +166,18 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                     val text by animateColorAsState(if (selected) Palette.PinkDeep else Palette.InkFaint, label = "text")
                     val icon = if (selected && t == Tab.ME) Icons.Rounded.Person else t.icon
                     Column(
-                        Modifier.weight(1f).fillMaxSize()
+                        Modifier.weight(1f).padding(top = 8.dp, bottom = 6.dp)
                             .clickable(remember { MutableInteractionSource() }, indication = null) {
                                 if (!selected) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onSelect(t)
                             },
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(Modifier.padding(top = 11.dp).size(24.dp).graphicsLayer { scaleX = pop; scaleY = pop; translationY = lift * density }) {
+                        Box(Modifier.padding(top = 8.dp).size(24.dp).graphicsLayer { scaleX = pop; scaleY = pop; translationY = lift * density }) {
                             Icon(icon, t.label, tint = tint, modifier = Modifier.size(24.dp))
                         }
                         Text(
-                            t.label, fontSize = 11.sp,
+                            t.label, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             color = text, modifier = Modifier.padding(top = 4.dp),
                         )

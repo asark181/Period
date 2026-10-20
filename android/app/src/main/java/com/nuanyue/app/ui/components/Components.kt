@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,7 +46,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -140,7 +143,7 @@ fun PrimaryButton(
     Row(
         modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .height(height)
+            .heightIn(min = height)
             .clip(CircleShape)
             .background(if (enabled) container else Palette.Line)
             .clickable(source, indication = null, enabled = enabled, onClick = onClick)
@@ -152,7 +155,14 @@ fun PrimaryButton(
             Icon(icon, null, tint = content, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, color = if (enabled) content else Palette.InkFaint, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(
+            text,
+            color = if (enabled) content else Palette.InkFaint,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -288,9 +298,12 @@ fun DateChip(
     size: Dp,
     hasRecord: Boolean = false,
     muted: Boolean = false,
+    cellWidth: Dp = size,
+    cellHeight: Dp = size,
     onClick: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(size * 0.3f)
+    val basis = minOf(cellWidth, cellHeight)
+    val shape = RoundedCornerShape(basis * 0.32f)
     val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
     val bg = when (type) {
         DayType.PERIOD -> Palette.Pink
@@ -299,10 +312,14 @@ fun DateChip(
         else -> Color.Transparent
     }
     val fg = if (filled) Color.White else if (muted) Palette.InkSoft else Palette.Ink
+    // Prefer a readable size, but never larger than the cell — including when the system font scale is up.
+    val preferred = (basis.value * 0.42f).coerceIn(10f, 16f)
+    val cap = (basis.value * 0.62f) / LocalDensity.current.fontScale
+    val font = minOf(preferred, cap)
     Box(
-        Modifier.size(size)
-            .then(if (isSelected) Modifier.border(2.dp, Palette.Sky, RoundedCornerShape(size * 0.34f)) else Modifier)
-            .padding(if (isSelected) 3.dp else 0.dp)
+        Modifier.size(cellWidth, cellHeight)
+            .then(if (isSelected) Modifier.border(2.dp, Palette.Sky, RoundedCornerShape(basis * 0.36f)) else Modifier)
+            .padding(if (isSelected) 2.dp else 0.dp)
             .clip(shape)
             .background(bg)
             .then(if (type == DayType.PREDICTED_PERIOD || (isToday && !filled)) Modifier.border(1.5.dp, Palette.PinkLine, shape) else Modifier)
@@ -310,21 +327,25 @@ fun DateChip(
         contentAlignment = Alignment.Center,
     ) {
         if (isToday && !filled) {
-            Box(Modifier.fillMaxSize().padding(3.dp).border(1.dp, Palette.PinkLine, RoundedCornerShape(size * 0.22f)))
+            Box(Modifier.fillMaxSize().padding(2.dp).border(1.dp, Palette.PinkLine, RoundedCornerShape(basis * 0.24f)))
         }
         if (type == DayType.OVULATION && !isToday) {
-            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(size * 0.6f))
-            Text(label, fontFamily = Rounded, fontWeight = FontWeight.ExtraBold, fontSize = (size.value * 0.26f).sp, color = Palette.Orange)
+            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(basis * 0.55f))
+            Text(label, fontFamily = Rounded, fontWeight = FontWeight.ExtraBold, fontSize = (font * 0.7f).sp, color = Palette.Orange, maxLines = 1)
         } else {
             Text(
                 if (isToday) "今" else label,
-                fontFamily = Rounded, fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.4f).sp, color = fg,
+                // Nunito has no Chinese glyphs; "今" follows the text style so it stays the system face.
+                fontFamily = if (isToday) null else Rounded,
+                fontWeight = FontWeight.Bold,
+                fontSize = font.sp,
+                color = fg,
+                maxLines = 1,
             )
         }
         if (hasRecord) {
             Box(
-                Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.07f).size(4.dp).clip(CircleShape)
+                Modifier.align(Alignment.BottomCenter).padding(bottom = basis * 0.08f).size(4.dp).clip(CircleShape)
                     .background(if (filled) Color.White else Palette.Mint),
             )
         }

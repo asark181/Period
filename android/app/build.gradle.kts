@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
+    id("app.cash.paparazzi")
 }
 
 val keystoreProps = Properties().apply {
@@ -21,8 +22,8 @@ android {
         applicationId = "com.nuanyue.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.5.0"
+        versionCode = 7
+        versionName = "1.6.0"
         buildConfigField("String", "SERVER_URL", "\"https://leafy.fxxkopenai.com\"")
         buildConfigField("String", "SERVER_FALLBACK_URL", "\"http://129.151.21.101\"")
     }

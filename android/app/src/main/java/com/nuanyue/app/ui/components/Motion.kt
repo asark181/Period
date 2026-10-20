@@ -183,7 +183,11 @@ fun Sticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float
 
 /** Floats a sticker gently up and down, for decoration. */
 @Composable
-fun FloatingSticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float = 0f, amplitude: Dp = 3.dp, periodMs: Int = 2400) {
+fun FloatingSticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float = 0f, amplitude: Dp = 3.dp, periodMs: Int = 2400, motion: Boolean = true) {
+    if (!motion) {
+        Sticker(id, modifier, rotation)
+        return
+    }
     val t = rememberInfiniteTransition(label = "float")
     val y by t.animateFloat(-1f, 1f, infiniteRepeatable(tween(periodMs, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "y")
     Image(painterResource(id), null, modifier.graphicsLayer { translationY = y * amplitude.toPx(); rotationZ = rotation + y * 3f })

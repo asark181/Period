@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -100,7 +99,6 @@ fun StatsScreen(state: UiState) {
             Modifier
                 .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                 .background(Brush.verticalGradient(listOf(Color(0xFFFFEEF2), Color.White)))
-                .statusBarsPadding()
                 .padding(horizontal = 18.dp),
         ) {
             Spacer(Modifier.height(14.dp))
