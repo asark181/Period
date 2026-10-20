@@ -6,6 +6,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -54,20 +55,30 @@ object Palette {
     val Lemon = Color(0xFFFFD86B)
     val Blush = Color(0xFFFFB3C1)
 
-    /** Calendar fills stay pale so the numbers stay dark and the month feels soft. */
-    val RoseFill = Color(0xFFF6D5DE)
-    val RoseInk = Color(0xFF7C3450)
-    val PeachFill = Color(0xFFF8E3D0)
-    val PeachInk = Color(0xFF7A4B2E)
+    /**
+     * Calendar fills are soft but separated: rose for period, peach for fertile.
+     * Numbers use the darker ink of the same family so they stay readable.
+     */
+    val RoseFill = Color(0xFFF8B3C4)
+    val RoseDeep = Color(0xFFE56E8A)
+    val RoseInk = Color(0xFF5C2438)
+    val PeachFill = Color(0xFFF6C9A3)
+    val PeachDeep = Color(0xFFF0B078)
+    val PeachInk = Color(0xFF6B3E22)
     val Cream = Color(0xFFFFF8F6)
-    val Petal = Color(0xFFE7B4C3)
-    val PredictedInk = Color(0xFF8A4E60)
+    val Petal = Color(0xFFE56E8A)
+    val PredictedInk = Color(0xFF8A3A52)
     val Lavender = Color(0xFFE4D9F5)
     val LavenderInk = Color(0xFF5C4A78)
     val LavenderLine = Color(0xFFCDB7E8)
-    val Bloom = Color(0xFFC47D92)
+    val Bloom = Color(0xFFC4476A)
+    val TodayRing = Color(0xFF5C4A78)
     val CalendarWash = Color(0xFFFFF4EF)
 }
+
+/** Same fills the day cells and the legend swatches use. */
+val PeriodBrush = Brush.verticalGradient(listOf(Palette.RoseFill, Palette.RoseDeep))
+val FertileBrush = Brush.verticalGradient(listOf(Palette.PeachFill, Palette.PeachDeep))
 
 /** Rounded numerals (Nunito, variable font). Chinese text stays in the system sans. */
 @OptIn(ExperimentalTextApi::class)

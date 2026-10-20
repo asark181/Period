@@ -69,6 +69,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -78,9 +80,11 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -106,7 +110,9 @@ import com.nuanyue.app.ui.components.PrimaryButton
 import com.nuanyue.app.ui.components.SlidingSegmented
 import com.nuanyue.app.ui.components.Sticker
 import com.nuanyue.app.ui.components.pressScale
+import com.nuanyue.app.ui.theme.FertileBrush
 import com.nuanyue.app.ui.theme.Palette
+import com.nuanyue.app.ui.theme.PeriodBrush
 import com.nuanyue.app.ui.theme.Rounded
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -185,8 +191,10 @@ internal fun HomeContent(
     }
 
     var bloom by remember { mutableIntStateOf(0) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val roomy = maxHeight >= 700.dp
     OneScreen(
-        header = { CompactHeader(state, mode, now, motion) { mode = it } },
+        header = { CompactHeader(state, mode, now, motion, roomy) { mode = it } },
         body = {
             AnimatedContent(
                 mode,
@@ -200,7 +208,7 @@ internal fun HomeContent(
                 when (m) {
                     HOME_MODE_YEAR -> YearView(Modifier.fillMaxSize(), state, infos, yearShown, { yearShown = it }) { ym -> jumpTo(ym) }
                     HOME_MODE_RING -> CycleRingView(Modifier.fillMaxSize(), state, infos, selected, motion) { selectedEpoch = it.toEpochDay() }
-                    else -> MonthView(Modifier.fillMaxSize(), state, infos, pager, selected, onPick = { picker = true }) {
+                    else -> MonthView(Modifier.fillMaxSize(), state, infos, pager, selected, onPick = { picker = true }, roomy = roomy) {
                         selectedEpoch = it.toEpochDay()
                     }
                 }
@@ -208,7 +216,7 @@ internal fun HomeContent(
         },
         dock = {
             DayDock(
-                state, phrase, selected, infos[selected], bloom,
+                state, phrase, selected, infos[selected], bloom, roomy,
                 onToday = { jumpTo(base, today) },
                 onNextPhrase = onNextPhrase,
                 onToast = onToast,
@@ -216,6 +224,7 @@ internal fun HomeContent(
             )
         },
     )
+    }
 
     if (picker) {
         MonthPickerSheet(
@@ -279,7 +288,7 @@ private fun moodFor(state: UiState, now: LocalTime): MoonMood = when {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boolean, onMode: (Int) -> Unit) {
+private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boolean, roomy: Boolean, onMode: (Int) -> Unit) {
     val t = state.snapshot.today
     val name = state.settings.nickname.takeIf { it.isNotBlank() && !state.settings.isPartner }
     val hello = Copy.greeting(now) + (name?.let { "，$it" } ?: "")
@@ -288,34 +297,30 @@ private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boo
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color(0xFFFFF1EA), Color(0xFFFFF6F7)))))
         DriftWash(Modifier.matchParentSize())
         Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 2.dp, bottom = 6.dp),
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = if (roomy) 2.dp else 0.dp, bottom = if (roomy) 6.dp else 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
         Column(Modifier.weight(1f)) {
             SlidingSegmented(
                 listOf(Icons.Rounded.CalendarMonth, Icons.Rounded.CalendarViewMonth, Icons.Rounded.DonutLarge),
-                mode, onMode, itemSize = 34.dp, descriptions = listOf("月历", "整年", "周期环"),
+                mode, onMode, itemSize = if (roomy) 34.dp else 30.dp, descriptions = listOf("月历", "整年", "周期环"),
             )
-            Spacer(Modifier.height(4.dp))
-            FlowRow(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
+            Spacer(Modifier.height(if (roomy) 4.dp else 2.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     hello,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = if (roomy) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = Modifier.weight(1f),
                 )
                 StatusPill(state)
             }
             Text(mood, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Box(Modifier.padding(start = 6.dp).size(48.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.padding(start = 6.dp).size(if (roomy) 48.dp else 40.dp), contentAlignment = Alignment.Center) {
             FloatingSticker(R.drawable.st_star, Modifier.align(Alignment.TopEnd).size(14.dp), rotation = 12f, amplitude = 2.dp, periodMs = 2200, motion = motion)
-            Mascot(Modifier.size(42.dp), moodFor(state, now), motion = motion)
+            Mascot(Modifier.size(if (roomy) 42.dp else 34.dp), moodFor(state, now), motion = motion)
         }
         }
     }
@@ -363,6 +368,7 @@ private fun MonthView(
     pager: PagerState,
     selected: LocalDate,
     onPick: () -> Unit,
+    roomy: Boolean,
     onSelect: (LocalDate) -> Unit,
 ) {
     val base = YearMonth.from(state.today)
@@ -380,7 +386,7 @@ private fun MonthView(
                 AnimatedContent(month, transitionSpec = { monthSlide(targetState > initialState) }, label = "title") { m ->
                     Row(verticalAlignment = Alignment.Bottom) {
                         Numeral("${m.year}", 13.sp, Palette.InkSoft, Modifier.padding(bottom = 3.dp, end = 4.dp))
-                        Numeral("${m.monthValue}", 26.sp)
+                        Numeral("${m.monthValue}", if (roomy) 26.sp else 22.sp)
                         Text("月", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 3.dp))
                     }
                 }
@@ -407,25 +413,45 @@ private fun MonthView(
                 )
             }
         }
-        HorizontalPager(
-            pager,
-            modifier = Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Palette.CalendarWash).testTag("home-calendar"),
-            verticalAlignment = Alignment.Top,
-            beyondViewportPageCount = 1,
-        ) { page ->
-            val ym = base.plusMonths((page - MONTHS_BACK).toLong())
-            val drift = if (LocalMotion.current) pager.currentPageOffsetFraction else 0f
-            MonthGrid(Modifier.fillMaxSize(), ym, infos, state.today, selected, drift, onSelect)
-        }
-        FlowRow(
-            Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            LegendDot(Palette.RoseInk, "经期")
-            LegendDot(Palette.Petal, "预测", hollow = true)
-            LegendDot(Palette.PeachInk, "易孕")
-            LegendDot(Palette.Bloom, "排卵", heart = true)
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val ym = base.plusMonths((pager.currentPage - MONTHS_BACK).toLong())
+            val rows = weekRows(ym).coerceAtLeast(1)
+            val gap = 4.dp
+            val fontScale = LocalDensity.current.fontScale
+            val legendBlock = (18.dp * fontScale).coerceIn(18.dp, 30.dp)
+            // One unclipped title line. Anything taller is leftover the card grows into.
+            val cardFloor = (20.dp + 24.dp * fontScale).coerceIn(44.dp, 68.dp)
+            val cellFromW = ((maxWidth - gap * 6) / 7).coerceAtLeast(0.dp)
+            val gridBudget = (maxHeight - legendBlock - cardFloor).coerceAtLeast(0.dp)
+            val cellFromH = ((gridBudget - gap * (rows - 1)) / rows).coerceAtLeast(0.dp)
+            val cell = minOf(cellFromW, cellFromH)
+            val gridH = (cell * rows + gap * (rows - 1)).coerceAtLeast(1.dp)
+            Column(Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    pager,
+                    modifier = Modifier.height(gridH).fillMaxWidth().clipToBounds().testTag("home-calendar"),
+                    verticalAlignment = Alignment.Top,
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    val pageYm = base.plusMonths((page - MONTHS_BACK).toLong())
+                    val drift = if (LocalMotion.current) pager.currentPageOffsetFraction else 0f
+                    MonthGrid(pageYm, cell, gap, infos, state.today, selected, drift, onSelect)
+                }
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    LegendDot(Palette.RoseDeep, "经期", brush = PeriodBrush)
+                    LegendDot(Palette.RoseDeep, "预测", dashed = true)
+                    LegendDot(Palette.PeachDeep, "易孕", brush = FertileBrush)
+                    LegendDot(Palette.PeachDeep, "排卵", brush = FertileBrush, marker = true)
+                }
+                DayStoryCard(
+                    Modifier.weight(1f).padding(top = 6.dp),
+                    dayBrief(selected, state.today, infos[selected], state.snapshot),
+                )
+            }
         }
     }
 }
@@ -445,8 +471,9 @@ private fun ArrowBtn(icon: ImageVector, onClick: () -> Unit) {
 
 @Composable
 private fun MonthGrid(
-    modifier: Modifier,
     ym: YearMonth,
+    cell: Dp,
+    gap: Dp,
     infos: Map<LocalDate, DayInfo>,
     today: LocalDate,
     selected: LocalDate,
@@ -456,15 +483,18 @@ private fun MonthGrid(
     val first = ym.atDay(1)
     val lead = first.dayOfWeek.value - java.time.DayOfWeek.MONDAY.value
     val rows = weekRows(ym)
-    Column(modifier) {
+    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
         for (r in 0 until rows) {
-            Row(Modifier.weight(1f).fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().height(cell),
+                horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
+            ) {
                 for (c in 0 until 7) {
                     val idx = r * 7 + c - lead
-                    BoxWithConstraints(
-                        Modifier.weight(1f).fillMaxHeight().graphicsLayer {
-                            translationY = drift * (c - 3) * 8f
-                            alpha = 1f - kotlin.math.abs(drift) * 0.18f
+                    Box(
+                        Modifier.size(cell).graphicsLayer {
+                            translationY = drift * (c - 3) * 6f
+                            alpha = 1f - kotlin.math.abs(drift) * 0.15f
                         },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -475,11 +505,66 @@ private fun MonthGrid(
                                 infos[d]?.type ?: DayType.UNKNOWN,
                                 d == today,
                                 d == selected,
-                                size = minOf(maxWidth, maxHeight) * 0.9f,
+                                size = cell,
                                 muted = d.isAfter(today),
                             ) { onSelect(d) }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayStoryCard(modifier: Modifier, brief: DayBrief) {
+    val scale = LocalDensity.current.fontScale
+    BoxWithConstraints(
+        modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White)
+            .border(1.dp, Palette.Line, RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+        val titleH = 24.dp * scale
+        val lineH = 18.dp * scale
+        val stripH = 16.dp
+        val lines = when {
+            maxHeight >= titleH + lineH * 2 + stripH -> 2
+            maxHeight >= titleH + lineH * 2 -> 2
+            maxHeight >= titleH + lineH -> 1
+            else -> 0
+        }
+        val showStrip = lines > 0 && maxHeight >= titleH + lineH * lines + stripH
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
+            Text(
+                brief.title,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    lineHeight = 20.sp,
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (lines > 0) {
+                Text(
+                    brief.detail,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    ),
+                    maxLines = lines,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            if (showStrip) {
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Palette.PinkSoft),
+                ) {
+                    Box(
+                        Modifier.fillMaxHeight().fillMaxWidth(brief.progress.coerceIn(0f, 1f)).background(PeriodBrush),
+                    )
                 }
             }
         }
@@ -583,7 +668,7 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
                                                 .then(
                                                     when {
                                                         d == today -> Modifier.border(1.dp, Palette.LavenderLine, CircleShape)
-                                                        type == DayType.PREDICTED_PERIOD -> Modifier.border(1.dp, Palette.Petal, CircleShape)
+                                                        type == DayType.PREDICTED_PERIOD -> Modifier.border(1.dp, Palette.RoseDeep, CircleShape)
                                                         else -> Modifier
                                                     },
                                                 ),
@@ -807,6 +892,7 @@ private fun DayDock(
     date: LocalDate,
     info: DayInfo?,
     bloom: Int,
+    roomy: Boolean,
     onToday: () -> Unit,
     onNextPhrase: () -> Unit,
     onToast: (String) -> Unit,
@@ -818,7 +904,7 @@ private fun DayDock(
     Column(
         Modifier.fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color(0xFFFFF7F8), Palette.Bg)))
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = if (roomy) 6.dp else 2.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AnimatedContent(date, transitionSpec = { monthSlide(targetState > initialState) }, label = "date") { d ->
@@ -843,7 +929,7 @@ private fun DayDock(
                 )
             }
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (roomy) 6.dp else 2.dp))
         if (state.settings.isPartner) {
             Text("这是她的记录，只能查看", style = MaterialTheme.typography.bodySmall, maxLines = 1)
         } else {
@@ -863,7 +949,7 @@ private fun DayDock(
                     primary.pending.start -> Icons.Rounded.PlayArrow
                     else -> Icons.Rounded.Stop
                 },
-                height = 46.dp,
+                height = if (roomy) 46.dp else 40.dp,
                 container = when {
                     blocked -> Palette.Line
                     undo -> Palette.PinkSoft
@@ -893,18 +979,18 @@ private fun DayDock(
                             val reason = actions.blockedReason
                             if (reason != null) onToast(reason) else onAsk(secondary.pending)
                         }
-                        .padding(vertical = 6.dp)
+                        .padding(vertical = if (roomy) 6.dp else 2.dp)
                         .testTag("home-secondary"),
                 )
             }
         }
-        Spacer(Modifier.height(4.dp))
-        PhraseLine(phrase, onNextPhrase)
+        Spacer(Modifier.height(if (roomy) 4.dp else 2.dp))
+        PhraseLine(phrase, onNextPhrase, roomy)
     }
 }
 
 @Composable
-private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit) {
+private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit, roomy: Boolean) {
     var shown by remember { mutableStateOf(phrase) }
     val rotation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -934,7 +1020,7 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit) {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 scope.launch { onNext() }
             }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = if (roomy) 8.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Sticker(R.drawable.st_heart, Modifier.size(14.dp))

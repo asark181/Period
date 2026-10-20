@@ -37,17 +37,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -55,7 +60,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.domain.DayType
+import com.nuanyue.app.ui.theme.FertileBrush
 import com.nuanyue.app.ui.theme.Palette
+import com.nuanyue.app.ui.theme.PeriodBrush
 import com.nuanyue.app.ui.theme.Rounded
 
 private val cardShape = RoundedCornerShape(26.dp)
@@ -220,19 +227,49 @@ fun Hairline(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LegendDot(color: Color, label: String, hollow: Boolean = false, heart: Boolean = false) {
+fun LegendDot(
+    color: Color,
+    label: String,
+    hollow: Boolean = false,
+    heart: Boolean = false,
+    dashed: Boolean = false,
+    brush: Brush? = null,
+    marker: Boolean = false,
+) {
+    val swatch = RoundedCornerShape(4.dp)
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (heart) {
             Icon(if (hollow) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite, null, tint = color, modifier = Modifier.size(12.dp))
         } else {
             Box(
-                Modifier.size(10.dp).clip(RoundedCornerShape(3.dp))
-                    .then(if (hollow) Modifier.border(1.2.dp, color, RoundedCornerShape(3.dp)) else Modifier.background(color)),
-            )
+                Modifier.size(12.dp).clip(swatch)
+                    .then(
+                        when {
+                            dashed -> Modifier.dashedRounded(color, 1.4.dp, 4.dp)
+                            brush != null -> Modifier.background(brush)
+                            hollow -> Modifier.border(1.2.dp, color, swatch)
+                            else -> Modifier.background(color)
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (marker) Icon(Icons.Rounded.Spa, null, tint = Palette.Bloom, modifier = Modifier.size(9.dp))
+            }
         }
         Spacer(Modifier.width(5.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall)
+        Text(label, style = MaterialTheme.typography.bodySmall, maxLines = 1)
     }
+}
+
+private fun Modifier.dashedRounded(color: Color, width: Dp, corner: Dp): Modifier = drawBehind {
+    val stroke = width.toPx()
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(stroke / 2, stroke / 2),
+        size = Size(size.width - stroke, size.height - stroke),
+        cornerRadius = CornerRadius(corner.toPx(), corner.toPx()),
+        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.5.dp.toPx(), 2.5.dp.toPx()))),
+    )
 }
 
 @Composable
@@ -287,8 +324,8 @@ fun DayType.color(): Color = when (this) {
 }
 
 /**
- * A soft square day. Period is rose, fertile is peach, predicted is a petal outline,
- * ovulation gets a tiny flower, and today sits on a lavender disc.
+ * A square day. Period is a rose gradient, fertile is peach, predicted is a dashed
+ * rose outline, ovulation wears a small flower, and today gets a distinct ring.
  */
 @Composable
 fun DateChip(
@@ -301,54 +338,63 @@ fun DateChip(
     muted: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(size * 0.32f)
-    val bg = when (type) {
-        DayType.PERIOD -> Palette.RoseFill
-        DayType.FERTILE, DayType.OVULATION -> Palette.PeachFill
-        DayType.PREDICTED_PERIOD -> Palette.Cream
-        else -> if (isToday) Palette.Lavender else Color.Transparent
+    val shape = RoundedCornerShape(size * 0.30f)
+    val brush = when (type) {
+        DayType.PERIOD -> PeriodBrush
+        DayType.FERTILE, DayType.OVULATION -> FertileBrush
+        else -> null
     }
     val fg = when {
         type == DayType.PERIOD -> Palette.RoseInk
         type == DayType.FERTILE || type == DayType.OVULATION -> Palette.PeachInk
         type == DayType.PREDICTED_PERIOD -> Palette.PredictedInk
-        isToday -> Palette.LavenderInk
+        isToday -> Palette.TodayRing
         muted -> Palette.InkSoft
         else -> Palette.Ink
     }
-    val preferred = (size.value * 0.40f).coerceIn(10f, 15f)
-    val cap = (size.value * 0.62f) / LocalDensity.current.fontScale
-    val font = minOf(preferred, cap)
+    // sp already includes font scale, so divide it back out. The glyph stays inside the square.
+    val visual = (size.value * 0.46f).coerceIn(8f, 15f)
+    val font = visual / LocalDensity.current.fontScale
+    val ring = if (size < 36.dp) 1.5.dp else 2.5.dp
     val source = remember { MutableInteractionSource() }
     val scale = pressScale(source, 0.86f)
-    val lift = if (size >= 28.dp && bg != Color.Transparent) 2.dp else 0.dp
+    val lift = if (size >= 32.dp && brush != null) 2.dp else 0.dp
     Box(
         Modifier.size(size)
             .graphicsLayer { scaleX = scale * if (scale < 1f) 1.06f else 1f; scaleY = scale }
-            .shadow(lift, shape, clip = false, ambientColor = Color(0x18C47D92), spotColor = Color(0x22C47D92))
+            .shadow(lift, shape, clip = false, ambientColor = Color(0x22C4476A), spotColor = Color(0x33E56E8A))
             .clip(shape)
-            .background(bg)
+            .then(if (brush != null) Modifier.background(brush) else Modifier.background(Color.Transparent))
+            .then(if (type == DayType.PREDICTED_PERIOD) Modifier.dashedRounded(Palette.RoseDeep, 1.6.dp, size * 0.30f) else Modifier)
             .then(
                 when {
-                    isSelected -> Modifier.border(2.dp, Palette.LavenderLine, shape)
-                    type == DayType.PREDICTED_PERIOD -> Modifier.border(1.4.dp, Palette.Petal, shape)
-                    isToday && type == DayType.UNKNOWN -> Modifier.border(1.2.dp, Palette.LavenderLine, shape)
+                    isToday -> Modifier.border(ring, Palette.TodayRing, shape)
+                    isSelected -> Modifier.border(if (size < 36.dp) 1.5.dp else 2.dp, Palette.RoseInk, shape)
                     else -> Modifier
                 },
             )
             .then(if (onClick != null) Modifier.clickable(source, indication = null, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (type == DayType.OVULATION) {
-            Icon(Icons.Rounded.Spa, null, tint = Palette.Bloom, modifier = Modifier.align(Alignment.TopCenter).padding(top = size * 0.08f).size(size * 0.22f))
+        if (type == DayType.OVULATION && size >= 22.dp) {
+            Icon(
+                Icons.Rounded.Spa,
+                null,
+                tint = Palette.Bloom,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = size * 0.05f).size(size * 0.22f),
+            )
         }
         Text(
             if (isToday) "今" else label,
-            fontFamily = if (isToday) null else Rounded,
-            fontWeight = FontWeight.Bold,
-            fontSize = font.sp,
-            color = fg,
             maxLines = 1,
+            style = TextStyle(
+                fontFamily = if (isToday) null else Rounded,
+                fontWeight = FontWeight.Bold,
+                fontSize = font.sp,
+                lineHeight = font.sp,
+                color = fg,
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
+            ),
         )
         if (hasRecord) {
             Box(

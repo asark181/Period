@@ -1,7 +1,6 @@
 package com.nuanyue.app.ui
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -62,10 +61,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.ui.components.LocalMotion
-import kotlin.math.PI
-import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.sin
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -185,40 +182,64 @@ internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Un
     val target = slide ?: current.ordinal.toFloat()
     val animated by animateFloatAsState(
         target,
-        if (motion) spring(dampingRatio = 0.58f, stiffness = Spring.StiffnessMediumLow) else tween(0),
+        if (motion) spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow) else tween(0),
         label = "blob",
     )
     val index = if (slide != null) slide else animated
-    val stretch = sin((index - floor(index)) * PI).toFloat().let { abs(it) }
+    val idle = Color(0xFF6A5560)
     Column(
         Modifier.fillMaxWidth()
             .shadow(16.dp, barShape, clip = false, ambientColor = Color(0x14C47D92), spotColor = Color(0x22E7A3B5))
             .clip(barShape)
             .background(Color.White),
     ) {
-        BoxWithConstraints(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 68.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 72.dp)) {
             val count = Tab.entries.size
             val slot = maxWidth / count
-            val blobW = 72.dp + 34.dp * stretch
-            val x = slot * index + (slot - blobW) / 2
+            val base = floor(index.toDouble())
+            val p = (index - base).toFloat().coerceIn(0f, 1f)
+            val origin = base.toInt().coerceIn(0, count - 1)
+            val dest = ceil(index.toDouble()).toInt().coerceIn(0, count - 1)
+            // Leading edge arrives first and the tail snaps across, so the blob
+            // stretches between the two icons instead of floating in the gap.
+            val reach = (p / 0.38f).coerceIn(0f, 1f)
+            val follow = if (p < 0.62f) 0f else {
+                val t = ((p - 0.62f) / 0.38f).coerceIn(0f, 1f)
+                t * t
+            }
+            val rest = 62.dp
+            val c0 = slot * origin + slot / 2
+            val c1 = slot * dest + slot / 2
+            val left = (c0 - rest / 2) + ((c1 - rest / 2) - (c0 - rest / 2)) * follow
+            val right = (c0 + rest / 2) + ((c1 + rest / 2) - (c0 + rest / 2)) * reach
+            val blobW = (right - left).coerceAtLeast(rest)
+            val squash = ((blobW - rest) / slot).coerceIn(0f, 1f)
             Box(
-                Modifier.offset(x = x, y = 8.dp)
+                Modifier.offset(x = left, y = 12.dp)
                     .width(blobW)
-                    .height(40.dp)
-                    .shadow(8.dp, CircleShape, clip = false, ambientColor = Color(0x22E7A3B5), spotColor = Color(0x33F6D5DE))
+                    .height(34.dp - 8.dp * squash)
+                    .shadow(8.dp, CircleShape, clip = false, ambientColor = Color(0x33E56E8A), spotColor = Color(0x44F8B3C4))
                     .clip(CircleShape)
-                    .background(Brush.horizontalGradient(listOf(Palette.RoseFill, Palette.Lavender))),
+                    .background(Brush.horizontalGradient(listOf(Palette.RoseFill, Palette.RoseDeep))),
             )
-            Row(
-            Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 64.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 72.dp), verticalAlignment = Alignment.CenterVertically) {
                 Tab.entries.forEachIndexed { i, t ->
-                    val influence = (1f - abs(index - i)).coerceIn(0f, 1f)
-                    val tint by animateColorAsState(if (influence > 0.5f) Palette.RoseInk else Palette.InkFaint, label = "tint")
-                    val icon = if (influence > 0.6f && t == Tab.ME) Icons.Rounded.Person else t.icon
+                    val cover = when {
+                        i == origin && i == dest -> 1f
+                        i == origin -> 1f - follow
+                        i == dest -> reach
+                        else -> 0f
+                    }
+                    val hop by animateFloatAsState(
+                        if (slide != null) cover else if (i == current.ordinal) 1f else 0f,
+                        if (motion) spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMedium) else tween(0),
+                        label = "hop",
+                    )
+                    val chosen = hop > 0.55f
+                    val tint = if (chosen) Palette.RoseInk else idle
+                    val icon = if (chosen && t == Tab.ME) Icons.Rounded.Person else t.icon
                     Column(
-                        Modifier.weight(1f).padding(top = 6.dp, bottom = 6.dp)
+                        Modifier.weight(1f).padding(top = 8.dp, bottom = 6.dp)
                             .clickable(remember { MutableInteractionSource() }, indication = null) {
                                 if (t != current) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onSelect(t)
@@ -226,23 +247,22 @@ internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Un
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(
-                            Modifier.size(26.dp).graphicsLayer {
-                                val squash = influence
-                                scaleX = 1f + 0.18f * squash
-                                scaleY = 1f - 0.08f * stretch * (if (squash > 0.4f) 1f else 0f) + 0.16f * squash
-                                translationY = -6f * squash * density
+                            Modifier.size(28.dp).graphicsLayer {
+                                translationY = -12f * hop * density
+                                scaleX = 1f + 0.14f * hop
+                                scaleY = 1f + 0.18f * hop
                             },
                         ) {
-                            Icon(icon, t.label, tint = tint, modifier = Modifier.size(24.dp))
+                            Icon(icon, t.label, tint = tint, modifier = Modifier.size(24.dp).align(Alignment.Center))
                         }
                         Text(
                             t.label,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            fontWeight = if (influence > 0.5f) FontWeight.Bold else FontWeight.Medium,
-                            color = Palette.RoseInk.copy(alpha = 0.35f + 0.65f * influence),
-                            modifier = Modifier.padding(top = 2.dp).graphicsLayer { alpha = 0.35f + 0.65f * influence },
+                            fontWeight = if (chosen) FontWeight.Bold else FontWeight.Medium,
+                            color = if (chosen) Palette.RoseInk else idle,
+                            modifier = Modifier.padding(top = 1.dp),
                         )
                     }
                 }
