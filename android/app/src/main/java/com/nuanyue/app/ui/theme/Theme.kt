@@ -6,7 +6,6 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -19,68 +18,42 @@ import androidx.compose.ui.unit.sp
 import com.nuanyue.app.R
 
 /**
- * Warm light theme. [NyColors] in Tokens.kt is the source of truth; these names
- * stay so existing screens keep compiling. Period fills are [RoseFill], button
- * fills are [Pink], rose text is [PinkDeep] / [RoseInk]. [NyColors.Rose] is for
- * graphics only.
+ * Soft and warm, in the 柠檬小月 direction: blush paper, coral pink for the period,
+ * warm orange for the fertile window, mint for sync, pale sky for weekday labels.
  *
- * [FeedbackColors] stays the contrast contract for the toast pill. Typography
- * bakes [Ink] into text styles, so feedback must not use the default Snackbar.
- * See WarmToast. inverse surfaces stay light for that reason, which differs from
- * the spec's inverseSurface = Ink.
+ * [Ink] and [ToastBg] match [FeedbackColors]. Text styles below bake a color in on
+ * purpose (captions stay softer). Compose Text then ignores LocalContentColor, which
+ * is why feedback must not use the default Snackbar. See WarmToast.
  */
 object Palette {
-    val Bg = NyColors.Bg
-    val Panel = NyColors.SurfaceSunken
-    val Card = NyColors.Surface
-    val Line = NyColors.Hairline
+    val Bg = Color(0xFFFFF6F7)
+    val Panel = Color(0xFFFFF0F3)
+    val Card = Color(0xFFFFFFFF)
+    val Line = Color(0xFFF3E3E8)
 
-    val Ink = NyColors.Ink
-    val InkSoft = NyColors.InkSecondary
-    val InkFaint = NyColors.InkTertiary
+    val Ink = Color(FeedbackColors.INK.toInt())
+    val InkSoft = Color(0xFF9A8490)
+    val InkFaint = Color(0xFFD5C4CC)
 
-    val ToastBg = NyColors.Surface
+    val ToastBg = Color(FeedbackColors.BACKGROUND.toInt())
 
-    val Pink = NyColors.PrimaryButton
-    val PinkDeep = NyColors.RoseStrong
-    val PinkSoft = NyColors.RoseContainer
-    val PinkLine = NyColors.PredictedOutline
+    val Pink = Color(FeedbackColors.ACCENT.toInt())
+    val PinkDeep = Color(0xFFE25373)
+    val PinkSoft = Color(0xFFFFE8ED)
+    val PinkLine = Color(0xFFF6AABA)
 
-    val Orange = NyColors.Ovulation
-    val OrangeSoft = NyColors.Fertile
+    val Orange = Color(0xFFF7A928)
+    val OrangeSoft = Color(0xFFFFF1D9)
 
-    val Mint = NyColors.Rose
-    val MintSoft = NyColors.RoseContainer
+    val Mint = Color(0xFF4FC6B0)
+    val MintSoft = Color(0xFFDDF5F0)
 
-    val Sky = NyColors.InkSecondary
-    val SkySoft = NyColors.SurfaceSunken
+    val Sky = Color(0xFF6E8CC6)
+    val SkySoft = Color(0xFFE9F0FC)
 
-    val Lemon = NyColors.RoseContainer
-    val Blush = NyColors.RoseContainer
-
-    /** Period cells are a light rose with ink numbers, not a solid button red. */
-    val RoseFill = NyColors.PeriodFill
-    val RoseDeep = NyColors.RoseStrong
-    val RoseInk = NyColors.RoseStrong
-    val PeachFill = NyColors.Fertile
-    val PeachDeep = NyColors.Ovulation
-    val PeachInk = NyColors.Ink
-    val Cream = NyColors.Bg
-    val Petal = NyColors.RoseOutline
-    val PredictedInk = NyColors.PredictedOutline
-    val Lavender = NyColors.SurfaceSunken
-    val LavenderInk = NyColors.InkSecondary
-    val LavenderLine = NyColors.Hairline
-    val Bloom = NyColors.Ovulation
-    val TodayRing = NyColors.TodayRing
-    val CalendarWash = NyColors.Bg
-    val Sheet = NyColors.SurfaceSunken
-    val Segment = NyColors.RoseContainer
+    val Lemon = Color(0xFFFFD86B)
+    val Blush = Color(0xFFFFB3C1)
 }
-
-/** Flat fills, kept so older call sites do not paint a gradient. */
-val PeriodBrush = Brush.linearGradient(listOf(Palette.RoseFill, Palette.RoseFill))
-val FertileBrush = Brush.linearGradient(listOf(Palette.PeachFill, Palette.PeachFill))
 
 /** Rounded numerals (Nunito, variable font). Chinese text stays in the system sans. */
 @OptIn(ExperimentalTextApi::class)
@@ -92,40 +65,32 @@ val Rounded = FontFamily(
 )
 
 private val colors = lightColorScheme(
-    primary = NyColors.PrimaryButton,
-    onPrimary = NyColors.OnPrimaryButton,
-    primaryContainer = NyColors.RoseContainer,
-    onPrimaryContainer = NyColors.RoseStrong,
-    inversePrimary = NyColors.Rose,
-    secondary = NyColors.Ovulation,
-    onSecondary = NyColors.Ink,
-    secondaryContainer = NyColors.Fertile,
-    onSecondaryContainer = NyColors.Ink,
-    tertiary = NyColors.Weekend,
-    onTertiary = NyColors.OnPrimaryButton,
-    background = NyColors.Bg,
-    onBackground = NyColors.Ink,
-    surface = NyColors.Bg,
-    onSurface = NyColors.Ink,
-    surfaceVariant = NyColors.SurfaceSunken,
-    onSurfaceVariant = NyColors.InkSecondary,
+    primary = Palette.Pink,
+    onPrimary = Color.White,
+    primaryContainer = Palette.PinkSoft,
+    onPrimaryContainer = Palette.PinkDeep,
+    secondary = Palette.Orange,
+    onSecondary = Color.White,
+    secondaryContainer = Palette.OrangeSoft,
+    tertiary = Palette.Mint,
+    background = Palette.Bg,
+    onBackground = Palette.Ink,
+    surface = Palette.Card,
+    onSurface = Palette.Ink,
+    surfaceVariant = Palette.Panel,
+    onSurfaceVariant = Palette.InkSoft,
+    surfaceContainerLow = Palette.Card,
+    surfaceContainer = Palette.Card,
+    surfaceContainerHigh = Palette.Card,
+    surfaceContainerHighest = Palette.Panel,
+    outline = Palette.InkFaint,
+    outlineVariant = Palette.Line,
+    // Snackbar and other "inverse" surfaces default to near-black. Keep them light
+    // even if a future screen forgets to use WarmToast.
+    inverseSurface = Palette.ToastBg,
+    inverseOnSurface = Palette.Ink,
+    inversePrimary = Palette.PinkDeep,
     surfaceTint = Color.Transparent,
-    surfaceBright = NyColors.Surface,
-    surfaceDim = NyColors.SurfaceSunken,
-    surfaceContainerLowest = NyColors.Surface,
-    surfaceContainerLow = NyColors.Bg,
-    surfaceContainer = NyColors.SurfaceSunken,
-    surfaceContainerHigh = NyColors.SurfaceSunken,
-    surfaceContainerHighest = NyColors.BgWash,
-    outline = NyColors.RoseOutline,
-    outlineVariant = NyColors.Hairline,
-    scrim = Color(0x524A3540),
-    // Spec maps inverseSurface to Ink. Typography bakes Ink into body text, so a
-    // Material snackbar on that dark surface is dark-on-dark. Keep the inverse
-    // pair light; toasts go through WarmToast.
-    inverseSurface = Color.White,
-    inverseOnSurface = NyColors.Ink,
-    error = Color(0xFFBA1A1A),
 )
 
 private val typography = Typography(

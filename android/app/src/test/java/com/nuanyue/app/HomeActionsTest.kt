@@ -1,9 +1,7 @@
 package com.nuanyue.app
 
-import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.domain.Period
 import com.nuanyue.app.ui.home.dayActions
-import com.nuanyue.app.ui.home.dayBrief
 import com.nuanyue.app.ui.home.weekRows
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -13,15 +11,6 @@ import java.time.YearMonth
 
 class HomeActionsTest {
     private val today = LocalDate.of(2026, 10, 20)
-
-    @Test fun periodDayCardNamesTheCountdown() {
-        val periods = listOf(Period("b", LocalDate.of(2026, 10, 18), null))
-        val snapshot = CycleEngine.snapshot(periods, 28, 5, today)
-        val info = CycleEngine.dayInfos(snapshot, today, today, today)[today]
-        val brief = dayBrief(today, today, info, snapshot)
-        assertEquals("经期第 3 天", brief.title)
-        assertEquals("这次大概还有 3 天，下次月经预计 11月15日", brief.detail)
-    }
 
     @Test fun october2026UsesFiveWeekRows() {
         // 1 Oct 2026 is a Thursday, so the month fits in five Monday-first rows.
@@ -63,7 +52,7 @@ class HomeActionsTest {
         val day = LocalDate.of(2026, 10, 28)
         val actions = dayActions(day, today, emptyList())
         assertEquals("月经来了", actions.primary.label)
-        assertEquals("这一天还没到，不能记", actions.blockedReason)
+        assertEquals("未来的情况需要未来再记录哦", actions.blockedReason)
     }
 
     @Test fun anEndedDayOffersUndoFirst() {

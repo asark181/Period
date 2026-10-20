@@ -1,5 +1,9 @@
 package com.nuanyue.app
 
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,20 +12,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
-import androidx.core.graphics.Insets
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -32,32 +32,36 @@ import androidx.compose.ui.unit.sp
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.resources.Density
+import com.android.resources.Navigation
 import com.nuanyue.app.data.AppSettings
 import com.nuanyue.app.data.PhraseEntity
+import com.nuanyue.app.data.Role
 import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.domain.Period
 import com.nuanyue.app.ui.BottomBar
 import com.nuanyue.app.ui.Tab
 import com.nuanyue.app.ui.UiState
-import com.nuanyue.app.ui.components.LocalMotion
 import com.nuanyue.app.ui.home.ConfirmBody
 import com.nuanyue.app.ui.home.HOME_MODE_MONTH
 import com.nuanyue.app.ui.home.HOME_MODE_RING
 import com.nuanyue.app.ui.home.HOME_MODE_YEAR
+import com.nuanyue.app.ui.home.DayDock
 import com.nuanyue.app.ui.home.HomeContent
-import com.nuanyue.app.ui.home.LocalYearDayGridHeight
 import com.nuanyue.app.ui.home.Pending
-import com.nuanyue.app.ui.onboarding.RolePick
-import com.nuanyue.app.ui.settings.SettingsHooks
+import com.nuanyue.app.ui.onboarding.OnboardingScreen
+import com.nuanyue.app.ui.settings.BatteryDialog
+import com.nuanyue.app.ui.settings.ConfirmDialog
+import com.nuanyue.app.ui.settings.SettingsActions
 import com.nuanyue.app.ui.settings.SettingsPage
-import com.nuanyue.app.ui.settings.UpdateCheckRow
-import com.nuanyue.app.update.ManualCheck
+import com.nuanyue.app.ui.settings.SyncDialog
 import com.nuanyue.app.ui.stats.StatsScreen
 import com.nuanyue.app.ui.theme.NuanYueTheme
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.update.UpdatePanel
 import com.nuanyue.app.update.UpdatePhase
 import com.nuanyue.app.update.UpdateUi
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -65,359 +69,173 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * Home tab at phone sizes. October 2026, nickname 猪猪, period open since the 18th,
- * today the 20th (day 3). Motion is off so the frame settles. The 24dp / 16dp
- * padding stands in for the status bar and gesture inset, which layoutlib leaves at 0.
+ * 1.6.0 UI on two phones: Xiaomi 15 Pro (1440×3200, 560dpi ≈ 411dp, gesture nav)
+ * and a 360×640dp phone. Layoutlib leaves system insets at 0, so the 24dp / 16dp
+ * spacers stand in for the status bar and the gesture band.
  */
 class HomeScreenshotTest {
     @get:Rule
     val paparazzi = Paparazzi(
-        deviceConfig = phone(411, 891),
+        deviceConfig = xiaomi15Pro,
         theme = "android:Theme.Material.Light.NoActionBar",
         useDeviceResolution = true,
     )
 
-    @Test fun monthOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "home-411x891") { HomeShot(HOME_MODE_MONTH) }
+    @Test fun homeToday() = both("home-today") { HomeShot(HOME_MODE_MONTH) }
+
+    @Test fun homePastDate() = both("home-past") {
+        HomeShot(HOME_MODE_MONTH, selected = LocalDate.of(2026, 10, 16))
     }
 
-    @Test fun monthOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "home-360x640") { HomeShot(HOME_MODE_MONTH) }
+    @Test fun homeFutureDate() = both("home-future") {
+        HomeShot(HOME_MODE_MONTH, selected = LocalDate.of(2026, 10, 24))
     }
 
-    @Test fun monthOnASmallPhoneWithLargeFont() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640, fontScale = 1.3f))
-        paparazzi.snapshot(name = "home-360x640-font") { HomeShot(HOME_MODE_MONTH) }
-    }
-
-    @Test fun yearOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        val gridHeights = mutableMapOf<Int, Int>()
-        paparazzi.snapshot(name = "home-year-360x640") {
-            CompositionLocalProvider(LocalYearDayGridHeight provides { month, height -> gridHeights[month] = height }) {
-                HomeShot(HOME_MODE_YEAR)
-            }
-        }
-        // A 4-week grid is 4/7 of the month width. At 360dp xhdpi that is well above 80px.
-        // Zero means the grid collapsed under the month title.
-        val missing = (1..12).filter { (gridHeights[it] ?: 0) < 80 }
-        check(missing.isEmpty()) {
-            "360dp year day grids collapsed (month to px): $gridHeights"
-        }
-    }
-
-    @Test fun ringOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "home-ring-360x640") { HomeShot(HOME_MODE_RING) }
-    }
-
-    @Test fun statsOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "stats-411x891") { Page { StatsScreen(sampleState(history = true)) } }
-    }
-
-    @Test fun updateCheckUpToDate() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 160))
-        paparazzi.snapshot(name = "update-check-uptodate") {
-            Page {
-                Box(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
-                    UpdateCheckRow(ManualCheck.UpToDate("1.9.0"), "1.9.0", newerName = null) {}
-                }
-            }
-        }
-    }
-
-    @Test fun updateCheckError() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 160))
-        paparazzi.snapshot(name = "update-check-error") {
-            Page {
-                Box(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
-                    UpdateCheckRow(ManualCheck.Failed, "1.9.0", newerName = null) {}
-                }
-            }
-        }
-    }
-
-    @Test fun updateCheckInProgress() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 160))
-        paparazzi.snapshot(name = "update-check-busy") {
-            Page {
-                Box(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
-                    UpdateCheckRow(ManualCheck.Checking, "1.9.0", newerName = null) {}
-                }
-            }
-        }
-    }
-
-    @Test fun meWithAnUpdateCard() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "me-411x891") {
-            Page {
-                SettingsPage(sampleState(), sampleUpdate(UpdatePhase.Available), SettingsHooks())
-            }
-        }
-    }
-
-    @Test fun updateSheet() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "update-sheet") {
-            Page {
-                Box(Modifier.fillMaxSize().background(Palette.Bg), contentAlignment = Alignment.BottomCenter) {
-                    Column(
-                        Modifier.fillMaxWidth()
-                            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                            .background(Color.White)
-                            .padding(start = 22.dp, end = 22.dp, top = 18.dp, bottom = 28.dp),
-                    ) {
-                        UpdatePanel(sampleUpdate(UpdatePhase.Downloading, received = 4_200_000, total = 12_000_000), {}, {})
+    /** In-period past day (button + 「这天记为开始」) and in-period future day (disabled button + gray note) share one dock height. */
+    @Test fun futureDockHeightMatchesPastDock() {
+        val heights = IntArray(2)
+        val state = sampleState()
+        val phrase = PhraseEntity(id = 1, category = "P", text = "给自己点一份热乎乎的砂锅粥。")
+        paparazzi.unsafeUpdateConfig(deviceConfig = xiaomi15Pro)
+        paparazzi.snapshot(name = "future-dock-height-xiaomi-1440x3200") {
+            NuanYueTheme {
+                Column(Modifier.background(Palette.Bg)) {
+                    listOf(LocalDate.of(2026, 10, 19), LocalDate.of(2026, 10, 24)).forEachIndexed { i, date ->
+                        Box(Modifier.onGloballyPositioned { heights[i] = it.size.height }) {
+                            DayDock(state, phrase, date, null, {}, {}, {}, { _ -> })
+                        }
                     }
                 }
             }
         }
+        assertTrue(heights[0] > 0)
+        assertEquals(heights[0], heights[1])
     }
 
-    @Test fun navSettledOnHome() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "nav-home") { Page { NavShot(Tab.HOME, null) } }
+    @Test fun homeEmpty() = both("home-empty") { HomeShot(HOME_MODE_MONTH, history = false, empty = true) }
+
+    @Test fun homePartner() = both("home-partner") { HomeShot(HOME_MODE_MONTH, partner = true) }
+
+    @Test fun year() = both("year") { HomeShot(HOME_MODE_YEAR) }
+
+    @Test fun ring() = both("ring") { HomeShot(HOME_MODE_RING) }
+
+    @Test fun stats() = both("stats") { Page(Tab.STATS) { StatsScreen(sampleState(history = true)) } }
+
+    @Test fun statsEmpty() = both("stats-empty") { Page(Tab.STATS) { StatsScreen(sampleState(empty = true)) } }
+
+    @Test fun recordStart() = both("record-start") {
+        Sheet { ConfirmBody(Pending(LocalDate.of(2026, 10, 20), start = true, undo = false), {}, {}) }
     }
 
-    @Test fun navSettledOnStats() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "nav-stats") { Page { NavShot(Tab.STATS, null) } }
+    @Test fun recordEnd() = both("record-end") {
+        Sheet { ConfirmBody(Pending(LocalDate.of(2026, 10, 20), start = false, undo = false), {}, {}) }
     }
 
-    @Test fun navSettledOnMe() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "nav-me") { Page { NavShot(Tab.ME, null) } }
+    @Test fun me() = both("me") { Page(Tab.ME) { SettingsPage(sampleState(), SettingsActions()) } }
+
+    @Test fun mePartner() = both("me-partner") {
+        Page(Tab.ME) { SettingsPage(sampleState(partner = true), SettingsActions()) }
     }
 
-    @Test fun yearOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "home-year-411x891") { HomeShot(HOME_MODE_YEAR) }
+    @Test fun settingsSync() = both("settings-sync") {
+        Page(Tab.ME) { SyncDialog(syncing = false, error = null, onDismiss = {}, onSubmit = { _, _ -> }) }
     }
 
-    @Test fun ringOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "home-ring-411x891") { HomeShot(HOME_MODE_RING) }
-    }
-
-    @Test fun statsOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "stats-360x640") { Page { StatsScreen(sampleState(history = true)) } }
-    }
-
-    @Test fun meOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "me-360x640") {
-            Page { SettingsPage(sampleState(), sampleUpdate(UpdatePhase.Available), SettingsHooks()) }
+    @Test fun settingsClear() = both("settings-clear") {
+        Page(Tab.ME) {
+            ConfirmDialog("清空所有记录？", "经期和每日记录会全部删除，无法恢复。", {}, {})
         }
     }
 
-    @Test fun confirmOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "confirm-411x891") { Page { ConfirmShot() } }
+    @Test fun settingsLogout() = both("settings-logout") {
+        Page(Tab.ME) { ConfirmDialog("退出同步？", "本机和云端的数据都会保留。", {}, {}) }
     }
 
-    @Test fun confirmOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "confirm-360x640") { Page { ConfirmShot() } }
+    @Test fun settingsBattery() = both("settings-battery") {
+        Page(Tab.ME) { BatteryDialog({}, {}) }
     }
 
-    @Test fun onboardingOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "onboarding-411x891") { Page { RoleShot() } }
-    }
-
-    @Test fun onboardingOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "onboarding-360x640") { Page { RoleShot() } }
-    }
-
-    @Test fun widgetOnATallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "widget-411x891") { Page { WidgetShot() } }
-    }
-
-    @Test fun widgetOnASmallPhone() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
-        paparazzi.snapshot(name = "widget-360x640") { Page { WidgetShot() } }
-    }
-
-    @Test fun bottomNavMidSlide() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
-        paparazzi.snapshot(name = "nav-mid") {
-            Page {
-                NavShot(Tab.STATS, 0.45f)
-            }
-        }
-    }
-
-    @Test fun bottomBarWithGestureInset() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 480))
-        paparazzi.snapshot(name = "nav-gesture") { Page { NavWithInset(24, gesturePill = true) } }
-    }
-
-    @Test fun bottomBarWithThreeButtonInset() {
-        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 520))
-        paparazzi.snapshot(name = "nav-3button") { Page { NavWithInset(48, gesturePill = false) } }
-    }
-}
-
-@Composable
-private fun ConfirmShot() {
-    Box(Modifier.fillMaxSize().background(Color(0x524A3540)), contentAlignment = Alignment.BottomCenter) {
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Color.White),
-        ) {
-            ConfirmBody(Pending(LocalDate.of(2026, 10, 20), start = true, undo = false), {}, {})
-        }
-    }
-}
-
-@Composable
-private fun RoleShot() {
-    Column(Modifier.fillMaxSize().background(Palette.Bg).padding(24.dp)) {
-        RolePick(self = true) {}
-    }
-}
-
-@Composable
-private fun WidgetShot() {
-    Column(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
-        Text("2×2", color = Palette.InkSoft, fontSize = 12.sp)
-        Spacer(Modifier.height(8.dp))
-        Column(
-            Modifier.width(170.dp).height(170.dp).clip(RoundedCornerShape(22.dp)).background(Color.White).padding(14.dp),
-        ) {
-            Text("暖月", color = Palette.InkSoft, fontSize = 12.sp)
-            Spacer(Modifier.weight(1f))
-            Text("第 3 天", color = Palette.Ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
-            Text("经期", color = Palette.InkSoft, fontSize = 12.sp)
-        }
-    }
-}
-
-private fun phone(widthDp: Int, heightDp: Int, fontScale: Float = 1f) = DeviceConfig(
-    screenWidth = widthDp * 2,
-    screenHeight = heightDp * 2,
-    xdpi = 320,
-    ydpi = 320,
-    density = Density.XHIGH,
-    fontScale = fontScale,
-    softButtons = false,
-)
-
-@Composable
-private fun NavShot(tab: Tab, slide: Float?) {
-    Box(Modifier.fillMaxSize().background(Palette.Bg), contentAlignment = Alignment.BottomCenter) {
-        BottomBar(tab, slide = slide) {}
-    }
-}
-
-/**
- * Layoutlib drops real navigation-bar insets. Write the Compose holder at measure
- * time, after [BottomBar] has created it and after its listener has run.
- */
-private fun applyNavInsetForTest(view: android.view.View, bottomPx: Int) {
-    val holderClass = Class.forName("androidx.compose.foundation.layout.WindowInsetsHolder")
-    val map = holderClass.getDeclaredField("viewMap").apply { isAccessible = true }.get(null) as Map<*, *>
-    val holder = map[view] ?: map.values.singleOrNull() ?: error("no window insets holder")
-    val nav = holderClass.getMethod("getNavigationBars").invoke(holder)
-    nav.javaClass.getMethod("setInsets\$foundation_layout_release", Insets::class.java)
-        .invoke(nav, Insets.of(0, 0, 0, bottomPx))
-}
-
-/** Bottom bar with a real navigation inset. [gesturePill] draws the home indicator in that band. */
-@Composable
-private fun NavWithInset(bottomDp: Int, gesturePill: Boolean) {
-    val view = LocalView.current
-    val bottomPx = with(LocalDensity.current) { bottomDp.dp.roundToPx() }
-    Box(
-        Modifier.fillMaxSize().background(Color(0xFFF3E6E8)).layout { measurable, constraints ->
-            applyNavInsetForTest(view, bottomPx)
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-        },
-        contentAlignment = Alignment.BottomCenter,
-    ) {
-        BottomBar(Tab.STATS) {}
-        if (gesturePill) {
-            Box(
-                Modifier.align(Alignment.BottomCenter)
-                    .padding(bottom = (bottomDp / 2 - 2).coerceAtLeast(4).dp)
-                    .width(108.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color(0xCC1C1C1C)),
+    @Test fun updateDialog() = both("update") {
+        Sheet {
+            UpdatePanel(
+                UpdateUi(
+                    versionName = "1.9.2",
+                    versionCode = 13,
+                    notes = "修了未来日期不能记，首页还是熟悉的样子。",
+                    phase = UpdatePhase.Available,
+                    pageUrl = "https://example.com/nuanyue",
+                ),
+                onPrimary = {},
+                onPage = {},
+                modifier = Modifier.padding(horizontal = 22.dp).padding(bottom = 12.dp),
             )
         }
     }
-}
 
-@Composable
-private fun HomeShot(mode: Int) {
-    Page {
-        Column(Modifier.fillMaxSize().background(Palette.Bg)) {
-            Spacer(Modifier.height(24.dp))
-            Box(Modifier.weight(1f).background(Palette.Bg)) {
-                HomeContent(
-                    state = sampleState(),
-                    phrase = PhraseEntity(id = 1, category = "P", text = "给自己点一份热乎乎的砂锅粥。"),
-                    onNextPhrase = {},
-                    onToast = {},
-                    onMarkStart = {},
-                    onUnmarkStart = {},
-                    onMarkEnd = {},
-                    onUnmarkEnd = {},
-                    now = LocalTime.of(12, 0),
-                    motion = false,
-                    initialMode = mode,
-                )
-            }
-            Column(Modifier.fillMaxWidth().background(Color.White)) {
-                BottomBar(Tab.HOME) {}
-                Spacer(Modifier.height(16.dp))
-            }
+    @Test fun onboarding() = both("onboarding") {
+        Page(Tab.HOME, bar = false) {
+            OnboardingScreen(syncing = false, onFinish = { _, _, _, _ -> }, onInvite = { _, _, _ -> })
         }
     }
-}
 
-private fun sampleState(history: Boolean = false): UiState {
-    val today = LocalDate.of(2026, 10, 20)
-    val periods = if (history) {
-        listOf(
-            Period("a", LocalDate.of(2026, 6, 2), LocalDate.of(2026, 6, 6)),
-            Period("b", LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 5)),
-            Period("c", LocalDate.of(2026, 7, 30), LocalDate.of(2026, 8, 4)),
-            Period("d", LocalDate.of(2026, 8, 28), LocalDate.of(2026, 9, 2)),
-            Period("e", LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 26)),
-            Period("open", LocalDate.of(2026, 10, 18), null),
-        )
-    } else {
-        listOf(Period("open", LocalDate.of(2026, 10, 18), null))
+    private fun both(name: String, content: @Composable () -> Unit) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = xiaomi15Pro)
+        paparazzi.snapshot(name = "$name-xiaomi-1440x3200") { content() }
+        paparazzi.unsafeUpdateConfig(deviceConfig = smallPhone)
+        paparazzi.snapshot(name = "$name-360x640") { content() }
     }
-    return UiState(
-        loaded = true,
-        settings = AppSettings(onboarded = true, nickname = "猪猪"),
-        snapshot = CycleEngine.snapshot(periods, defaultCycle = 28, defaultPeriod = 5, today = today),
-        today = today,
-    )
 }
 
-private fun sampleUpdate(phase: UpdatePhase, received: Long = 0, total: Long = 0) = UpdateUi(
-    versionName = "1.9.1",
-    versionCode = 12,
-    notes = "暖色月历，底栏改成隆起的圆。",
-    phase = phase,
-    received = received,
-    total = total,
-    pageUrl = "https://leafy.fxxkopenai.com/",
+/** Xiaomi 15 Pro: 1440×3200, 560dpi → about 411×914dp. No soft keys (gesture navigation). */
+private val xiaomi15Pro = DeviceConfig(
+    screenWidth = 1440,
+    screenHeight = 3200,
+    xdpi = 560,
+    ydpi = 560,
+    density = Density.create(560),
+    softButtons = false,
+    navigation = Navigation.NONAV,
+)
+
+private val smallPhone = DeviceConfig(
+    screenWidth = 720,
+    screenHeight = 1280,
+    xdpi = 320,
+    ydpi = 320,
+    density = Density.XHIGH,
+    softButtons = false,
+    navigation = Navigation.NONAV,
 )
 
 @Composable
-private fun Page(content: @Composable () -> Unit) {
+private fun HomeShot(
+    mode: Int,
+    selected: LocalDate? = null,
+    history: Boolean = true,
+    empty: Boolean = false,
+    partner: Boolean = false,
+) {
+    Page(Tab.HOME) {
+        HomeContent(
+            state = sampleState(history = history && !empty, empty = empty, partner = partner),
+            phrase = PhraseEntity(id = 1, category = "P", text = "给自己点一份热乎乎的砂锅粥。"),
+            onNextPhrase = {},
+            onToast = {},
+            onMarkStart = {},
+            onUnmarkStart = {},
+            onMarkEnd = {},
+            onUnmarkEnd = {},
+            now = LocalTime.of(12, 0),
+            motion = false,
+            initialMode = mode,
+            initialSelected = selected,
+        )
+    }
+}
+
+@Composable
+private fun Page(tab: Tab, bar: Boolean = true, content: @Composable () -> Unit) {
     val cjk = remember {
         FontFamily(
             Font(cjkFontFile(), FontWeight.Normal),
@@ -426,15 +244,77 @@ private fun Page(content: @Composable () -> Unit) {
             Font(cjkFontFile(), FontWeight.Bold),
         )
     }
+    val registryOwner = remember {
+        object : ActivityResultRegistryOwner {
+            override val activityResultRegistry = object : ActivityResultRegistry() {
+                override fun <I, O> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: androidx.core.app.ActivityOptionsCompat?,
+                ) = Unit
+            }
+        }
+    }
     NuanYueTheme {
         val colors = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         MaterialTheme(colorScheme = colors, typography = type.withFont(cjk)) {
-            CompositionLocalProvider(LocalMotion provides false) {
+            CompositionLocalProvider(LocalActivityResultRegistryOwner provides registryOwner) {
+            Column(Modifier.fillMaxSize().background(Palette.Bg)) {
+                Spacer(Modifier.height(24.dp))
+                Box(Modifier.weight(1f)) { content() }
+                if (bar) {
+                    Column(Modifier.fillMaxWidth().background(Color.White)) {
+                        BottomBar(tab) {}
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
+            }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Sheet(content: @Composable () -> Unit) {
+    Page(Tab.HOME, bar = false) {
+        Box(Modifier.fillMaxSize().background(Color(0x524A3540)), contentAlignment = Alignment.BottomCenter) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .background(Color.White),
+            ) {
+                Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.height(4.dp).fillMaxWidth(0.12f).clip(RoundedCornerShape(2.dp)).background(Palette.PinkLine))
+                }
                 content()
             }
         }
     }
+}
+
+private fun sampleState(history: Boolean = true, empty: Boolean = false, partner: Boolean = false): UiState {
+    val today = LocalDate.of(2026, 10, 20)
+    val periods = when {
+        empty -> emptyList()
+        history -> listOf(
+            Period("a", LocalDate.of(2026, 8, 28), LocalDate.of(2026, 9, 2)),
+            Period("b", LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 26)),
+            Period("open", LocalDate.of(2026, 10, 18), null),
+        )
+        else -> listOf(Period("open", LocalDate.of(2026, 10, 18), null))
+    }
+    return UiState(
+        loaded = true,
+        settings = AppSettings(
+            onboarded = true,
+            nickname = "猪猪",
+            role = if (partner) Role.PARTNER else Role.SELF,
+        ),
+        snapshot = CycleEngine.snapshot(periods, defaultCycle = 28, defaultPeriod = 5, today = today),
+        today = today,
+    )
 }
 
 private fun cjkFontFile(): File {

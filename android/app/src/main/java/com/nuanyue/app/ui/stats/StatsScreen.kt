@@ -13,7 +13,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
@@ -62,7 +62,6 @@ import com.nuanyue.app.R
 import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.FloatingSticker
-import com.nuanyue.app.ui.components.LocalMotion
 import com.nuanyue.app.ui.components.Mascot
 import com.nuanyue.app.ui.components.Numeral
 import com.nuanyue.app.ui.components.Pill
@@ -70,7 +69,6 @@ import com.nuanyue.app.ui.components.SectionTitle
 import com.nuanyue.app.ui.components.SoftCard
 import com.nuanyue.app.ui.components.StatTile
 import com.nuanyue.app.ui.components.pressScale
-import com.nuanyue.app.ui.theme.NyColors
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.Rounded
 import java.time.LocalDate
@@ -97,14 +95,15 @@ fun StatsScreen(state: UiState) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
-            Spacer(Modifier.height(8.dp))
-            Text("统计", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = NyColors.Ink)
-            Spacer(Modifier.height(12.dp))
+        Column(
+            Modifier
+                .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFFFFEEF2), Color.White)))
+                .padding(horizontal = 18.dp),
+        ) {
+            Spacer(Modifier.height(14.dp))
             StatsTabs(tab) { tab = it }
-            Spacer(Modifier.height(12.dp))
-            CycleHero(state)
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Summary(rows)
             Spacer(Modifier.height(16.dp))
         }
@@ -131,80 +130,32 @@ fun StatsScreen(state: UiState) {
             transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(140)) },
             label = "statsTab",
         ) { which ->
-            val shown = if (which == 0) rows.take(6) else rows
-            Column {
-                History(shown)
-                Charts(state, shown)
-            }
+            if (which == 1) Table(rows) else Charts(state, rows)
         }
     }
 }
 
 @Composable
 private fun StatsTabs(tab: Int, onTab: (Int) -> Unit) {
-    val labels = listOf("近6次", "全部")
-    Box(
-        Modifier.fillMaxWidth().padding(horizontal = 28.dp)
-            .clip(CircleShape).background(Color.White).border(1.dp, Palette.Line, CircleShape).padding(3.dp),
-    ) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val labels = listOf("经期图表", "经期数据")
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
         val slot = maxWidth / labels.size
         val x by animateDpAsState(slot * tab, spring(dampingRatio = 0.7f, stiffness = 380f), label = "statsTab")
-        Box(Modifier.offset(x = x).width(slot).height(32.dp).clip(CircleShape).background(Palette.Segment))
+        Box(Modifier.offset(x = x).width(slot).height(36.dp).clip(CircleShape).background(Palette.PinkSoft))
         Row(Modifier.fillMaxWidth()) {
             labels.forEachIndexed { i, label ->
                 val selected = tab == i
-                val color by animateColorAsState(if (selected) Palette.Ink else Palette.InkSoft, label = "tabColor")
+                val color by animateColorAsState(if (selected) Palette.PinkDeep else Palette.InkSoft, label = "tabColor")
                 val source = remember(i) { MutableInteractionSource() }
                 val scale = pressScale(source, 0.96f)
                 Box(
-                    Modifier.weight(1f).height(32.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+                    Modifier.weight(1f).height(36.dp).graphicsLayer { scaleX = scale; scaleY = scale }
                         .clip(CircleShape)
                         .clickable(source, indication = null) { onTab(i) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(label, color = color, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+                    Text(label, color = color, fontSize = 15.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
                 }
-            }
-        }
-        }
-    }
-}
-
-@Composable
-private fun CycleHero(state: UiState) {
-    val t = state.snapshot.today
-    val day = t.cycleDay?.toString() ?: "–"
-    val next = t.nextStart
-    val nextText = if (next == null) "还不确定" else "${next.monthValue}月${next.dayOfMonth}日"
-    SoftCard(Modifier.fillMaxWidth()) {
-        Text(t.phase.title, fontSize = 13.sp, color = NyColors.RoseStrong, fontWeight = FontWeight.Medium)
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text("第 ", fontSize = 16.sp, color = NyColors.Ink)
-            Numeral(day, 40.sp, NyColors.Ink, weight = FontWeight.SemiBold)
-            Text(" 天", fontSize = 16.sp, color = NyColors.Ink)
-        }
-        Text(
-            "距下次月经约 ${t.daysUntilNext ?: "–"} 天 · 预计 $nextText",
-            fontSize = 13.sp, color = NyColors.InkSecondary, maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun History(rows: List<Row3>) {
-    if (rows.isEmpty()) return
-    SoftCard(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-        SectionTitle("最近的周期")
-        Spacer(Modifier.height(8.dp))
-        rows.take(6).forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${row.start.monthValue}月${row.start.dayOfMonth}日", modifier = Modifier.weight(1f), color = NyColors.Ink, fontSize = 14.sp)
-                Text("经期 ${row.periodDays} 天", color = NyColors.InkSecondary, fontSize = 13.sp)
-                Text(
-                    row.cycleDays?.let { "  ·  周期 $it 天" } ?: "  ·  进行中",
-                    color = NyColors.InkSecondary, fontSize = 13.sp,
-                )
             }
         }
     }
@@ -218,9 +169,14 @@ private fun Summary(rows: List<Row3>) {
     fun avg(l: List<Int>) = if (l.isEmpty()) "-" else "${l.average().roundToInt()}"
     Column {
         Row {
-            StatTile(avg(cycles), "天", "平均周期", Modifier.weight(1f), accent = NyColors.RoseStrong)
-            StatTile(avg(periods), "天", "平均经期", Modifier.weight(1f), accent = NyColors.PeriodFill)
-            StatTile("${rows.size}", "次", "已记录", Modifier.weight(1f), accent = NyColors.Ovulation)
+            StatTile(avg(cycles), "天", "平均周期", Modifier.weight(1f))
+            StatTile(cycles.maxOrNull()?.toString() ?: "-", "天", "最长周期", Modifier.weight(1f))
+            StatTile(cycles.minOrNull()?.toString() ?: "-", "天", "最短周期", Modifier.weight(1f))
+        }
+        Row {
+            StatTile(avg(periods), "天", "平均经期", Modifier.weight(1f))
+            StatTile(periods.maxOrNull()?.toString() ?: "-", "天", "最长经期", Modifier.weight(1f))
+            StatTile(periods.minOrNull()?.toString() ?: "-", "天", "最短经期", Modifier.weight(1f))
         }
     }
 }
@@ -332,30 +288,23 @@ private fun CycleBars(rows: List<Row3>, avg: Int) {
             return@SoftCard
         }
         val maxV = data.maxOf { it.second }.coerceAtLeast(avgLine) * 1.12f
-        val motion = LocalMotion.current
-        val anim = remember(motion) { Animatable(if (motion) 0f else 1f) }
-        LaunchedEffect(mode, data.size, motion) {
-            if (!motion) {
-                anim.snapTo(1f)
-                return@LaunchedEffect
-            }
-            anim.snapTo(0f)
-            anim.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
-        }
+        val anim = remember { Animatable(0f) }
+        LaunchedEffect(mode, data.size) { anim.snapTo(0f); anim.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
         Box(Modifier.fillMaxWidth().height(180.dp)) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                 data.forEach { (start, v) ->
                     val off = mode == 0 && abs(v - avgLine) > 6
-                    val bar = if (off) NyColors.Ovulation else NyColors.PeriodFill
+                    val brush = if (off) Brush.verticalGradient(listOf(Color(0xFFFFD27A), Palette.Orange))
+                    else Brush.verticalGradient(listOf(Palette.PinkLine, Palette.Pink))
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Text(
                             "$v", fontSize = 11.sp, fontFamily = Rounded, fontWeight = FontWeight.Bold,
-                            color = NyColors.Ink,
+                            color = if (off) Palette.Orange else Palette.InkSoft,
                         )
                         Spacer(Modifier.height(3.dp))
                         Box(
                             Modifier.width(14.dp).height((140 * v / maxV * anim.value).dp.coerceAtLeast(4.dp))
-                                .clip(RoundedCornerShape(7.dp)).background(bar),
+                                .clip(RoundedCornerShape(7.dp)).background(brush),
                         )
                         Spacer(Modifier.height(4.dp))
                         Text("${start.monthValue}月", fontSize = 10.sp, color = Palette.InkFaint)
