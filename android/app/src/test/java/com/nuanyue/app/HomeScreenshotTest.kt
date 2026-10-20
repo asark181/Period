@@ -15,9 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.core.graphics.Insets
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -237,6 +241,16 @@ class HomeScreenshotTest {
             }
         }
     }
+
+    @Test fun bottomBarWithGestureInset() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 480))
+        paparazzi.snapshot(name = "nav-gesture") { Page { NavWithInset(24, gesturePill = true) } }
+    }
+
+    @Test fun bottomBarWithThreeButtonInset() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 520))
+        paparazzi.snapshot(name = "nav-3button") { Page { NavWithInset(48, gesturePill = false) } }
+    }
 }
 
 @Composable
@@ -287,6 +301,46 @@ private fun phone(widthDp: Int, heightDp: Int, fontScale: Float = 1f) = DeviceCo
 private fun NavShot(tab: Tab, slide: Float?) {
     Box(Modifier.fillMaxSize().background(Palette.Bg), contentAlignment = Alignment.BottomCenter) {
         BottomBar(tab, slide = slide) {}
+    }
+}
+
+/**
+ * Layoutlib drops real navigation-bar insets. Write the Compose holder at measure
+ * time, after [BottomBar] has created it and after its listener has run.
+ */
+private fun applyNavInsetForTest(view: android.view.View, bottomPx: Int) {
+    val holderClass = Class.forName("androidx.compose.foundation.layout.WindowInsetsHolder")
+    val map = holderClass.getDeclaredField("viewMap").apply { isAccessible = true }.get(null) as Map<*, *>
+    val holder = map[view] ?: map.values.singleOrNull() ?: error("no window insets holder")
+    val nav = holderClass.getMethod("getNavigationBars").invoke(holder)
+    nav.javaClass.getMethod("setInsets\$foundation_layout_release", Insets::class.java)
+        .invoke(nav, Insets.of(0, 0, 0, bottomPx))
+}
+
+/** Bottom bar with a real navigation inset. [gesturePill] draws the home indicator in that band. */
+@Composable
+private fun NavWithInset(bottomDp: Int, gesturePill: Boolean) {
+    val view = LocalView.current
+    val bottomPx = with(LocalDensity.current) { bottomDp.dp.roundToPx() }
+    Box(
+        Modifier.fillMaxSize().background(Color(0xFFF3E6E8)).layout { measurable, constraints ->
+            applyNavInsetForTest(view, bottomPx)
+            val placeable = measurable.measure(constraints)
+            layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+        },
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        BottomBar(Tab.STATS) {}
+        if (gesturePill) {
+            Box(
+                Modifier.align(Alignment.BottomCenter)
+                    .padding(bottom = (bottomDp / 2 - 2).coerceAtLeast(4).dp)
+                    .width(108.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xCC1C1C1C)),
+            )
+        }
     }
 }
 

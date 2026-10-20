@@ -530,7 +530,9 @@ private fun YearView(
     val today = state.today
     val minYear = today.minusMonths(MONTHS_BACK.toLong()).year
     val maxYear = today.plusMonths(MONTHS_FORWARD.toLong()).year
-    Column(modifier.padding(horizontal = 12.dp)) {
+    BoxWithConstraints(modifier) {
+    val columns = if (maxWidth < 400.dp) 2 else 3
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ArrowBtn(Icons.AutoMirrored.Rounded.KeyboardArrowLeft) { if (year > minYear) onYear(year - 1) }
@@ -552,16 +554,18 @@ private fun YearView(
             label = "yearGrid",
         ) { y ->
             Column(Modifier.fillMaxSize()) {
-                for (row in 0 until 4) {
+                val rows = 12 / columns
+                for (row in 0 until rows) {
                     Row(Modifier.weight(1f).fillMaxWidth()) {
-                        for (col in 0 until 3) {
-                            val ym = YearMonth.of(y, row * 3 + col + 1)
+                        for (col in 0 until columns) {
+                            val ym = YearMonth.of(y, row * columns + col + 1)
                             MiniMonth(ym, infos, today, Modifier.weight(1f).fillMaxHeight()) { onMonth(ym) }
                         }
                     }
                 }
             }
         }
+    }
     }
 }
 
@@ -581,10 +585,7 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
             Numeral("${ym.monthValue}", 14.sp, if (isNow) NyColors.RoseStrong else Palette.Ink)
             Text("月", fontSize = 10.sp, color = Palette.InkSoft, maxLines = 1, modifier = Modifier.padding(bottom = 1.dp))
         }
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val rowH = if (rows == 0) maxHeight else maxHeight / rows
-            val font = (rowH.value * 0.5f).coerceIn(5f, 9f)
-            Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).fillMaxWidth()) {
                 for (r in 0 until rows) {
                     Row(Modifier.weight(1f).fillMaxWidth()) {
                         for (c in 0 until 7) {
@@ -611,10 +612,12 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
                                             Text(
                                                 "${d.dayOfMonth}",
                                                 fontFamily = Rounded,
-                                                fontSize = font.sp,
-                                                lineHeight = font.sp,
+                                                fontSize = 8.sp,
+                                                lineHeight = 8.sp,
                                                 fontWeight = visual.weight,
                                                 maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Clip,
                                                 color = visual.text,
                                             )
                                         }
@@ -625,7 +628,6 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
                     }
                 }
             }
-        }
     }
 }
 

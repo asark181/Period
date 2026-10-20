@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Path
 import androidx.compose.material.icons.Icons
@@ -60,7 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.ui.components.LocalMotion
@@ -189,7 +189,9 @@ private val tabFilled = listOf(
 /**
  * Full-width white bar, flush to the bottom, with a hairline on top. The selected
  * tab is a rose icon inside a 56dp circle that sits above the bar. Only that
- * circle moves. [slide] is a still mid-frame: 0 is the previous tab, 1 is [current].
+ * circle moves. The 64dp label row and the raised circle stay one piece; system
+ * navigation insets pad that piece up and the white fill continues underneath.
+ * [slide] is a still mid-frame: 0 is the previous tab, 1 is [current].
  */
 @Composable
 internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Unit) {
@@ -203,9 +205,8 @@ internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Un
     )
     val shown = if (slide != null || !motion) target else index
     val riding = shown.roundToNearest()
-    val navBottom = with(LocalDensity.current) { WindowInsets.navigationBars.getBottom(this).toDp() }
-    Box(Modifier.fillMaxWidth().height(86.dp + navBottom)) {
-        Canvas(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxWidth()) {
+        Canvas(Modifier.matchParentSize()) {
             val barTop = 22.dp.toPx()
             val cx = (shown + 0.5f) / 3f * size.width
             val radius = 34.dp.toPx()
@@ -224,6 +225,9 @@ internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Un
             drawPath(path, Color.White)
             drawPath(path, NyColors.Hairline, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
         }
+        Box(
+            Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars).height(86.dp),
+        ) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(68.dp)) {
             val x = maxWidth * (shown + 0.5f) / 3f - 34.dp
             Box(
@@ -260,6 +264,7 @@ internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Un
                     )
                 }
             }
+        }
         }
     }
 }
