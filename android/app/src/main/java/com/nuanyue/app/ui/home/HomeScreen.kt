@@ -769,7 +769,7 @@ private fun phaseLabel(t: DayType?) = when (t) {
 // ---------------------------------------------------------------- dock
 
 @Composable
-private fun DayDock(
+internal fun DayDock(
     state: UiState,
     phrase: PhraseEntity?,
     date: LocalDate,
@@ -813,24 +813,14 @@ private fun DayDock(
         Spacer(Modifier.height(6.dp))
         if (state.settings.isPartner) {
             Text("这是她的记录，只能查看", style = MaterialTheme.typography.bodySmall, maxLines = 1)
-        } else if (actions.blockedReason != null) {
-            // Same 46dp slot as the record button, so choosing a future day does not jump.
-            Box(Modifier.fillMaxWidth().height(46.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    actions.blockedReason,
-                    color = Palette.InkFaint,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-            }
         } else {
             val primary = actions.primary
             val undo = primary.pending.undo
+            val blocked = actions.blockedReason != null
             PrimaryButton(
                 text = primary.label,
-                onClick = { onAsk(primary.pending) },
+                onClick = { if (!blocked) onAsk(primary.pending) },
+                enabled = !blocked,
                 modifier = Modifier.fillMaxWidth().testTag("home-primary"),
                 icon = when {
                     undo -> null
@@ -839,24 +829,42 @@ private fun DayDock(
                 },
                 height = 46.dp,
                 container = if (undo) Palette.PinkSoft else Palette.Pink,
-                content = if (undo) Palette.PinkDeep else Color.White,
+                content = when {
+                    blocked -> Palette.InkFaint
+                    undo -> Palette.PinkDeep
+                    else -> Color.White
+                },
             )
             actions.secondary?.let { secondary ->
                 val src = remember { MutableInteractionSource() }
                 val scale = pressScale(src, 0.97f)
-                Text(
-                    secondary.label,
-                    color = Palette.PinkDeep,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }
-                        .clip(CircleShape)
-                        .clickable(src, indication = null) { onAsk(secondary.pending) }
-                        .padding(vertical = 6.dp)
-                        .testTag("home-secondary"),
-                )
+                if (blocked) {
+                    // Same slot as 「这天记为开始」: 13sp semibold, 6dp vertical padding, gray, not clickable.
+                    Text(
+                        actions.blockedReason!!,
+                        color = Palette.InkFaint,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).testTag("home-future-note"),
+                    )
+                } else {
+                    Text(
+                        secondary.label,
+                        color = Palette.PinkDeep,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }
+                            .clip(CircleShape)
+                            .clickable(src, indication = null) { onAsk(secondary.pending) }
+                            .padding(vertical = 6.dp)
+                            .testTag("home-secondary"),
+                    )
+                }
             }
         }
         Spacer(Modifier.height(4.dp))

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +45,7 @@ import com.nuanyue.app.ui.home.ConfirmBody
 import com.nuanyue.app.ui.home.HOME_MODE_MONTH
 import com.nuanyue.app.ui.home.HOME_MODE_RING
 import com.nuanyue.app.ui.home.HOME_MODE_YEAR
+import com.nuanyue.app.ui.home.DayDock
 import com.nuanyue.app.ui.home.HomeContent
 import com.nuanyue.app.ui.home.Pending
 import com.nuanyue.app.ui.onboarding.OnboardingScreen
@@ -58,6 +60,8 @@ import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.update.UpdatePanel
 import com.nuanyue.app.update.UpdatePhase
 import com.nuanyue.app.update.UpdateUi
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -85,6 +89,27 @@ class HomeScreenshotTest {
 
     @Test fun homeFutureDate() = both("home-future") {
         HomeShot(HOME_MODE_MONTH, selected = LocalDate.of(2026, 10, 24))
+    }
+
+    /** In-period past day (button + 「这天记为开始」) and in-period future day (disabled button + gray note) share one dock height. */
+    @Test fun futureDockHeightMatchesPastDock() {
+        val heights = IntArray(2)
+        val state = sampleState()
+        val phrase = PhraseEntity(id = 1, category = "P", text = "给自己点一份热乎乎的砂锅粥。")
+        paparazzi.unsafeUpdateConfig(deviceConfig = xiaomi15Pro)
+        paparazzi.snapshot(name = "future-dock-height-xiaomi-1440x3200") {
+            NuanYueTheme {
+                Column(Modifier.background(Palette.Bg)) {
+                    listOf(LocalDate.of(2026, 10, 19), LocalDate.of(2026, 10, 24)).forEachIndexed { i, date ->
+                        Box(Modifier.onGloballyPositioned { heights[i] = it.size.height }) {
+                            DayDock(state, phrase, date, null, {}, {}, {}, { _ -> })
+                        }
+                    }
+                }
+            }
+        }
+        assertTrue(heights[0] > 0)
+        assertEquals(heights[0], heights[1])
     }
 
     @Test fun homeEmpty() = both("home-empty") { HomeShot(HOME_MODE_MONTH, history = false, empty = true) }
