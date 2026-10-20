@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.resources.Density
@@ -33,10 +36,13 @@ import com.nuanyue.app.ui.BottomBar
 import com.nuanyue.app.ui.Tab
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.LocalMotion
+import com.nuanyue.app.ui.home.ConfirmBody
 import com.nuanyue.app.ui.home.HOME_MODE_MONTH
 import com.nuanyue.app.ui.home.HOME_MODE_RING
 import com.nuanyue.app.ui.home.HOME_MODE_YEAR
 import com.nuanyue.app.ui.home.HomeContent
+import com.nuanyue.app.ui.home.Pending
+import com.nuanyue.app.ui.onboarding.RolePick
 import com.nuanyue.app.ui.settings.SettingsHooks
 import com.nuanyue.app.ui.settings.SettingsPage
 import com.nuanyue.app.ui.settings.UpdateCheckRow
@@ -171,12 +177,98 @@ class HomeScreenshotTest {
         paparazzi.snapshot(name = "nav-me") { Page { NavShot(Tab.ME, null) } }
     }
 
+    @Test fun yearOnATallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "home-year-411x891") { HomeShot(HOME_MODE_YEAR) }
+    }
+
+    @Test fun ringOnATallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "home-ring-411x891") { HomeShot(HOME_MODE_RING) }
+    }
+
+    @Test fun statsOnASmallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
+        paparazzi.snapshot(name = "stats-360x640") { Page { StatsScreen(sampleState(history = true)) } }
+    }
+
+    @Test fun meOnASmallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
+        paparazzi.snapshot(name = "me-360x640") {
+            Page { SettingsPage(sampleState(), sampleUpdate(UpdatePhase.Available), SettingsHooks()) }
+        }
+    }
+
+    @Test fun confirmOnATallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "confirm-411x891") { Page { ConfirmShot() } }
+    }
+
+    @Test fun confirmOnASmallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
+        paparazzi.snapshot(name = "confirm-360x640") { Page { ConfirmShot() } }
+    }
+
+    @Test fun onboardingOnATallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "onboarding-411x891") { Page { RoleShot() } }
+    }
+
+    @Test fun onboardingOnASmallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
+        paparazzi.snapshot(name = "onboarding-360x640") { Page { RoleShot() } }
+    }
+
+    @Test fun widgetOnATallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "widget-411x891") { Page { WidgetShot() } }
+    }
+
+    @Test fun widgetOnASmallPhone() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, 640))
+        paparazzi.snapshot(name = "widget-360x640") { Page { WidgetShot() } }
+    }
+
     @Test fun bottomNavMidSlide() {
         paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
         paparazzi.snapshot(name = "nav-mid") {
             Page {
                 NavShot(Tab.STATS, 0.45f)
             }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmShot() {
+    Box(Modifier.fillMaxSize().background(Color(0x524A3540)), contentAlignment = Alignment.BottomCenter) {
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Color.White),
+        ) {
+            ConfirmBody(Pending(LocalDate.of(2026, 10, 20), start = true, undo = false), {}, {})
+        }
+    }
+}
+
+@Composable
+private fun RoleShot() {
+    Column(Modifier.fillMaxSize().background(Palette.Bg).padding(24.dp)) {
+        RolePick(self = true) {}
+    }
+}
+
+@Composable
+private fun WidgetShot() {
+    Column(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
+        Text("2×2", color = Palette.InkSoft, fontSize = 12.sp)
+        Spacer(Modifier.height(8.dp))
+        Column(
+            Modifier.width(170.dp).height(170.dp).clip(RoundedCornerShape(22.dp)).background(Color.White).padding(14.dp),
+        ) {
+            Text("暖月", color = Palette.InkSoft, fontSize = 12.sp)
+            Spacer(Modifier.weight(1f))
+            Text("第 3 天", color = Palette.Ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
+            Text("经期", color = Palette.InkSoft, fontSize = 12.sp)
         }
     }
 }
@@ -249,9 +341,9 @@ private fun sampleState(history: Boolean = false): UiState {
 }
 
 private fun sampleUpdate(phase: UpdatePhase, received: Long = 0, total: Long = 0) = UpdateUi(
-    versionName = "1.7.0",
-    versionCode = 8,
-    notes = "月历改回圆角方格，更新改成在应用里下载。",
+    versionName = "1.9.1",
+    versionCode = 12,
+    notes = "暖色月历，底栏改成隆起的圆。",
     phase = phase,
     received = received,
     total = total,

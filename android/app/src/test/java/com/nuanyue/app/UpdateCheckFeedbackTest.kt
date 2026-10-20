@@ -5,6 +5,7 @@ import com.nuanyue.app.update.ManualCheck
 import com.nuanyue.app.update.manualCheckLog
 import com.nuanyue.app.update.updateRowModel
 import org.junit.Assert.assertEquals
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -34,6 +35,17 @@ class UpdateCheckFeedbackTest {
     @Test fun idleKeepsTheCurrentOrNewerLabel() {
         assertEquals("当前 1.9.0", updateRowModel(ManualCheck.Idle, "1.9.0", null).hint)
         assertEquals("有新版本 1.9.1", updateRowModel(ManualCheck.Idle, "1.9.0", "1.9.1").hint)
+    }
+
+    @Test fun colorsXmlStaysInSyncWithTokens() {
+        val root = generateSequence(File(System.getProperty("user.dir") ?: ".")) { it.parentFile }
+            .first { File(it, "tools/gen_colors_xml.py").exists() }
+        val proc = ProcessBuilder("python3", "tools/gen_colors_xml.py", "--check")
+            .directory(root)
+            .redirectErrorStream(true)
+            .start()
+        val out = proc.inputStream.bufferedReader().readText()
+        assertEquals(out, 0, proc.waitFor())
     }
 
     @Test fun manualCheckLogNamesEachOutcome() {

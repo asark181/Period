@@ -341,18 +341,21 @@ internal fun SettingsPage(
 @Composable
 private fun ProfileCard(state: UiState, onEditName: () -> Unit) {
     val s = state.settings
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onEditName).padding(top = 8.dp, bottom = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onEditName).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        com.nuanyue.app.ui.components.Mascot(Modifier.size(76.dp))
-        Spacer(Modifier.height(8.dp))
-        Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge, maxLines = 1)
-        Text(
-            if (s.isPartner) "伴侣 · 只能查看，不能修改" else "已记录 ${state.snapshot.periods.size} 次经期",
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-        )
+        com.nuanyue.app.ui.components.Mascot(Modifier.size(56.dp), interactive = false)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+            Text(
+                if (s.isPartner) "伴侣 · 只能查看" else "已记录 ${state.snapshot.periods.size} 次经期",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+            )
+        }
+        Text("编辑", color = com.nuanyue.app.ui.theme.NyColors.RoseStrong, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
 

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_calm"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingEnd="10dp">
+
+        <TextView
+            android:id="@+id/widget_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="暖月"
+            android:textColor="@color/ny_ink_secondary"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="第"
+                android:textColor="@color/ny_ink"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_number"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:text="–"
+                android:textColor="@color/ny_ink"
+                android:textSize="36sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="天"
+                android:textColor="@color/ny_ink"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_phase"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/ny_ink"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.3"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_week_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="本周"
+            android:textColor="@color/ny_ink_secondary"
+            android:textSize="11sp" />
+
+        <LinearLayout
+            android:id="@+id/widget_week"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView android:id="@+id/w0" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+            <TextView android:id="@+id/w1" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+            <TextView android:id="@+id/w2" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+            <TextView android:id="@+id/w3" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+            <TextView android:id="@+id/w4" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+            <TextView android:id="@+id/w5" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+            <TextView android:id="@+id/w6" android:layout_width="0dp" android:layout_height="22dp" android:layout_margin="1dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ny_ink" android:textSize="10sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_sub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/ny_ink_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

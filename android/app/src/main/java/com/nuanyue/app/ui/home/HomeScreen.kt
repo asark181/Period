@@ -738,7 +738,7 @@ private fun CycleRingView(
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { which = i }.padding(horizontal = 4.dp, vertical = 2.dp),
                 ) {
                     Text(label, fontSize = 15.sp, maxLines = 1, fontWeight = if (which == i) FontWeight.Bold else FontWeight.Normal, color = if (which == i) Palette.Ink else Palette.InkFaint)
-                    Box(Modifier.padding(top = 2.dp).size(5.dp).graphicsLayer { scaleX = dot; scaleY = dot }.clip(CircleShape).background(Palette.Pink))
+                    Box(Modifier.padding(top = 2.dp).size(5.dp).graphicsLayer { scaleX = dot; scaleY = dot }.clip(CircleShape).background(NyColors.Rose))
                 }
             }
         }
@@ -757,7 +757,7 @@ private fun CycleRingView(
                             .offset((radius.value * cos(angle)).dp, (radius.value * sin(angle)).dp)
                             .graphicsLayer { alpha = local; scaleX = 0.5f + 0.5f * local; scaleY = 0.5f + 0.5f * local },
                     ) {
-                        DateChip("${d.dayOfMonth}", infos[d]?.type ?: DayType.UNKNOWN, d == today, d == selected, chip, muted = d.isAfter(today)) { onSelect(d) }
+                        DateChip("${d.dayOfMonth}", infos[d]?.type ?: DayType.UNKNOWN, d == today, d == selected, chip) { onSelect(d) }
                     }
                     if (d.dayOfMonth == 1 || i == 0) {
                         val lr = radius - chip
@@ -771,7 +771,7 @@ private fun CycleRingView(
                 val centre = (radius * 2 - chip * 2 - 28.dp).coerceAtLeast(48.dp)
                 val big = if (side < 240.dp) 22.sp else 32.sp
                 Column(
-                    Modifier.align(Alignment.Center).size(centre).clip(CircleShape).background(Palette.SkySoft).padding(4.dp),
+                    Modifier.align(Alignment.Center).size(centre).clip(CircleShape).background(Color.White).padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -784,8 +784,8 @@ private fun CycleRingView(
                         Text("天", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 3.dp))
                     }
                     Text(
-                        "%d-%02d-%02d".format(selected.year, selected.monthValue, selected.dayOfMonth),
-                        fontFamily = Rounded, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Palette.Sky, maxLines = 1,
+                        "${selected.monthValue}月${selected.dayOfMonth}日",
+                        fontWeight = FontWeight.Medium, fontSize = 12.sp, color = NyColors.InkSecondary, maxLines = 1,
                     )
                 }
             }
@@ -820,61 +820,61 @@ private fun DayDock(
         dayActions(date, state.today, state.snapshot.periods)
     }
     val brief = dayBrief(date, state.today, info, state.snapshot)
-    val sheet = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+    val week = listOf("一", "二", "三", "四", "五", "六", "日")[date.dayOfWeek.value - 1]
+    val sheet = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     Column(
         Modifier.fillMaxWidth()
-            .shadow(8.dp, sheet, clip = false, ambientColor = Color(0x0A2B3040), spotColor = Color(0x142B3040))
             .clip(sheet)
-            .background(Palette.Sheet)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (roomy) 8.dp else 4.dp),
+            .background(NyColors.SurfaceSunken)
+            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = if (roomy) 8.dp else 4.dp),
     ) {
         Box(
-            Modifier.align(Alignment.CenterHorizontally).padding(bottom = 8.dp)
-                .size(width = 36.dp, height = 4.dp).clip(CircleShape).background(Color(0xFFD8DCE6)),
+            Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp)
+                .size(width = 36.dp, height = 4.dp).clip(CircleShape).background(NyColors.Hairline),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(brief.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    brief.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = if (roomy) 2 else 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                "${date.monthValue}月${date.dayOfMonth}日 周$week",
+                fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = NyColors.Ink,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(brief.title, fontSize = 12.sp, maxLines = 1, color = NyColors.InkSecondary, overflow = TextOverflow.Ellipsis)
             if (date != state.today) {
                 Text(
-                    "回到今天", fontSize = 12.sp, color = Palette.Sky, maxLines = 1,
-                    modifier = Modifier.clip(CircleShape).clickable(onClick = onToday).padding(horizontal = 6.dp, vertical = 4.dp),
+                    "回到今天", fontSize = 12.sp, color = NyColors.RoseStrong, maxLines = 1,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onToday).padding(start = 8.dp, top = 2.dp, bottom = 2.dp),
                 )
             }
         }
-        Spacer(Modifier.height(if (roomy) 10.dp else 6.dp))
+        Spacer(Modifier.height(if (roomy) 8.dp else 4.dp))
         if (state.settings.isPartner) {
             Text("这是她的记录，只能查看", style = MaterialTheme.typography.bodySmall, maxLines = 1)
         } else {
-            val ordered = listOfNotNull(actions.primary, actions.secondary).sortedByDescending { it.pending.start }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally),
-            ) {
-                ordered.forEach { action ->
-                    PeriodButton(
-                        icon = if (action.pending.start) Icons.Rounded.PlayArrow else Icons.Rounded.Stop,
-                        label = action.label,
-                        active = action == actions.primary && actions.blockedReason == null,
-                        tint = Palette.Pink,
-                        enabled = actions.blockedReason == null,
-                        onClick = {
+            PrimaryButton(
+                actions.primary.label,
+                onClick = {
+                    val reason = actions.blockedReason
+                    if (reason != null) onToast(reason) else onAsk(actions.primary.pending)
+                },
+                modifier = Modifier.fillMaxWidth().testTag("home-primary"),
+                enabled = actions.blockedReason == null,
+                height = if (roomy) 48.dp else 44.dp,
+            )
+            actions.secondary?.let { secondary ->
+                Text(
+                    secondary.label,
+                    color = NyColors.RoseStrong,
+                    fontSize = 12.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).testTag("home-secondary")
+                        .clip(CircleShape)
+                        .clickable {
                             val reason = actions.blockedReason
-                            if (reason != null) onToast(reason) else onAsk(action.pending)
-                        },
-                        modifier = Modifier.testTag(if (action == actions.primary) "home-primary" else "home-secondary"),
-                    )
-                }
+                            if (reason != null) onToast(reason) else onAsk(secondary.pending)
+                        }
+                        .padding(vertical = 4.dp),
+                )
             }
         }
-        Spacer(Modifier.height(if (roomy) 6.dp else 2.dp))
         PhraseLine(phrase, onNextPhrase, roomy)
     }
 }
@@ -900,7 +900,7 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit, roomy: Boolean
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Text("换一句", color = Palette.InkFaint, fontSize = 12.sp, maxLines = 1)
+        Text("换一句", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
     }
 }
 
@@ -908,36 +908,62 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit, roomy: Boolean
 private fun ConfirmSheet(p: Pending, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val md = "${p.date.monthValue}月${p.date.dayOfMonth}日"
-    val (title, body, sticker) = when {
-        p.start && p.undo -> Triple("取消 $md 的开始？", "这次经期会删掉，预测会重算。", R.drawable.st_cloud)
-        p.start -> Triple("$md 月经来了吗？", "这天会记成这次经期的第一天，之后的预测跟着改。", R.drawable.st_drop)
-        p.undo -> Triple("取消 $md 的结束？", "会改回这次经期还没结束。", R.drawable.st_cloud)
-        else -> Triple("$md 月经走了吗？", "这天会记成这次经期的最后一天。", R.drawable.st_bottle)
-    }
-    val wobble = remember { Animatable(-8f) }
-    LaunchedEffect(Unit) { wobble.animateTo(0f, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
-        containerColor = Palette.Card,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = Palette.InkFaint) },
+        containerColor = Color.White,
+        dragHandle = null,
     ) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 22.dp).navigationBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Sticker(sticker, Modifier.size(40.dp).graphicsLayer { rotationZ = wobble.value })
-            Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(4.dp))
-            Text(body, style = MaterialTheme.typography.bodySmall, color = Palette.InkSoft, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryButton("再想想", { scope.launch { sheet.hide(); onDismiss() } }, Modifier.weight(1f), height = 44.dp, container = Palette.Panel, content = Palette.InkSoft)
-                PrimaryButton(if (p.undo) "确认取消" else "确认", { scope.launch { sheet.hide(); onConfirm() } }, Modifier.weight(1f), height = 44.dp)
+        ConfirmBody(p, onDismiss = { scope.launch { sheet.hide(); onDismiss() } }, onConfirm = { scope.launch { sheet.hide(); onConfirm() } })
+    }
+}
+
+@Composable
+internal fun ConfirmBody(p: Pending, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val weekNames = listOf("一", "二", "三", "四", "五", "六", "日")
+    val week = weekNames[p.date.dayOfWeek.value - 1]
+    val (title, body, dateLabel) = when {
+        p.start && p.undo -> Triple("取消开始？", "这次经期会删掉，之后的预测会重算。", "开始日期")
+        p.start -> Triple("月经来了？", "确认后会记录为本次经期第 1 天，并更新之后的预测。", "开始日期")
+        p.undo -> Triple("取消结束？", "会改回这次经期还没结束。", "结束日期")
+        else -> Triple("月经走了？", "这天会记成这次经期的最后一天。", "结束日期")
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).navigationBarsPadding().padding(bottom = 12.dp)) {
+        Box(
+            Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp, bottom = 16.dp)
+                .size(width = 36.dp, height = 4.dp).clip(CircleShape).background(NyColors.Hairline),
+        )
+        Text(title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = NyColors.Ink)
+        Spacer(Modifier.height(6.dp))
+        Text(body, fontSize = 13.sp, color = NyColors.InkSecondary)
+        Spacer(Modifier.height(14.dp))
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(NyColors.SurfaceSunken).padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(dateLabel, fontSize = 13.sp, color = NyColors.InkSecondary, modifier = Modifier.weight(1f))
+                Text("${p.date.monthValue}月${p.date.dayOfMonth}日 周$week", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = NyColors.Ink)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                (-3..3).forEach { offset ->
+                    val d = p.date.plusDays(offset.toLong())
+                    val on = offset == 0
+                    Column(
+                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if (on) NyColors.PrimaryButton else Color.Transparent).padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(weekNames[d.dayOfWeek.value - 1], fontSize = 11.sp, color = if (on) Color.White else NyColors.InkSecondary)
+                        Text("${d.dayOfMonth}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (on) Color.White else NyColors.Ink)
+                    }
+                }
+            }
         }
+        Spacer(Modifier.height(18.dp))
+        PrimaryButton(if (p.undo) "确认取消" else "确认", onConfirm, Modifier.fillMaxWidth(), height = 52.dp)
+        Text(
+            "再想想",
+            color = NyColors.RoseStrong,
+            fontSize = 14.sp,
+            modifier = Modifier.align(Alignment.CenterHorizontally).clip(CircleShape).clickable(onClick = onDismiss).padding(vertical = 10.dp),
+        )
     }
 }

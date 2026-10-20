@@ -4,51 +4,101 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_calm"
-    android:gravity="start|center_vertical"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/widget_label"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="暖月"
-        android:textColor="@color/ny_ink"
-        android:textSize="12sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="暖月"
+            android:textColor="@color/ny_ink_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_phase"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_bg_fertile"
+            android:paddingLeft="8dp"
+            android:paddingTop="2dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="2dp"
+            android:text=""
+            android:textColor="@color/ny_ink"
+            android:textSize="11sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="bottom"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical|bottom"
         android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:text="第"
+            android:textColor="@color/ny_ink"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/widget_number"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
             android:includeFontPadding="false"
             android:text="–"
             android:textColor="@color/ny_ink"
-            android:textSize="48sp" />
+            android:textSize="40sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_unit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="3dp"
-            android:paddingBottom="6dp"
-            android:text=""
+            android:paddingBottom="8dp"
+            android:text="天"
             android:textColor="@color/ny_ink"
-            android:textSize="13sp" />
+            android:textSize="16sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_sub"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="@color/ny_ink"
-        android:alpha="0.7"
-        android:textSize="11sp" />
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_sub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/ny_ink_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_sub_num"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/ny_rose_strong"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_sub_tail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/ny_ink_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
 </LinearLayout>
