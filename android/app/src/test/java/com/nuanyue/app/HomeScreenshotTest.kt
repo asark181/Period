@@ -121,13 +121,26 @@ class HomeScreenshotTest {
         }
     }
 
+    @Test fun navSettledOnHome() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "nav-home") { Page { NavShot(Tab.HOME, null) } }
+    }
+
+    @Test fun navSettledOnStats() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "nav-stats") { Page { NavShot(Tab.STATS, null) } }
+    }
+
+    @Test fun navSettledOnMe() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
+        paparazzi.snapshot(name = "nav-me") { Page { NavShot(Tab.ME, null) } }
+    }
+
     @Test fun bottomNavMidSlide() {
         paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
         paparazzi.snapshot(name = "nav-mid") {
             Page {
-                Box(Modifier.fillMaxSize().background(Palette.Bg), contentAlignment = Alignment.BottomCenter) {
-                    BottomBar(Tab.HOME, slide = 0.45f) {}
-                }
+                NavShot(Tab.HOME, 0.45f)
             }
         }
     }
@@ -142,6 +155,13 @@ private fun phone(widthDp: Int, heightDp: Int, fontScale: Float = 1f) = DeviceCo
     fontScale = fontScale,
     softButtons = false,
 )
+
+@Composable
+private fun NavShot(tab: Tab, slide: Float?) {
+    Box(Modifier.fillMaxSize().background(Palette.Bg), contentAlignment = Alignment.BottomCenter) {
+        BottomBar(tab, slide = slide) {}
+    }
+}
 
 @Composable
 private fun HomeShot(mode: Int) {
