@@ -464,9 +464,7 @@ private fun MonthGrid(
                                 infos[d]?.type ?: DayType.UNKNOWN,
                                 d == today,
                                 d == selected,
-                                size = minOf(maxWidth, maxHeight),
-                                cellWidth = maxWidth,
-                                cellHeight = maxHeight,
+                                size = minOf(maxWidth, maxHeight, 48.dp),
                                 muted = d.isAfter(today),
                             ) { onSelect(d) }
                         }
@@ -817,52 +815,37 @@ internal fun DayDock(
             val primary = actions.primary
             val undo = primary.pending.undo
             val blocked = actions.blockedReason != null
-            PrimaryButton(
-                text = primary.label,
-                onClick = { if (!blocked) onAsk(primary.pending) },
-                enabled = !blocked,
-                modifier = Modifier.fillMaxWidth().testTag("home-primary"),
-                icon = when {
-                    undo -> null
-                    primary.pending.start -> Icons.Rounded.PlayArrow
-                    else -> Icons.Rounded.Stop
-                },
-                height = 46.dp,
-                container = if (undo) Palette.PinkSoft else Palette.Pink,
-                content = when {
-                    blocked -> Palette.InkFaint
-                    undo -> Palette.PinkDeep
-                    else -> Color.White
-                },
-            )
-            actions.secondary?.let { secondary ->
-                val src = remember { MutableInteractionSource() }
-                val scale = pressScale(src, 0.97f)
-                if (blocked) {
-                    // Same slot as 「这天记为开始」: 13sp semibold, 6dp vertical padding, gray, not clickable.
-                    Text(
-                        actions.blockedReason!!,
-                        color = Palette.InkFaint,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).testTag("home-future-note"),
-                    )
-                } else {
-                    Text(
-                        secondary.label,
-                        color = Palette.PinkDeep,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        modifier = Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }
-                            .clip(CircleShape)
-                            .clickable(src, indication = null) { onAsk(secondary.pending) }
-                            .padding(vertical = 6.dp)
-                            .testTag("home-secondary"),
+            // One fixed-height row: primary + optional secondary side by side, so the dock never grows.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                PrimaryButton(
+                    text = primary.label,
+                    onClick = { if (blocked) onToast(actions.blockedReason!!) else onAsk(primary.pending) },
+                    modifier = Modifier.weight(1f).testTag("home-primary"),
+                    icon = when {
+                        undo -> null
+                        primary.pending.start -> Icons.Rounded.PlayArrow
+                        else -> Icons.Rounded.Stop
+                    },
+                    height = 46.dp,
+                    container = when {
+                        blocked -> Palette.Panel
+                        undo -> Palette.PinkSoft
+                        else -> Palette.Pink
+                    },
+                    content = when {
+                        blocked -> Palette.InkFaint
+                        undo -> Palette.PinkDeep
+                        else -> Color.White
+                    },
+                )
+                actions.secondary?.let { secondary ->
+                    PrimaryButton(
+                        text = secondary.label,
+                        onClick = { if (blocked) onToast(actions.blockedReason!!) else onAsk(secondary.pending) },
+                        modifier = Modifier.weight(1f).testTag("home-secondary"),
+                        height = 46.dp,
+                        container = if (blocked) Palette.Panel else Palette.PinkSoft,
+                        content = if (blocked) Palette.InkFaint else Palette.PinkDeep,
                     )
                 }
             }
@@ -904,8 +887,9 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit) {
         Sticker(R.drawable.st_heart, Modifier.size(14.dp))
         Text(
             shown?.text ?: "正在挑今天的一句",
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 18.sp),
+            minLines = 2,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
         )

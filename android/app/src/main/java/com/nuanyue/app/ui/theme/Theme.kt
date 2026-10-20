@@ -40,9 +40,9 @@ object Palette {
     val Pink = Color(FeedbackColors.ACCENT.toInt())
     val PinkDeep = Color(0xFFE25373)
     val PinkSoft = Color(0xFFFFE8ED)
-    val PinkLine = Color(0xFFF6AABA)
+    val PinkLine = Color(0xFFF0B8C3)
 
-    val Orange = Color(0xFFF7A928)
+    val Orange = Color(0xFFF0B46A)
     val OrangeSoft = Color(0xFFFFF1D9)
 
     val Mint = Color(0xFF4FC6B0)

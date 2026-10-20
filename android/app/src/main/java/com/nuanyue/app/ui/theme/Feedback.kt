@@ -12,7 +12,7 @@ package com.nuanyue.app.ui.theme
 object FeedbackColors {
     const val BACKGROUND = 0xFFFFF7F8L
     const val INK = 0xFF4A3540L
-    const val ACCENT = 0xFFF2708AL
+    const val ACCENT = 0xFFE88A9CL
 
     /** What Material lightColorScheme uses for inverseSurface when we don't override it. */
     const val MATERIAL_INVERSE_SURFACE = 0xFF313033L

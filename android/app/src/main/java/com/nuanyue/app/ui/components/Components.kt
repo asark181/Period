@@ -318,7 +318,16 @@ fun DateChip(
     val font = minOf(preferred, cap)
     Box(
         Modifier.size(cellWidth, cellHeight)
-            .then(if (isSelected) Modifier.border(2.dp, Palette.Sky, RoundedCornerShape(basis * 0.36f)) else Modifier)
+            .then(
+                if (isSelected) {
+                    val ring = when (type) {
+                        DayType.PERIOD -> Palette.PinkDeep.copy(alpha = 0.55f)
+                        DayType.FERTILE, DayType.OVULATION -> Palette.Orange.copy(alpha = 0.6f)
+                        else -> Palette.Pink.copy(alpha = 0.55f)
+                    }
+                    Modifier.border(2.dp, ring, RoundedCornerShape(basis * 0.36f))
+                } else Modifier,
+            )
             .padding(if (isSelected) 2.dp else 0.dp)
             .clip(shape)
             .background(bg)

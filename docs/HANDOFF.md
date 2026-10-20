@@ -179,3 +179,36 @@ adb exec-out screencap -p > /tmp/s.png
 - 小组件做成和首页一样的小月风格，或加一个 2×2 的「距离下次」小组件。
 - 经期开始 / 结束也可以从通知里一键确认（通知按钮 + 同样的二次确认）。
 - 统计页加「每个月几号来」的散点图，方便看规律。
+
+---
+
+## 2026-10-20 晚交接（Claude，1.9.2，未部署）
+
+### 已完成（已提交到 main，release 包已能构建）
+基于 origin/main 的 1.9.1 改动，版本号升到 **1.9.2（versionCode 13）**：
+1. **日历方格改正方形**：`ui/home/HomeScreen.kt` 的 `MonthGrid`，`DateChip` 不再传 `cellWidth/cellHeight`，尺寸取 `minOf(maxWidth, maxHeight, 48.dp)`。
+2. **选中边框颜色自适应**：`ui/components/Components.kt` 的 `DateChip`，选中环按当天类型取色：经期 = PinkDeep 55%，易孕 / 排卵 = Orange 60%，其他 = Pink 55%（原来固定蓝色 Sky）。
+3. **降低饱和度**：`ui/theme/Feedback.kt` `ACCENT` `#F2708A` → `#E88A9C`（即 Palette.Pink）；`Theme.kt` `Orange` `#F7A928` → `#F0B46A`，`PinkLine` → `#F0B8C3`。
+4. **按钮放到一行，不再顶起来**：`DayDock` 里主按钮和次按钮并排（各占一半，高 46dp）；未来日期不再多出一行提示文字，按钮变灰，点击用 toast 提示原因。
+5. **小贴士显示不下**：`PhraseLine` 固定两行（`minLines = 2, maxLines = 2`，13sp），卡片高度不再变化。
+6. 首页本身已是 `OneScreen` 一屏布局（没有 verticalScroll），这次没改结构。
+
+**以上都没在模拟器上验证过**（按用户要求不做测试；且本机 SDK 被删，已重装但没有模拟器镜像）。接手后请先在 1440×3200 / 560dpi 上看一眼首页。
+
+### 未完成
+1. **部署失败**：`deploy/deploy.sh` 连 `129.151.21.101:22` 时，TCP 端口是通的，但在认证前就被服务器断开（`Connection closed by ... port 22`）。用 `deploy/private/server_id_rsa` 和本机 `~/.ssh/oracle_*` 三把钥匙都一样。最可能是 **fail2ban 封了本机出口 IP**，或者 sshd 配置 / 密钥被改过。处理办法：从 Oracle 控制台的 Cloud Shell 或串口控制台登录，执行 `sudo fail2ban-client status sshd`，再 `sudo fail2ban-client set sshd unbanip <IP>`，或者核对 `~/.ssh/authorized_keys`。恢复后执行：
+   ```bash
+   ./deploy/deploy.sh deploy/private/server_id_rsa android/app/build/outputs/apk/release/app-release.apk
+   ```
+   本地已构建好的包：`dist/nuanyue-v1.9.2.apk`（签名证书 SHA-256 `ce98b7f6…bca`，和线上一致，能覆盖安装）。线上目前仍是 1.9.1（`https://leafy.fxxkopenai.com/api/version`）。注意 1.9.x 的 `version.json` 带 `apkUrl` / `sha256` 字段，以当前 `deploy.sh` 的写法为准。
+2. **桌面小组件重新设计（小米 15 Pro 用户要求）**，还没动。现状在 `widget/PeriodWidget.kt` + `res/layout/widget_period.xml`（RemoteViews）。需求：
+   - 经期中：大字「经期第 N 天」，副行「预计还有 X 天结束 · 下次 M月D日」。
+   - 非经期：大字「还有 N 天」，副行「下次月经 M月D日 · 当前阶段（安全期/易孕期/排卵日）」；推迟时显示「已推迟 N 天」。
+   - 信息要全：再加一条周期进度条（周期第几天 / 平均周期）和小月头像。
+   - 建议做 2×2 和 4×2 两种尺寸（`res/xml/period_widget_info.xml` + `targetCellWidth/Height`，Android 12+ 可以用 `RemoteViews(Map<SizeF, RemoteViews>)` 响应式布局）；数据来源沿用 `CycleEngine.snapshot`；背景色降饱和：经期 `#E88A9C`，易孕 `#F0B46A`，其他白底。
+   - 刷新：现有 `PeriodWidget.updateAll()` 在数据变化和每日闹钟时调用，够用。
+
+### 环境注意
+- **Android SDK**：原来的 `~/Library/Android/sdk` 被删了，这次只重装了 cmdline-tools、platform-tools、platforms;android-35、build-tools;35.0.0，**没有 emulator 和系统镜像**。用户提到的模拟器 `nuanyue` 和快照 `ref160` / `pre190` 如果要用，需要先确认 AVD 在哪（`~/.android/avd`）、再装 `emulator` 和 `system-images;android-35;google_apis;arm64-v8a`。
+- `adb` 路径：`~/Library/Android/sdk/platform-tools/adb`（已重装）。
+- 测试机配置（用户提供）：Pixel 7 原生 Android 15，用 adb 改成 1440×3200、密度 560（约 411dp 宽），手势导航，字号 1.0；测试数据：昵称 QA190、8 条经期、周期 29 天、经期 5 天、提醒 21:30。
