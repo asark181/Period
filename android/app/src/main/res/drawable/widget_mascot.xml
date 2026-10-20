@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/mascot_body" />
+    <item android:drawable="@drawable/mascot_cheeks" />
+    <item android:drawable="@drawable/mascot_eyes_open" />
+    <item android:drawable="@drawable/mascot_mouth_smile" />
+</layer-list>

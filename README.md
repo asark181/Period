@@ -8,6 +8,7 @@
 - **提醒**：经期前 N 天、当天、推迟、该结束了、易孕期 / 排卵日，开机自动恢复
 - **统计**：平均 / 最长 / 最短周期与经期，「经期图表 / 经期数据」两个标签页
 - **悄悄话**：内置 1011 条短语，按经期阶段挑选，每次打开自动换一句，点一下也能换
+- **桌面小组件**：2×2，可拉宽到 4×2；显示经期第几天、下次倒计时或推迟天数，并带预计日期、阶段、周期进度和小月头像。点卡片打开应用
 - **邀请码同步**：她选「我是本人」，伴侣选「我是伴侣」只读查看并收到提醒；数据端到端加密，服务器只存密文
 - 动画：弹簧按压、墨水填充、爱心粒子、滑动指示条、3D 翻牌、小月呼吸眨眼
 
@@ -17,7 +18,7 @@
 
 ## 构建与部署
 ```bash
-cd android && ./gradlew testDebugUnitTest assembleRelease
+(cd android && ./gradlew testDebugUnitTest assembleRelease)
 ./deploy/deploy.sh deploy/private/server_id_rsa android/app/build/outputs/apk/release/app-release.apk
 ```
 预测仅供参考，不能用于避孕。

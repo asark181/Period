@@ -8,7 +8,7 @@
 
 - **App**：Kotlin + Jetpack Compose，本地 Room 数据库，离线可用。1.9.0 的界面是暖白底 `#FFF9F8`、白卡片、墨色文字 `#4A3540`。经期日是浅玫瑰块 `#F39BAE` 加墨色数字，易孕是浅杏 `#FFF1DC`，排卵是杏底上的橙点，预测是 `#EB8399` 虚线。吉祥物仍是「小月」，每屏最多一次。底栏是贴底的白条，选中项是一颗高出顶边的浅玫瑰圆。
 - **服务器**：域名 <https://leafy.fxxkopenai.com>（Cloudflare 代理 HTTPS，源站仍是 `129.151.21.101` 的 nginx :80）+ FastAPI（127.0.0.1:8090）+ SQLite。只存端到端加密的密文，同时托管下载页和 APK。443 被 xray 占用，源站不要加证书。
-- **当前版本**：1.9.0（versionCode 11）。发布走 `deploy/deploy.sh`，它按 APK 重写 `version.json`。
+- **当前代码版本**：1.10.0（versionCode 14，部署状态见文末）。发布走 `deploy/deploy.sh`，它按 APK 重写 `version.json`。
 - **版本线**：1.5.0 域名 HTTPS，网络失败才回退源站 IP。1.6.0 首页一屏放下月历、开始/结束和悄悄话。1.7.0 圆角方格月历，应用内下载更新。1.7.1 方格按内容高度排，余白留给选中日。1.8.0 换成浅灰白日历和浮起的底栏圆泡，同步、加密、Room、更新协议都没动。1.9.0 按 v0.5 色板改回暖色，底栏改成随选中项隆起的白条，更新下载和安装流程没动。
 
 用户的核心诉求（按优先级）：
@@ -176,7 +176,7 @@ adb exec-out screencap -p > /tmp/s.png
 - 域名在大陆网络上的实际成功率，以及回退到 IP 要多久。回退规则有单测（网络失败重试一次且请求不变，HTTP 错误不重试），没有在她的手机上遇到过 Cloudflare 抽风。
 
 ## 7. 可以继续做的
-- 小组件做成和首页一样的小月风格，或加一个 2×2 的「距离下次」小组件。
+- 小组件已支持 2×2 及拉宽到 4×2；后续仍需在小米 HyperOS 真机核验桌面网格及后台刷新。
 - 经期开始 / 结束也可以从通知里一键确认（通知按钮 + 同样的二次确认）。
 - 统计页加「每个月几号来」的散点图，方便看规律。
 
@@ -212,3 +212,21 @@ adb exec-out screencap -p > /tmp/s.png
 - **Android SDK**：原来的 `~/Library/Android/sdk` 被删了，这次只重装了 cmdline-tools、platform-tools、platforms;android-35、build-tools;35.0.0，**没有 emulator 和系统镜像**。用户提到的模拟器 `nuanyue` 和快照 `ref160` / `pre190` 如果要用，需要先确认 AVD 在哪（`~/.android/avd`）、再装 `emulator` 和 `system-images;android-35;google_apis;arm64-v8a`。
 - `adb` 路径：`~/Library/Android/sdk/platform-tools/adb`（已重装）。
 - 测试机配置（用户提供）：Pixel 7 原生 Android 15，用 adb 改成 1440×3200、密度 560（约 411dp 宽），手势导航，字号 1.0；测试数据：昵称 QA190、8 条经期、周期 29 天、经期 5 天、提醒 21:30。
+
+### 接手续做方案（2026-10-20，用户已确认）
+
+- 小组件保留现有 `PeriodWidget` 入口，用系统 RemoteViews 提供 2×2 紧凑布局及拉宽后的 4×2 布局。Android 12+ 按尺寸自动选布局，旧系统在尺寸变化时重绘。
+- 数据展示独立为纯 Kotlin `WidgetState`，只消费 `CycleEngine.snapshot`，不改预测、同步或数据库。经期显示第几天、预计剩余天数和下次日期；非经期显示倒计时及阶段；推迟显示推迟天数和原预测日期，避免把今天误写成下一次日期。
+- 两种尺寸均显示周期进度及小月头像。经期用低饱和粉色、易孕用浅橙、其余白底，文字保持深色；空数据提示开始记录，不显示虚假预测。点击打开应用。
+- 实施顺序：先用合成日期覆盖经期、预计当天、推迟、无数据和进度边界；再实现展示模型、两种布局、尺寸响应；最后运行单测、release 构建与签名检查，并验证模拟器首页及桌面小组件。
+- 部署单独核实 SSH 断连原因。仅发布暖月文件和服务，保留数据库、邀请码及 x-ui/xray；发布后核对健康检查、版本、APK 摘要和签名。连接未恢复前不把发布记为完成。
+
+
+### 2026-10-20 Codex 接手续做记录
+
+- 已从已登录的 Oracle Cloud Shell 使用原有私钥登录服务器，并运行 `deploy/deploy.sh` 发布 1.9.2。公网版本接口返回 versionCode 13，APK SHA-256 与本机签名包一致；`nuanyue`、`nginx`、`x-ui` 均为 active。旧包及旧版本文件保存在服务器 `/opt/nuanyue/releases/pre-1.9.2/`。
+- 本机 SSH 仍在认证前断开，Cloud Shell 同密钥可登录。实际查询 fail2ban 的 sshd jail 当前封禁数为 0，因此没有执行解封、修改 IAM、关闭安全防护或改动代理服务；原交接中的 fail2ban 推断未被证实。
+- 小组件版本为 1.10.0（versionCode 14）。`WidgetState` 整理已有 CycleEngine 的结果：经期按包含今天的剩余天数展示，推迟展示原预测日期，无数据或只有未来记录时不编造当前周期。当前阶段沿用现有引擎，不增加医学判断。
+- RemoteViews 提供 2×2 紧凑布局及宽度达到 300dp 后的 4×2 布局，两种尺寸都有下次日期、周期进度和已有小月头像；Android 12+ 交给桌面按尺寸选择，旧版通过尺寸回调重绘。保留既有数据变更、每日提醒及系统定期刷新入口。最小验证尺寸为 140×160dp 和 300×160dp，字号 1.0；更小尺寸和小米 HyperOS 的实际桌面行为仍需真机核验。
+- 验证：`android/gradlew -p android testDebugUnitTest assembleRelease assembleDebug --offline --console=plain` 成功；JUnit 77 项、失败/错误/跳过均为 0。新增 7 项展示逻辑测试和 5 项布局测试（每项覆盖两种尺寸），用真实 RemoteViews 膨胀并检查文字宽高，修复了窄布局标题及宽布局日期裁切。首页同时按 1440×3200／560dpi 和小屏渲染。服务端 `server/.venv/bin/python -m pytest -q server/test_app.py`：2 passed（依赖库一项弃用提示）。
+- 签名包：`dist/nuanyue-v1.10.0.apk`，签名证书 SHA-256 与 1.9.2 一致；APK SHA-256 为 `cc05585189fbba66a20e44d02d6070dba2eab675753389623d754bab901e213b`。`dist/widget-1.10.0-2x2.png`、`dist/widget-1.10.0-4x2.png` 是布局渲染结果，不代表 HyperOS 真机截图。
