@@ -8,7 +8,7 @@
 
 - **App**：Kotlin + Jetpack Compose，本地 Room 数据库，离线可用。界面风格参考「柠檬小月」：暖粉纸底、圆角卡片、粉色经期、橙色易孕期、心形排卵日、吉祥物「小月」（会犯困的小月亮）、手账贴纸。
 - **服务器**：域名 <https://leafy.fxxkopenai.com>（Cloudflare 代理 HTTPS，源站仍是 `129.151.21.101` 的 nginx :80）+ FastAPI（127.0.0.1:8090）+ SQLite。只存端到端加密的密文，同时托管下载页和 APK。443 被 xray 占用，源站不要加证书。
-- **当前版本**：1.5.0（versionCode 6）。线上的下载页和 APK 要等 `deploy/deploy.sh` 跑过才会换成这一版。
+- **当前版本**：1.6.0（versionCode 7）。线上如果还是 1.5.0，要等 `deploy/deploy.sh` 跑过才会换成这一版。
 
 用户的核心诉求（按优先级）：
 1. 聚焦经期数据本身（开始 / 结束、预测、统计），**不要**做心情、症状、留言这类附加记录——已在 1.3.0 删掉。
@@ -30,7 +30,7 @@ android/                 安卓工程（Gradle 8.11.1, AGP 8.7.3, Kotlin 2.0.21,
     ui/                    Compose 界面：home / stats / settings / onboarding / components / theme
     widget/PeriodWidget.kt 桌面小组件（RemoteViews）
   app/src/main/assets/phrases.txt   1011 条短语（首启导入 Room）
-  app/src/test/…/CycleEngineTest.kt、FeedbackTest.kt、SyncClientFallbackTest.kt 单测
+  app/src/test/…/CycleEngineTest.kt、FeedbackTest.kt、SyncClientFallbackTest.kt、HomeActionsTest.kt 单测；HomeScreenshotTest.kt 用 Paparazzi 画首页（月历 / 整年 / 周期环）
   app/schemas/            Room schema 导出（v1、v2）
 art/                     设计源文件（SVG），改图改这里
   mascot/                小月的分层 SVG（身体、腮红、三种眼睛、两种嘴、热水袋、Zzz）
@@ -68,8 +68,9 @@ dist/                    （gitignore）各版本签名 APK
 - 已在模拟器上用改系统时间的方式验证过闹钟会自己触发并重排次日。
 
 ### 3.4 界面与动画（1.3.0）
-- 首页三种视图：月历（左右滑 / 点标题弹出年月选择器快速跳转）、整年（12 个迷你月，点月份跳入）、周期环（上次 / 本次 / 下次）。
-- 底部只剩「月经开始 / 月经结束」两个按钮，点击先弹二次确认底部弹窗。
+- 首页三种视图：月历（左右滑 / 点标题弹出年月选择器快速跳转）、整年（12 个迷你月，点月份跳入）、周期环（上次 / 本次 / 下次）。1.6.0 起这三页的主体都不靠滚动：月历格子按剩下的高度分（只画这个月实际占的 5 或 6 行），整年和周期环缩进同一块区域。抬头收成一行问候加状态，小月缩小。
+- 点某一天，底下显示这天的日子。经期中主按钮是「月经结束了」，另一个动作收成一行文字；没在经期时主按钮是「月经来了」。点下去仍先弹出确认，比以前矮一截。悄悄话是一行，点一下换一句，不用往下滚。
+- 状态栏和导航栏的空隙由 `Scaffold` 的 `padding` 统一留出，页面内容不再画进系统栏。字体变大时先压缩月历，开始/结束和悄悄话留在屏幕上。
 - 动画：按压弹簧缩放、激活时墨水扩散填充 + 图标旋转成对勾 + 爱心粒子爆开、分段控件滑动高亮、底栏滑动指示条 + 图标弹跳、页面方向感切换、状态数字滚动、短语卡片 3D 翻牌、小月呼吸 / 眨眼 / 点击挤压回弹、贴纸漂浮。都在 `ui/components/Motion.kt`、`Mascot.kt`、`Effects.kt`。
 - 短暂提示（同步完成、复制、更新、日历点未来日期等）一律走 `AppViewModel.toast` → `WarmToast`。不要改回 Material `Snackbar`：主题里 `bodyMedium` 写死了深色字，Snackbar 又用默认的近黑 `inverseSurface`，1.3.0 在真机上是黑底深字。颜色对比度锁在 `FeedbackTest`。
 - 短语：1011 条，分 P(经期)/F(卵泡期)/O(易孕)/L(经前&推迟)/A(日常)/B(伴侣) 六类；每次回到前台换一句，点卡片换一句；70% 取当前阶段类别、30% 取日常类。改短语：编辑 `art/phrases/*.txt` 后重新生成 `assets/phrases.txt`（见第 5 节），App 发现条数变化会自动重新导入。
