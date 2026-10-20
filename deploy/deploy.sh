@@ -20,7 +20,7 @@ if [[ -n "$APK" ]]; then
   VERSION_NAME=$(grep -E 'versionName *=' "$ROOT/android/app/build.gradle.kts" | grep -oE '"[^"]+"' | tr -d '"')
   SIZE=$(du -m "$APK" | cut -f1)
   cat > "$STAGE/web/version.json" <<JSON
-{"versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "url": "http://129.151.21.101/", "size": "${SIZE}MB", "notes": ""}
+{"versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "url": "https://leafy.fxxkopenai.com/", "size": "${SIZE}MB", "notes": ""}
 JSON
 fi
 
@@ -64,4 +64,4 @@ sleep 2
 curl -fsS http://127.0.0.1/api/health && echo
 systemctl is-active nuanyue nginx x-ui
 REMOTE
-echo "deployed → http://129.151.21.101/"
+echo "deployed → https://leafy.fxxkopenai.com/ (origin http://129.151.21.101/)"

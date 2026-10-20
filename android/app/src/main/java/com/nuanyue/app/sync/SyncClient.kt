@@ -23,8 +23,22 @@ data class VersionInfo(
 
 class SyncException(val code: Int, message: String) : IOException(message)
 
+/**
+ * One HTTP round trip. Throws [IOException] only when no HTTP status comes back
+ * (DNS, connect, timeout, TLS). An HTTP error status is a normal result.
+ */
+fun interface Exchange {
+    fun call(url: String, method: String, auth: String?, body: String?): Pair<Int, String>
+}
+
 /** Tiny HTTP client: no third-party networking library needed for three endpoints. */
-class SyncClient(private val base: String = BuildConfig.SERVER_URL) {
+class SyncClient(
+    base: String = BuildConfig.SERVER_URL,
+    fallbackBase: String = BuildConfig.SERVER_FALLBACK_URL,
+    private val exchange: Exchange = HttpExchange,
+) {
+    private val base = base.trimEnd('/')
+    private val fallbackBase = fallbackBase.trimEnd('/')
     private val json = Json { ignoreUnknownKeys = true }
 
     /** Returns null when the space does not exist yet. */
@@ -58,8 +72,30 @@ class SyncClient(private val base: String = BuildConfig.SERVER_URL) {
         },
     )
 
+    /**
+     * Prefer the HTTPS domain. If that attempt fails before any HTTP status
+     * (Cloudflare is flaky on some mainland networks), send the same request
+     * once to the origin IP over cleartext. A 4xx/5xx is the server answering,
+     * so it is not retried.
+     */
     private fun request(method: String, path: String, auth: String?, body: String?): Pair<Int, String> {
-        val conn = (URL(base + path).openConnection() as HttpURLConnection).apply {
+        return try {
+            exchange.call(base + path, method, auth, body)
+        } catch (primary: IOException) {
+            if (fallbackBase.isEmpty() || fallbackBase == base) throw primary
+            try {
+                exchange.call(fallbackBase + path, method, auth, body)
+            } catch (fallback: IOException) {
+                primary.addSuppressed(fallback)
+                throw primary
+            }
+        }
+    }
+}
+
+private object HttpExchange : Exchange {
+    override fun call(url: String, method: String, auth: String?, body: String?): Pair<Int, String> {
+        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 10_000
             readTimeout = 20_000
