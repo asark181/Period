@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Primary host is HTTPS. Cleartext stays enabled only for the origin IP, used
-     once when the domain fails before any HTTP response. Payloads are AES-GCM
-     encrypted on device before upload. -->
+     once when the domain fails before any HTTP response. That covers both the
+     API and the APK at /download/nuanyue.apk. Payloads are AES-GCM encrypted
+     on device before upload. -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">129.151.21.101</domain>

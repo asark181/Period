@@ -53,6 +53,20 @@ object Palette {
 
     val Lemon = Color(0xFFFFD86B)
     val Blush = Color(0xFFFFB3C1)
+
+    /** Calendar fills stay pale so the numbers stay dark and the month feels soft. */
+    val RoseFill = Color(0xFFF6D5DE)
+    val RoseInk = Color(0xFF7C3450)
+    val PeachFill = Color(0xFFF8E3D0)
+    val PeachInk = Color(0xFF7A4B2E)
+    val Cream = Color(0xFFFFF8F6)
+    val Petal = Color(0xFFE7B4C3)
+    val PredictedInk = Color(0xFF8A4E60)
+    val Lavender = Color(0xFFE4D9F5)
+    val LavenderInk = Color(0xFF5C4A78)
+    val LavenderLine = Color(0xFFCDB7E8)
+    val Bloom = Color(0xFFC47D92)
+    val CalendarWash = Color(0xFFFFF4EF)
 }
 
 /** Rounded numerals (Nunito, variable font). Chinese text stays in the system sans. */

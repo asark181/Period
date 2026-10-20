@@ -46,8 +46,8 @@ class PeriodWidget : AppWidgetProvider() {
             }
             val sub = if (snap.hasData) t.phase.title else "点我开始记录"
             val (bg, fg) = when (t.phase) {
-                Phase.MENSTRUAL, Phase.LATE -> R.drawable.widget_bg_period to 0xFFFFFFFF.toInt()
-                Phase.FERTILE, Phase.OVULATION -> R.drawable.widget_bg_fertile to 0xFFFFFFFF.toInt()
+                Phase.MENSTRUAL, Phase.LATE -> R.drawable.widget_bg_period to 0xFF7C3450.toInt()
+                Phase.FERTILE, Phase.OVULATION -> R.drawable.widget_bg_fertile to 0xFF7A4B2E.toInt()
                 Phase.NONE -> R.drawable.widget_bg_empty to context.getColor(R.color.ink)
                 else -> R.drawable.widget_bg_calm to context.getColor(R.color.ink)
             }

@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -286,8 +287,8 @@ fun DayType.color(): Color = when (this) {
 }
 
 /**
- * One date chip: filled rounded square for period and fertile days, pink outline for a
- * predicted period, a heart for ovulation, and a double pink ring for today.
+ * A soft square day. Period is rose, fertile is peach, predicted is a petal outline,
+ * ovulation gets a tiny flower, and today sits on a lavender disc.
  */
 @Composable
 fun DateChip(
@@ -298,55 +299,61 @@ fun DateChip(
     size: Dp,
     hasRecord: Boolean = false,
     muted: Boolean = false,
-    cellWidth: Dp = size,
-    cellHeight: Dp = size,
     onClick: (() -> Unit)? = null,
 ) {
-    val basis = minOf(cellWidth, cellHeight)
-    val shape = RoundedCornerShape(basis * 0.32f)
-    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
+    val shape = RoundedCornerShape(size * 0.32f)
     val bg = when (type) {
-        DayType.PERIOD -> Palette.Pink
-        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
-        DayType.PREDICTED_PERIOD -> Color.White
-        else -> Color.Transparent
+        DayType.PERIOD -> Palette.RoseFill
+        DayType.FERTILE, DayType.OVULATION -> Palette.PeachFill
+        DayType.PREDICTED_PERIOD -> Palette.Cream
+        else -> if (isToday) Palette.Lavender else Color.Transparent
     }
-    val fg = if (filled) Color.White else if (muted) Palette.InkSoft else Palette.Ink
-    // Prefer a readable size, but never larger than the cell — including when the system font scale is up.
-    val preferred = (basis.value * 0.42f).coerceIn(10f, 16f)
-    val cap = (basis.value * 0.62f) / LocalDensity.current.fontScale
+    val fg = when {
+        type == DayType.PERIOD -> Palette.RoseInk
+        type == DayType.FERTILE || type == DayType.OVULATION -> Palette.PeachInk
+        type == DayType.PREDICTED_PERIOD -> Palette.PredictedInk
+        isToday -> Palette.LavenderInk
+        muted -> Palette.InkSoft
+        else -> Palette.Ink
+    }
+    val preferred = (size.value * 0.40f).coerceIn(10f, 15f)
+    val cap = (size.value * 0.62f) / LocalDensity.current.fontScale
     val font = minOf(preferred, cap)
+    val source = remember { MutableInteractionSource() }
+    val scale = pressScale(source, 0.86f)
+    val lift = if (size >= 28.dp && bg != Color.Transparent) 2.dp else 0.dp
     Box(
-        Modifier.size(cellWidth, cellHeight)
-            .then(if (isSelected) Modifier.border(2.dp, Palette.Sky, RoundedCornerShape(basis * 0.36f)) else Modifier)
-            .padding(if (isSelected) 2.dp else 0.dp)
+        Modifier.size(size)
+            .graphicsLayer { scaleX = scale * if (scale < 1f) 1.06f else 1f; scaleY = scale }
+            .shadow(lift, shape, clip = false, ambientColor = Color(0x18C47D92), spotColor = Color(0x22C47D92))
             .clip(shape)
             .background(bg)
-            .then(if (type == DayType.PREDICTED_PERIOD || (isToday && !filled)) Modifier.border(1.5.dp, Palette.PinkLine, shape) else Modifier)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(
+                when {
+                    isSelected -> Modifier.border(2.dp, Palette.LavenderLine, shape)
+                    type == DayType.PREDICTED_PERIOD -> Modifier.border(1.4.dp, Palette.Petal, shape)
+                    isToday && type == DayType.UNKNOWN -> Modifier.border(1.2.dp, Palette.LavenderLine, shape)
+                    else -> Modifier
+                },
+            )
+            .then(if (onClick != null) Modifier.clickable(source, indication = null, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (isToday && !filled) {
-            Box(Modifier.fillMaxSize().padding(2.dp).border(1.dp, Palette.PinkLine, RoundedCornerShape(basis * 0.24f)))
+        if (type == DayType.OVULATION) {
+            Icon(Icons.Rounded.Spa, null, tint = Palette.Bloom, modifier = Modifier.align(Alignment.TopCenter).padding(top = size * 0.08f).size(size * 0.22f))
         }
-        if (type == DayType.OVULATION && !isToday) {
-            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(basis * 0.55f))
-            Text(label, fontFamily = Rounded, fontWeight = FontWeight.ExtraBold, fontSize = (font * 0.7f).sp, color = Palette.Orange, maxLines = 1)
-        } else {
-            Text(
-                if (isToday) "今" else label,
-                // Nunito has no Chinese glyphs; "今" follows the text style so it stays the system face.
-                fontFamily = if (isToday) null else Rounded,
-                fontWeight = FontWeight.Bold,
-                fontSize = font.sp,
-                color = fg,
-                maxLines = 1,
-            )
-        }
+        Text(
+            if (isToday) "今" else label,
+            fontFamily = if (isToday) null else Rounded,
+            fontWeight = FontWeight.Bold,
+            fontSize = font.sp,
+            color = fg,
+            maxLines = 1,
+        )
         if (hasRecord) {
             Box(
-                Modifier.align(Alignment.BottomCenter).padding(bottom = basis * 0.08f).size(4.dp).clip(CircleShape)
-                    .background(if (filled) Color.White else Palette.Mint),
+                Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.1f).size(3.dp).clip(CircleShape)
+                    .background(Palette.Bloom),
             )
         }
     }
