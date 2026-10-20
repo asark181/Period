@@ -19,8 +19,9 @@ if [[ -n "$APK" ]]; then
   VERSION_CODE=$(grep -E 'versionCode *=' "$ROOT/android/app/build.gradle.kts" | grep -oE '[0-9]+')
   VERSION_NAME=$(grep -E 'versionName *=' "$ROOT/android/app/build.gradle.kts" | grep -oE '"[^"]+"' | tr -d '"')
   SIZE=$(du -m "$APK" | cut -f1)
+  SHA=$(sha256sum "$APK" | awk '{print $1}')
   cat > "$STAGE/web/version.json" <<JSON
-{"versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "url": "https://leafy.fxxkopenai.com/", "size": "${SIZE}MB", "notes": ""}
+{"versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "url": "https://leafy.fxxkopenai.com/", "apkUrl": "https://leafy.fxxkopenai.com/download/nuanyue.apk", "sha256": "$SHA", "size": "${SIZE}MB", "notes": ""}
 JSON
 fi
 

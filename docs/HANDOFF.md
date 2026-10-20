@@ -71,7 +71,28 @@ dist/                    （gitignore）各版本签名 APK
 - 首页三种视图：月历（左右滑 / 点标题弹出年月选择器快速跳转）、整年（12 个迷你月，点月份跳入）、周期环（上次 / 本次 / 下次）。1.6.0 起这三页的主体都不靠滚动：月历格子按剩下的高度分（只画这个月实际占的 5 或 6 行），整年和周期环缩进同一块区域。抬头收成一行问候加状态，小月缩小。
 - 点某一天，底下显示这天的日子。经期中主按钮是「月经结束了」，另一个动作收成一行文字；没在经期时主按钮是「月经来了」。点下去仍先弹出确认，比以前矮一截。悄悄话是一行，点一下换一句，不用往下滚。
 - 状态栏和导航栏的空隙由 `Scaffold` 的 `padding` 统一留出，页面内容不再画进系统栏。字体变大时先压缩月历，开始/结束和悄悄话留在屏幕上。
-- 动画：按压弹簧缩放、激活时墨水扩散填充 + 图标旋转成对勾 + 爱心粒子爆开、分段控件滑动高亮、底栏滑动指示条 + 图标弹跳、页面方向感切换、状态数字滚动、短语卡片 3D 翻牌、小月呼吸 / 眨眼 / 点击挤压回弹、贴纸漂浮。都在 `ui/components/Motion.kt`、`Mascot.kt`、`Effects.kt`。
+- 动画：按压弹簧缩放、激活时墨水扩散填充 + 图标旋转成对勾 + 爱心粒子爆开、分段控件滑动高亮、底栏是一颗会拉长的软色块（弹簧，选中项微微抬起）、页面方向感切换、状态数字滚动、短语卡片 3D 翻牌、小月呼吸 / 眨眼 / 点击挤压回弹、贴纸漂浮、记下经期后的花瓣涟漪。都在 `ui/components/Motion.kt`、`Mascot.kt`、`Effects.kt`、`ui/Root.kt`。系统「动画时长」为 0 时 `LocalMotion` 为 false，这些动画停在终态。
+
+### 3.5 应用内更新（1.7.0）
+1.6.0 及更早的客户端仍然只读 `url`，检查到新版本就打开下载页。1.7.0 起在应用里下载 APK。`GET /api/version` 照旧把 `version.json` 原样返回，没有改接口。客户端认这些字段：
+
+| 字段 | 必填 | 作用 |
+|---|---|---|
+| `versionCode` | 是 | 整数。大于本机才算新版本 |
+| `versionName` | 是 | 展示用，例如 `1.7.0` |
+| `url` | 是 | 下载页。只有应用内下载失败时，卡片上的「打开下载页」才会用它。旧客户端仍然直接打开它 |
+| `notes` | 否 | 通知正文和更新卡片上的说明，缺省空字符串 |
+| `apkUrl` | 否 | 安装包地址。缺省或空字符串时用 `https://leafy.fxxkopenai.com/download/nuanyue.apk` |
+| `sha256` | 否 | APK 的 SHA-256，小写十六进制。有就校验，没有就只检查 ZIP 头 `PK` |
+| `size` | 否 | 下载页可以继续带，客户端忽略 |
+
+发布时写成：
+
+```json
+{"versionCode": 8, "versionName": "1.7.0", "url": "https://leafy.fxxkopenai.com/", "apkUrl": "https://leafy.fxxkopenai.com/download/nuanyue.apk", "sha256": "<apk 的 sha256>", "notes": "", "size": "12MB"}
+```
+
+域名在网络层失败时，下载会再试一次 `http://129.151.21.101/download/nuanyue.apk`（HTTP 4xx/5xx 不换地址）。这个 IP 本来就允许明文，不用再加路径。下载可断点续传；校验通过的文件不会再下；用户取消后，下次进程起来不会自动接着下，要点按钮。通知渠道 `app_updates`，每个 versionCode 只通知一次。WorkManager 每 12 小时在有网络时查一次。Android 13+ 的通知权限不在第一次打开时弹，引导和更新卡片里再要。安装走 FileProvider 和系统安装器；没开「安装未知应用」时带去设置，回来继续。
 - 短暂提示（同步完成、复制、更新、日历点未来日期等）一律走 `AppViewModel.toast` → `WarmToast`。不要改回 Material `Snackbar`：主题里 `bodyMedium` 写死了深色字，Snackbar 又用默认的近黑 `inverseSurface`，1.3.0 在真机上是黑底深字。颜色对比度锁在 `FeedbackTest`。
 - 短语：1011 条，分 P(经期)/F(卵泡期)/O(易孕)/L(经前&推迟)/A(日常)/B(伴侣) 六类；每次回到前台换一句，点卡片换一句；70% 取当前阶段类别、30% 取日常类。改短语：编辑 `art/phrases/*.txt` 后重新生成 `assets/phrases.txt`（见第 5 节），App 发现条数变化会自动重新导入。
 
@@ -90,7 +111,7 @@ dist/                    （gitignore）各版本签名 APK
 | 防火墙 | iptables 已放行 80；Oracle 安全组也已放行（外网可访问） |
 | API | `GET /api/health`、`GET /api/version`、`GET/PUT /api/backup/{space}`（头 `X-Auth`）；每 IP 120 次/分钟，错误密码每 IP 10 分钟 20 次 |
 
-HTTPS 在 Cloudflare 上终结，回源仍是明文 `:80`。不要在这台机器上占 443，也不要给 nginx 加证书。App 1.5.0 优先走 `https://leafy.fxxkopenai.com`；域名在网络层失败时，同一请求回退一次到 `http://129.151.21.101`。`version.json` 里的 `url` 是 `https://leafy.fxxkopenai.com/`，检查更新打开的是下载页。安全性仍然靠端到端加密：回退走的明文通道上，服务器看到的也只是密文。
+HTTPS 在 Cloudflare 上终结，回源仍是明文 `:80`。不要在这台机器上占 443，也不要给 nginx 加证书。App 1.5.0 优先走 `https://leafy.fxxkopenai.com`；域名在网络层失败时，同一请求回退一次到 `http://129.151.21.101`。`version.json` 的字段见 3.5。1.6.0 及更早打开 `url` 下载页；1.7.0 优先按 `apkUrl`（没有就用域名上的 `/download/nuanyue.apk`）在应用内下载，校验 `sha256`，网络失败才改走源站 IP 的同一个路径。安全性仍然靠端到端加密：回退走的明文通道上，服务器看到的也只是密文。
 
 ## 5. 常用操作
 

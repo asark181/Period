@@ -14,6 +14,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -21,6 +24,8 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,6 +51,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,13 +73,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.ui.theme.Palette
 
+/** False when the system animator scale is 0, or a screenshot asks for a still frame. */
+val LocalMotion = compositionLocalOf { true }
+
+/**
+ * Two pale discs that drift a few pixels. Still when motion is off, so screenshots
+ * and reduced-motion stay on the first frame.
+ */
+@Composable
+fun DriftWash(modifier: Modifier = Modifier) {
+    val motion = LocalMotion.current
+    val shift = if (motion) {
+        val t = rememberInfiniteTransition(label = "wash")
+        t.animateFloat(0f, 1f, infiniteRepeatable(tween(9000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "washX").value
+    } else {
+        0.35f
+    }
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        drawCircle(Color(0x33F6D5DE), w * 0.42f, Offset(w * (0.15f + 0.08f * shift), h * 0.2f))
+        drawCircle(Color(0x22E4D9F5), w * 0.36f, Offset(w * (0.82f - 0.06f * shift), h * 0.85f))
+    }
+}
+
 /** Scale that dips while pressed and springs back with a little wobble. */
 @Composable
 fun pressScale(source: MutableInteractionSource, pressed: Float = 0.9f): Float {
     val isPressed by source.collectIsPressedAsState()
+    val motion = LocalMotion.current
     val s by animateFloatAsState(
         if (isPressed) pressed else 1f,
-        spring(dampingRatio = if (isPressed) 1f else 0.35f, stiffness = Spring.StiffnessMedium),
+        if (motion) spring(dampingRatio = if (isPressed) 1f else 0.35f, stiffness = Spring.StiffnessMedium) else tween(0),
         label = "press",
     )
     return s
@@ -184,7 +215,7 @@ fun Sticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float
 /** Floats a sticker gently up and down, for decoration. */
 @Composable
 fun FloatingSticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float = 0f, amplitude: Dp = 3.dp, periodMs: Int = 2400, motion: Boolean = true) {
-    if (!motion) {
+    if (!motion || !LocalMotion.current) {
         Sticker(id, modifier, rotation)
         return
     }
@@ -200,5 +231,33 @@ fun SlidingIndicator(count: Int, selected: Int, modifier: Modifier = Modifier, c
         val slot = maxWidth / count
         val x by animateDpAsState(slot * selected + (slot - pillWidth) / 2, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow), label = "ind")
         Box(Modifier.offset(x = x).width(pillWidth).height(pillHeight).clip(CircleShape).background(color))
+    }
+}
+
+/** A short bloom of petals after a period is recorded. Stays still when motion is off. */
+@Composable
+fun PetalBloom(tick: Int, modifier: Modifier = Modifier) {
+    if (!LocalMotion.current) return
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(tick) {
+        if (tick == 0) return@LaunchedEffect
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(680, easing = FastOutSlowInEasing))
+    }
+    val t = progress.value
+    if (t <= 0f || t >= 1f) return
+    Canvas(modifier) {
+        val colors = listOf(Color(0xFFE7A3B5), Color(0xFFF3C7A8), Color(0xFFD9C6EE))
+        repeat(7) { i ->
+            val ang = -PI / 2 + i * PI * 2 / 7
+            val dist = size.minDimension * 0.42f * t
+            val r = size.minDimension * 0.055f * (1f - t * 0.4f)
+            drawCircle(
+                colors[i % 3].copy(alpha = 1f - t),
+                r,
+                Offset(center.x + (cos(ang) * dist).toFloat(), center.y + (sin(ang) * dist).toFloat()),
+            )
+        }
+        drawCircle(Color(0xFFF6D5DE).copy(alpha = (1f - t) * 0.55f), size.minDimension * 0.55f * t, style = Stroke(width = 3.dp.toPx()))
     }
 }

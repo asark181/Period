@@ -142,6 +142,7 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 Reminders.schedule(context, app.settings.current())
+                com.nuanyue.app.update.AppUpdate.scheduleChecks(context)
                 PeriodWidget.updateAll(context)
             } finally {
                 pending.finish()

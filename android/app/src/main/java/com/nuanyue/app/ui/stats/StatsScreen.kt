@@ -62,6 +62,7 @@ import com.nuanyue.app.R
 import com.nuanyue.app.domain.CycleEngine
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.FloatingSticker
+import com.nuanyue.app.ui.components.LocalMotion
 import com.nuanyue.app.ui.components.Mascot
 import com.nuanyue.app.ui.components.Numeral
 import com.nuanyue.app.ui.components.Pill
@@ -288,18 +289,26 @@ private fun CycleBars(rows: List<Row3>, avg: Int) {
             return@SoftCard
         }
         val maxV = data.maxOf { it.second }.coerceAtLeast(avgLine) * 1.12f
-        val anim = remember { Animatable(0f) }
-        LaunchedEffect(mode, data.size) { anim.snapTo(0f); anim.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
+        val motion = LocalMotion.current
+        val anim = remember(motion) { Animatable(if (motion) 0f else 1f) }
+        LaunchedEffect(mode, data.size, motion) {
+            if (!motion) {
+                anim.snapTo(1f)
+                return@LaunchedEffect
+            }
+            anim.snapTo(0f)
+            anim.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
+        }
         Box(Modifier.fillMaxWidth().height(180.dp)) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                 data.forEach { (start, v) ->
                     val off = mode == 0 && abs(v - avgLine) > 6
-                    val brush = if (off) Brush.verticalGradient(listOf(Color(0xFFFFD27A), Palette.Orange))
+                    val brush = if (off) Brush.verticalGradient(listOf(Palette.PeachFill, Palette.PeachInk))
                     else Brush.verticalGradient(listOf(Palette.PinkLine, Palette.Pink))
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Text(
                             "$v", fontSize = 11.sp, fontFamily = Rounded, fontWeight = FontWeight.Bold,
-                            color = if (off) Palette.Orange else Palette.InkSoft,
+                            color = if (off) Palette.PeachInk else Palette.InkSoft,
                         )
                         Spacer(Modifier.height(3.dp))
                         Box(

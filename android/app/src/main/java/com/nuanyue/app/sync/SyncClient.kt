@@ -19,6 +19,10 @@ data class VersionInfo(
     val versionName: String,
     val url: String,
     val notes: String = "",
+    /** Direct APK. Empty means `{server}/download/nuanyue.apk`. */
+    val apkUrl: String = "",
+    /** Lowercase hex of the APK. Empty means the client skips the hash check. */
+    val sha256: String = "",
 )
 
 class SyncException(val code: Int, message: String) : IOException(message)

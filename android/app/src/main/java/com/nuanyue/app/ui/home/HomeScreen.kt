@@ -94,6 +94,9 @@ import com.nuanyue.app.domain.Phase
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.DateChip
+import com.nuanyue.app.ui.components.DriftWash
+import com.nuanyue.app.ui.components.LocalMotion
+import com.nuanyue.app.ui.components.PetalBloom
 import com.nuanyue.app.ui.components.FloatingSticker
 import com.nuanyue.app.ui.components.LegendDot
 import com.nuanyue.app.ui.components.Mascot
@@ -181,6 +184,7 @@ internal fun HomeContent(
         select?.let { selectedEpoch = it.toEpochDay() }
     }
 
+    var bloom by remember { mutableIntStateOf(0) }
     OneScreen(
         header = { CompactHeader(state, mode, now, motion) { mode = it } },
         body = {
@@ -204,7 +208,7 @@ internal fun HomeContent(
         },
         dock = {
             DayDock(
-                state, phrase, selected, infos[selected],
+                state, phrase, selected, infos[selected], bloom,
                 onToday = { jumpTo(base, today) },
                 onNextPhrase = onNextPhrase,
                 onToast = onToast,
@@ -226,9 +230,9 @@ internal fun HomeContent(
             pending = null
             when {
                 p.start && p.undo -> onUnmarkStart(p.date)
-                p.start -> onMarkStart(p.date)
+                p.start -> { bloom++; onMarkStart(p.date) }
                 p.undo -> onUnmarkEnd(p.date)
-                else -> onMarkEnd(p.date)
+                else -> { bloom++; onMarkEnd(p.date) }
             }
         }
     }
@@ -280,12 +284,13 @@ private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boo
     val name = state.settings.nickname.takeIf { it.isNotBlank() && !state.settings.isPartner }
     val hello = Copy.greeting(now) + (name?.let { "，$it" } ?: "")
     val mood = if (state.settings.isPartner) "正在陪她一起看着日子" else Copy.mood(t.phase)
-    Row(
-        Modifier.fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color(0xFFFFEEF2), Color(0xFFFFF6F7))))
-            .padding(start = 16.dp, end = 12.dp, top = 2.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Box(Modifier.fillMaxWidth()) {
+        Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color(0xFFFFF1EA), Color(0xFFFFF6F7)))))
+        DriftWash(Modifier.matchParentSize())
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 2.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Column(Modifier.weight(1f)) {
             SlidingSegmented(
                 listOf(Icons.Rounded.CalendarMonth, Icons.Rounded.CalendarViewMonth, Icons.Rounded.DonutLarge),
@@ -312,6 +317,7 @@ private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boo
             FloatingSticker(R.drawable.st_star, Modifier.align(Alignment.TopEnd).size(14.dp), rotation = 12f, amplitude = 2.dp, periodMs = 2200, motion = motion)
             Mascot(Modifier.size(42.dp), moodFor(state, now), motion = motion)
         }
+        }
     }
 }
 
@@ -327,20 +333,21 @@ private fun StatusPill(state: UiState) {
         else -> Triple("还有", "${t.daysUntilNext}", "天")
     }
     Row(
-        Modifier.clip(CircleShape).background(Palette.PinkSoft).border(1.dp, Palette.PinkLine, CircleShape)
+        Modifier.clip(CircleShape).background(pillWash(state)).border(1.dp, Palette.Petal, CircleShape)
             .padding(horizontal = 10.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(prefix, color = Palette.PinkDeep, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        val ink = pillInk(state)
+        Text(prefix, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         if (num.isNotEmpty()) {
             AnimatedContent(
                 num,
                 transitionSpec = { slideInVertically { -it } + fadeIn() togetherWith slideOutVertically { it } + fadeOut() },
                 label = "num",
             ) { n ->
-                Numeral(n, 15.sp, Palette.PinkDeep, weight = FontWeight.ExtraBold)
+                Numeral(n, 15.sp, ink, weight = FontWeight.ExtraBold)
             }
-            Text(suffix, color = Palette.PinkDeep, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(suffix, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
 }
@@ -402,22 +409,23 @@ private fun MonthView(
         }
         HorizontalPager(
             pager,
-            modifier = Modifier.weight(1f).fillMaxWidth().testTag("home-calendar"),
+            modifier = Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Palette.CalendarWash).testTag("home-calendar"),
             verticalAlignment = Alignment.Top,
             beyondViewportPageCount = 1,
         ) { page ->
             val ym = base.plusMonths((page - MONTHS_BACK).toLong())
-            MonthGrid(Modifier.fillMaxSize(), ym, infos, state.today, selected, onSelect)
+            val drift = if (LocalMotion.current) pager.currentPageOffsetFraction else 0f
+            MonthGrid(Modifier.fillMaxSize(), ym, infos, state.today, selected, drift, onSelect)
         }
         FlowRow(
             Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            LegendDot(Palette.Pink, "经期")
-            LegendDot(Palette.PinkLine, "预测", hollow = true)
-            LegendDot(Palette.Orange, "易孕")
-            LegendDot(Palette.Orange, "排卵", heart = true)
+            LegendDot(Palette.RoseInk, "经期")
+            LegendDot(Palette.Petal, "预测", hollow = true)
+            LegendDot(Palette.PeachInk, "易孕")
+            LegendDot(Palette.Bloom, "排卵", heart = true)
         }
     }
 }
@@ -442,6 +450,7 @@ private fun MonthGrid(
     infos: Map<LocalDate, DayInfo>,
     today: LocalDate,
     selected: LocalDate,
+    drift: Float,
     onSelect: (LocalDate) -> Unit,
 ) {
     val first = ym.atDay(1)
@@ -453,7 +462,10 @@ private fun MonthGrid(
                 for (c in 0 until 7) {
                     val idx = r * 7 + c - lead
                     BoxWithConstraints(
-                        Modifier.weight(1f).fillMaxHeight().padding(1.dp),
+                        Modifier.weight(1f).fillMaxHeight().graphicsLayer {
+                            translationY = drift * (c - 3) * 8f
+                            alpha = 1f - kotlin.math.abs(drift) * 0.18f
+                        },
                         contentAlignment = Alignment.Center,
                     ) {
                         if (idx in 0 until ym.lengthOfMonth()) {
@@ -463,9 +475,7 @@ private fun MonthGrid(
                                 infos[d]?.type ?: DayType.UNKNOWN,
                                 d == today,
                                 d == selected,
-                                size = minOf(maxWidth, maxHeight),
-                                cellWidth = maxWidth,
-                                cellHeight = maxHeight,
+                                size = minOf(maxWidth, maxHeight) * 0.9f,
                                 muted = d.isAfter(today),
                             ) { onSelect(d) }
                         }
@@ -556,31 +566,40 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
                                     val d = first.plusDays(idx.toLong())
                                     val type = infos[d]?.type ?: DayType.UNKNOWN
                                     val bg = when (type) {
-                                        DayType.PERIOD -> Palette.Pink
-                                        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
+                                        DayType.PERIOD -> Palette.RoseFill
+                                        DayType.FERTILE, DayType.OVULATION -> Palette.PeachFill
                                         else -> Color.Transparent
                                     }
-                                    Box(
-                                        Modifier.fillMaxSize().clip(CircleShape).background(bg)
-                                            .then(
-                                                when {
-                                                    d == today -> Modifier.border(1.dp, Palette.PinkDeep, CircleShape)
-                                                    type == DayType.PREDICTED_PERIOD -> Modifier.border(1.dp, Palette.PinkLine, CircleShape)
-                                                    else -> Modifier
-                                                },
-                                            ),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        if (showNumbers) {
-                                            Text(
-                                                "${d.dayOfMonth}",
-                                                fontFamily = Rounded,
-                                                fontSize = font.sp,
-                                                lineHeight = font.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 1,
-                                                color = if (bg != Color.Transparent) Color.White else Palette.Ink.copy(alpha = 0.8f),
-                                            )
+                                    val ink = when (type) {
+                                        DayType.PERIOD -> Palette.RoseInk
+                                        DayType.FERTILE, DayType.OVULATION -> Palette.PeachInk
+                                        DayType.PREDICTED_PERIOD -> Palette.PredictedInk
+                                        else -> Palette.Ink.copy(alpha = 0.75f)
+                                    }
+                                    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        val side = minOf(maxWidth, maxHeight)
+                                        Box(
+                                            Modifier.size(side).clip(CircleShape).background(bg)
+                                                .then(
+                                                    when {
+                                                        d == today -> Modifier.border(1.dp, Palette.LavenderLine, CircleShape)
+                                                        type == DayType.PREDICTED_PERIOD -> Modifier.border(1.dp, Palette.Petal, CircleShape)
+                                                        else -> Modifier
+                                                    },
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            if (showNumbers) {
+                                                Text(
+                                                    "${d.dayOfMonth}",
+                                                    fontFamily = Rounded,
+                                                    fontSize = font.sp,
+                                                    lineHeight = font.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    color = ink,
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -682,9 +701,10 @@ private fun CycleRingView(
         else -> curStart to curLen
     }
     val days = (0 until len.coerceIn(15, 60)).map { start.plusDays(it.toLong()) }
-    val appear = remember(which) { Animatable(if (motion) 0f else 1f) }
-    LaunchedEffect(which, motion) {
-        if (!motion) {
+    val play = motion && LocalMotion.current
+    val appear = remember(which, play) { Animatable(if (play) 0f else 1f) }
+    LaunchedEffect(which, play) {
+        if (!play) {
             appear.snapTo(1f)
             return@LaunchedEffect
         }
@@ -768,11 +788,25 @@ private fun phaseLabel(t: DayType?) = when (t) {
 // ---------------------------------------------------------------- dock
 
 @Composable
+private fun pillWash(state: UiState): Color = when (state.snapshot.today.phase) {
+    Phase.MENSTRUAL -> Palette.RoseFill
+    Phase.FERTILE, Phase.OVULATION -> Palette.PeachFill
+    else -> Palette.Lavender
+}
+
+private fun pillInk(state: UiState): Color = when (state.snapshot.today.phase) {
+    Phase.MENSTRUAL -> Palette.RoseInk
+    Phase.FERTILE, Phase.OVULATION -> Palette.PeachInk
+    else -> Palette.LavenderInk
+}
+
+@Composable
 private fun DayDock(
     state: UiState,
     phrase: PhraseEntity?,
     date: LocalDate,
     info: DayInfo?,
+    bloom: Int,
     onToday: () -> Unit,
     onNextPhrase: () -> Unit,
     onToast: (String) -> Unit,
@@ -816,6 +850,7 @@ private fun DayDock(
             val primary = actions.primary
             val undo = primary.pending.undo
             val blocked = actions.blockedReason != null
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             PrimaryButton(
                 text = primary.label,
                 onClick = {
@@ -840,6 +875,8 @@ private fun DayDock(
                     else -> Color.White
                 },
             )
+            PetalBloom(bloom, Modifier.size(150.dp))
+            }
             actions.secondary?.let { secondary ->
                 val src = remember { MutableInteractionSource() }
                 val scale = pressScale(src, 0.97f)
@@ -874,9 +911,14 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val src = remember { MutableInteractionSource() }
     val press = pressScale(src, 0.98f)
-    LaunchedEffect(phrase) {
+    val motion = LocalMotion.current
+    LaunchedEffect(phrase, motion) {
         if (phrase == null || phrase.id == shown?.id) return@LaunchedEffect
-        if (shown == null) { shown = phrase; return@LaunchedEffect }
+        if (shown == null || !motion) {
+            shown = phrase
+            rotation.snapTo(0f)
+            return@LaunchedEffect
+        }
         rotation.animateTo(90f, tween(140, easing = FastOutSlowInEasing))
         shown = phrase
         rotation.snapTo(-90f)

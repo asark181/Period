@@ -7,6 +7,7 @@ import com.nuanyue.app.data.Repository
 import com.nuanyue.app.data.SettingsStore
 import com.nuanyue.app.notify.Reminders
 import com.nuanyue.app.sync.SyncManager
+import com.nuanyue.app.update.AppUpdate
 import com.nuanyue.app.widget.PeriodWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,8 @@ class NuanYueApp : Application() {
         private set
     lateinit var phrases: PhraseRepository
         private set
+    lateinit var updates: AppUpdate
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -31,6 +34,8 @@ class NuanYueApp : Application() {
         repository = Repository(db, settings) { local -> onDataChanged(local) }
         sync = SyncManager(this, repository, settings)
         phrases = PhraseRepository(this, db.phraseDao())
+        updates = AppUpdate(this, appScope)
+        updates.createChannel()
         Reminders.createChannel(this)
         appScope.launch { phrases.ensureSeeded() }
         appScope.launch {
@@ -38,6 +43,7 @@ class NuanYueApp : Application() {
             Reminders.schedule(this@NuanYueApp, s)
             if (s.syncEnabled) sync.schedulePeriodic()
         }
+        updates.start()
     }
 
     private fun onDataChanged(local: Boolean) {

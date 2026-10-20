@@ -70,8 +70,13 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuanyue.app.BuildConfig
+import com.nuanyue.app.data.AppSettings
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
+import com.nuanyue.app.ui.update.UpdatePanel
+import com.nuanyue.app.update.UpdateUi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import com.nuanyue.app.ui.components.PrimaryButton
 import com.nuanyue.app.ui.components.IconBadge
 import com.nuanyue.app.ui.components.Pill
@@ -87,15 +92,25 @@ import java.util.Locale
 
 private val DialogShape = RoundedCornerShape(30.dp)
 
-@Composable
-fun SettingsScreen(state: UiState, vm: AppViewModel) {
-    val s = state.settings
-    val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var dialog by remember { mutableStateOf<String?>(null) }
-    var syncError by remember { mutableStateOf<String?>(null) }
-    val syncing by vm.syncing.collectAsStateWithLifecycle()
+internal class SettingsHooks(
+    val syncing: StateFlow<Boolean> = MutableStateFlow(false),
+    val updateSettings: ((AppSettings) -> AppSettings) -> Unit = {},
+    val toast: (String) -> Unit = {},
+    val testNotification: () -> Unit = {},
+    val createInvite: () -> Unit = {},
+    val syncNow: () -> Unit = {},
+    val exportJson: suspend () -> String = { "{}" },
+    val joinInvite: (String, Boolean, (Boolean, String?) -> Unit) -> Unit = { _, _, done -> done(false, null) },
+    val logout: () -> Unit = {},
+    val clearAll: () -> Unit = {},
+    val checkUpdate: () -> Unit = {},
+    val updatePrimary: () -> Unit = {},
+    val openPage: () -> Unit = {},
+)
 
+@Composable
+fun SettingsScreen(state: UiState, vm: AppViewModel, update: UpdateUi? = null) {
+    val ctx = LocalContext.current
     var notifGranted by remember {
         mutableStateOf(
             Build.VERSION.SDK_INT < 33 ||
@@ -103,10 +118,53 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
         )
     }
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifGranted = it }
+    SettingsPage(
+        state,
+        update,
+        SettingsHooks(
+            syncing = vm.syncing,
+            updateSettings = vm::updateSettings,
+            toast = vm::toast,
+            testNotification = vm::testNotification,
+            createInvite = vm::createInvite,
+            syncNow = vm::syncNow,
+            exportJson = vm::exportJson,
+            joinInvite = vm::joinInvite,
+            logout = vm::syncLogout,
+            clearAll = vm::clearAll,
+            checkUpdate = vm::checkFromUser,
+            updatePrimary = { vm.updatePrimary(ctx) },
+            openPage = { vm.openUpdatePage(ctx) },
+        ),
+        notifGranted = notifGranted,
+        onAskNotify = { if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+    )
+}
+
+@Composable
+internal fun SettingsPage(
+    state: UiState,
+    update: UpdateUi?,
+    hooks: SettingsHooks,
+    notifGranted: Boolean = true,
+    onAskNotify: () -> Unit = {},
+) {
+    val s = state.settings
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var dialog by remember { mutableStateOf<String?>(null) }
+    var syncError by remember { mutableStateOf<String?>(null) }
+    val syncing by hooks.syncing.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
         ProfileCard(state) { dialog = "nickname" }
+        if (update != null) {
+            Spacer(Modifier.height(16.dp))
+            SoftCard {
+                UpdatePanel(update, onPrimary = hooks.updatePrimary, onPage = hooks.openPage)
+            }
+        }
         Spacer(Modifier.height(16.dp))
 
         // ---- Cycle ----
@@ -114,8 +172,8 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
             SectionTitle("周期")
             Text("记录不到两次时用这里的数字预测，之后按实际记录计算", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
             Spacer(Modifier.height(8.dp))
-            Stepper("默认周期长度", s.defaultCycle, "天", 20..45, enabled = !s.isPartner) { v -> vm.updateSettings { it.copy(defaultCycle = v) } }
-            Stepper("默认经期天数", s.defaultPeriod, "天", 2..10, enabled = !s.isPartner) { v -> vm.updateSettings { it.copy(defaultPeriod = v) } }
+            Stepper("默认周期长度", s.defaultCycle, "天", 20..45, enabled = !s.isPartner) { v -> hooks.updateSettings { it.copy(defaultCycle = v) } }
+            Stepper("默认经期天数", s.defaultPeriod, "天", 2..10, enabled = !s.isPartner) { v -> hooks.updateSettings { it.copy(defaultPeriod = v) } }
         }
         Spacer(Modifier.height(16.dp))
 
@@ -126,7 +184,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
             if (!notifGranted) {
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(14.dp)).background(Palette.OrangeSoft)
-                        .clickable { if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                        .clickable(onClick = onAskNotify)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -135,7 +193,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                     Text("没有通知权限，收不到提醒。点这里开启。", fontSize = 13.sp, modifier = Modifier.weight(1f))
                 }
             }
-            SwitchRow("开启提醒", "每天在下面的时间检查一次", s.remindEnabled) { v -> vm.updateSettings { it.copy(remindEnabled = v) } }
+            SwitchRow("开启提醒", "每天在下面的时间检查一次", s.remindEnabled) { v -> hooks.updateSettings { it.copy(remindEnabled = v) } }
             val on = s.remindEnabled
             Row(
                 Modifier.fillMaxWidth().clickable(enabled = on) { dialog = "time" }.padding(vertical = 10.dp),
@@ -146,20 +204,19 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                 Spacer(Modifier.width(4.dp))
                 com.nuanyue.app.ui.components.Numeral("%02d:%02d".format(s.remindHour, s.remindMinute), 22.sp)
             }
-            SwitchRow("经期将至", "提前 ${s.remindBeforeDays} 天，当天再提醒一次", s.remindBefore, on) { v -> vm.updateSettings { it.copy(remindBefore = v) } }
+            SwitchRow("经期将至", "提前 ${s.remindBeforeDays} 天，当天再提醒一次", s.remindBefore, on) { v -> hooks.updateSettings { it.copy(remindBefore = v) } }
             if (s.remindBefore) {
-                Stepper("提前天数", s.remindBeforeDays, "天", 1..7, enabled = on) { v -> vm.updateSettings { it.copy(remindBeforeDays = v) } }
+                Stepper("提前天数", s.remindBeforeDays, "天", 1..7, enabled = on) { v -> hooks.updateSettings { it.copy(remindBeforeDays = v) } }
             }
-            SwitchRow("经期推迟", "推迟第 1、3、7、14 天", s.remindLate, on) { v -> vm.updateSettings { it.copy(remindLate = v) } }
+            SwitchRow("经期推迟", "推迟第 1、3、7、14 天", s.remindLate, on) { v -> hooks.updateSettings { it.copy(remindLate = v) } }
             if (!s.isPartner) {
-                SwitchRow("问一下结束没有", "超过平均经期还没点「走了」时", s.remindEnd, on) { v -> vm.updateSettings { it.copy(remindEnd = v) } }
+                SwitchRow("问一下结束没有", "超过平均经期还没点「走了」时", s.remindEnd, on) { v -> hooks.updateSettings { it.copy(remindEnd = v) } }
             }
-            SwitchRow("易孕期和排卵日", "进入易孕期、排卵日当天", s.remindFertile, on) { v -> vm.updateSettings { it.copy(remindFertile = v) } }
+            SwitchRow("易孕期和排卵日", "进入易孕期、排卵日当天", s.remindFertile, on) { v -> hooks.updateSettings { it.copy(remindFertile = v) } }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill("发一条试试", false, {
-                    if (!notifGranted && Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    else vm.testNotification()
+                    if (!notifGranted) onAskNotify() else hooks.testNotification()
                 })
                 Pill("提醒不准时？", false, { dialog = "battery" })
             }
@@ -177,7 +234,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PrimaryButton("生成邀请码", { vm.createInvite() }, Modifier.weight(1f), height = 46.dp)
+                    PrimaryButton("生成邀请码", { hooks.createInvite() }, Modifier.weight(1f), height = 46.dp)
                     PrimaryButton("输入邀请码", { dialog = "sync" }, Modifier.weight(1f), height = 46.dp, container = Palette.PinkSoft, content = Palette.PinkDeep)
                 }
             } else {
@@ -210,12 +267,12 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill("立即同步", false, { vm.syncNow() })
+                    Pill("立即同步", false, { hooks.syncNow() })
                     if (invite) {
                         Pill("复制邀请码", false, {
                             val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
                             cm.setPrimaryClip(android.content.ClipData.newPlainText("暖月邀请码", com.nuanyue.app.sync.Crypto.displayInvite(s.syncAccount)))
-                            vm.toast("邀请码复制好啦")
+                            hooks.toast("邀请码复制好啦")
                         })
                     }
                     Pill("退出", false, { dialog = "logout" })
@@ -230,25 +287,16 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
             Spacer(Modifier.height(4.dp))
             ActionRow(Icons.Rounded.IosShare, "导出", "JSON 格式") {
                 scope.launch {
-                    val json = vm.exportJson()
+                    val json = hooks.exportJson()
                     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, json)
                     ctx.startActivity(Intent.createChooser(send, "导出暖月数据"))
                 }
             }
-            ActionRow(Icons.Rounded.Download, "检查更新", "当前 ${BuildConfig.VERSION_NAME}") {
-                scope.launch {
-                    val r = vm.checkUpdate()
-                    val v = r.getOrNull()
-                    when {
-                        v == null -> vm.toast("检查失败：${r.exceptionOrNull()?.message ?: "网络异常"}")
-                        v.versionCode > BuildConfig.VERSION_CODE -> {
-                            vm.toast("有新版本 ${v.versionName}，打开下载页")
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(v.url)))
-                        }
-                        else -> vm.toast("已是最新版本")
-                    }
-                }
-            }
+            ActionRow(
+                Icons.Rounded.Download,
+                "检查更新",
+                update?.let { "有新版本 ${it.versionName}" } ?: "当前 ${BuildConfig.VERSION_NAME}",
+            ) { hooks.checkUpdate() }
             if (!s.isPartner) {
                 ActionRow(Icons.Rounded.DeleteOutline, "清空所有记录", "无法恢复", danger = true) { dialog = "clear" }
             }
@@ -264,17 +312,17 @@ fun SettingsScreen(state: UiState, vm: AppViewModel) {
 
     when (dialog) {
         "nickname" -> TextDialog("称呼", s.nickname, 10, placeholder = "首页问候时使用，可以留空", onDismiss = { dialog = null }) { v ->
-            vm.updateSettings { it.copy(nickname = v) }
+            hooks.updateSettings { it.copy(nickname = v) }
         }
         "time" -> TimeDialog(s.remindHour, s.remindMinute, onDismiss = { dialog = null }) { h, m ->
-            vm.updateSettings { it.copy(remindHour = h, remindMinute = m) }
+            hooks.updateSettings { it.copy(remindHour = h, remindMinute = m) }
         }
         "sync" -> SyncDialog(syncing, syncError, onDismiss = { dialog = null; syncError = null }) { code, partner ->
             syncError = null
-            vm.joinInvite(code, partner) { ok, err -> if (ok) dialog = null else syncError = err }
+            hooks.joinInvite(code, partner) { ok, err -> if (ok) dialog = null else syncError = err }
         }
-        "logout" -> ConfirmDialog("退出同步？", "本机和云端的数据都会保留。", onDismiss = { dialog = null }) { vm.syncLogout() }
-        "clear" -> ConfirmDialog("清空所有记录？", "经期和每日记录会全部删除，无法恢复。", onDismiss = { dialog = null }) { vm.clearAll() }
+        "logout" -> ConfirmDialog("退出同步？", "本机和云端的数据都会保留。", onDismiss = { dialog = null }) { hooks.logout() }
+        "clear" -> ConfirmDialog("清空所有记录？", "经期和每日记录会全部删除，无法恢复。", onDismiss = { dialog = null }) { hooks.clearAll() }
         "battery" -> BatteryDialog(onDismiss = { dialog = null }) {
             ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")))
         }
