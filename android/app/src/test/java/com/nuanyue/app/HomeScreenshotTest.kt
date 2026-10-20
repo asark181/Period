@@ -140,7 +140,7 @@ class HomeScreenshotTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = phone(411, 891))
         paparazzi.snapshot(name = "nav-mid") {
             Page {
-                NavShot(Tab.HOME, 0.45f)
+                NavShot(Tab.STATS, 0.45f)
             }
         }
     }
@@ -166,7 +166,7 @@ private fun NavShot(tab: Tab, slide: Float?) {
 @Composable
 private fun HomeShot(mode: Int) {
     Page {
-        Column(Modifier.fillMaxSize().background(Color(0xFFFFF1EA))) {
+        Column(Modifier.fillMaxSize().background(Palette.Bg)) {
             Spacer(Modifier.height(24.dp))
             Box(Modifier.weight(1f).background(Palette.Bg)) {
                 HomeContent(

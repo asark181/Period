@@ -65,9 +65,9 @@ import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.PeriodBrush
 import com.nuanyue.app.ui.theme.Rounded
 
-private val cardShape = RoundedCornerShape(26.dp)
+private val cardShape = RoundedCornerShape(16.dp)
 
-/** White rounded card with a soft rose shadow. */
+/** White rounded card on the grey page. Shadow stays very light. */
 @Composable
 fun SoftCard(
     modifier: Modifier = Modifier,
@@ -81,7 +81,7 @@ fun SoftCard(
     Column(
         modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .shadow(10.dp, cardShape, ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB))
+            .shadow(3.dp, cardShape, ambientColor = Color(0x0A2B3040), spotColor = Color(0x102B3040))
             .clip(cardShape)
             .background(brush)
             .then(
@@ -95,7 +95,7 @@ fun SoftCard(
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: @Composable (() -> Unit)? = null) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.padding(end = 8.dp).size(width = 4.dp, height = 14.dp).clip(CircleShape).background(Palette.Pink))
+        Box(Modifier.padding(end = 8.dp).size(width = 3.dp, height = 12.dp).clip(CircleShape).background(Palette.Sky))
         Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
@@ -324,8 +324,9 @@ fun DayType.color(): Color = when (this) {
 }
 
 /**
- * A square day. Period is a rose gradient, fertile is peach, predicted is a dashed
- * rose outline, ovulation wears a small flower, and today gets a distinct ring.
+ * A compact rounded square. Period is flat rose, fertile is flat orange, both with
+ * white numbers. Predicted and an unmarked today are a thin pink outline. Other days
+ * are plain text. Ovulation adds a small heart.
  */
 @Composable
 fun DateChip(
@@ -338,38 +339,35 @@ fun DateChip(
     muted: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(size * 0.30f)
-    val brush = when (type) {
-        DayType.PERIOD -> PeriodBrush
-        DayType.FERTILE, DayType.OVULATION -> FertileBrush
-        else -> null
+    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
+    val fill = when (type) {
+        DayType.PERIOD -> Palette.Pink
+        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
+        else -> Color.Transparent
     }
     val fg = when {
-        type == DayType.PERIOD -> Palette.RoseInk
-        type == DayType.FERTILE || type == DayType.OVULATION -> Palette.PeachInk
-        type == DayType.PREDICTED_PERIOD -> Palette.PredictedInk
-        isToday -> Palette.TodayRing
+        filled -> Color.White
+        type == DayType.PREDICTED_PERIOD || isToday -> Palette.Pink
         muted -> Palette.InkSoft
         else -> Palette.Ink
     }
-    // sp already includes font scale, so divide it back out. The glyph stays inside the square.
-    val visual = (size.value * 0.46f).coerceIn(8f, 15f)
+    val shape = RoundedCornerShape(minOf(10.dp, size * 0.32f))
+    val visual = (size.value * 0.42f).coerceIn(8f, 14f)
     val font = visual / LocalDensity.current.fontScale
-    val ring = if (size < 36.dp) 1.5.dp else 2.5.dp
     val source = remember { MutableInteractionSource() }
-    val scale = pressScale(source, 0.86f)
-    val lift = if (size >= 32.dp && brush != null) 2.dp else 0.dp
+    val scale = pressScale(source, 0.9f)
+    val stroke = if (size < 32.dp) 1.2.dp else 1.5.dp
     Box(
         Modifier.size(size)
-            .graphicsLayer { scaleX = scale * if (scale < 1f) 1.06f else 1f; scaleY = scale }
-            .shadow(lift, shape, clip = false, ambientColor = Color(0x22C4476A), spotColor = Color(0x33E56E8A))
+            .graphicsLayer { scaleX = scale * if (scale < 1f) 1.04f else 1f; scaleY = scale }
             .clip(shape)
-            .then(if (brush != null) Modifier.background(brush) else Modifier.background(Color.Transparent))
-            .then(if (type == DayType.PREDICTED_PERIOD) Modifier.dashedRounded(Palette.RoseDeep, 1.6.dp, size * 0.30f) else Modifier)
+            .background(fill)
             .then(
                 when {
-                    isToday -> Modifier.border(ring, Palette.TodayRing, shape)
-                    isSelected -> Modifier.border(if (size < 36.dp) 1.5.dp else 2.dp, Palette.RoseInk, shape)
+                    type == DayType.PREDICTED_PERIOD -> Modifier.border(stroke, Palette.Pink, shape)
+                    isToday && !filled -> Modifier.border(stroke, Palette.Pink, shape)
+                    isToday && filled -> Modifier.border(stroke, Color.White, shape)
+                    isSelected && !filled -> Modifier.border(stroke, Palette.InkFaint, shape)
                     else -> Modifier
                 },
             )
@@ -378,10 +376,10 @@ fun DateChip(
     ) {
         if (type == DayType.OVULATION && size >= 22.dp) {
             Icon(
-                Icons.Rounded.Spa,
+                Icons.Rounded.Favorite,
                 null,
-                tint = Palette.Bloom,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = size * 0.05f).size(size * 0.22f),
+                tint = Color.White,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = size * 0.04f).size(size * 0.22f),
             )
         }
         Text(
@@ -396,10 +394,10 @@ fun DateChip(
                 platformStyle = PlatformTextStyle(includeFontPadding = false),
             ),
         )
-        if (hasRecord) {
+        if (hasRecord && !filled) {
             Box(
-                Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.1f).size(3.dp).clip(CircleShape)
-                    .background(Palette.Bloom),
+                Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.08f).size(3.dp).clip(CircleShape)
+                    .background(Palette.Pink),
             )
         }
     }

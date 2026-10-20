@@ -19,66 +19,65 @@ import androidx.compose.ui.unit.sp
 import com.nuanyue.app.R
 
 /**
- * Soft and warm, in the 柠檬小月 direction: blush paper, coral pink for the period,
- * warm orange for the fertile window, mint for sync, pale sky for weekday labels.
+ * Cool and quiet, in the direction of a clean period calendar: light grey page,
+ * white cards, slate text, rose only for period, saturated orange for fertile.
  *
- * [Ink] and [ToastBg] match [FeedbackColors]. Text styles below bake a color in on
- * purpose (captions stay softer). Compose Text then ignores LocalContentColor, which
- * is why feedback must not use the default Snackbar. See WarmToast.
+ * [FeedbackColors] stays the contrast contract for tests. Screen text uses [Ink],
+ * which is a dark slate on the light page. Typography bakes that color in, so
+ * feedback must not use the default Snackbar. See WarmToast.
  */
 object Palette {
-    val Bg = Color(0xFFFFF6F7)
-    val Panel = Color(0xFFFFF0F3)
+    val Bg = Color(0xFFF5F6FA)
+    val Panel = Color(0xFFF3F4F8)
     val Card = Color(0xFFFFFFFF)
-    val Line = Color(0xFFF3E3E8)
+    val Line = Color(0xFFE6E8F0)
 
-    val Ink = Color(FeedbackColors.INK.toInt())
-    val InkSoft = Color(0xFF9A8490)
-    val InkFaint = Color(0xFFD5C4CC)
+    val Ink = Color(0xFF2B3040)
+    val InkSoft = Color(0xFF8B93A7)
+    val InkFaint = Color(0xFFC5CAD6)
 
-    val ToastBg = Color(FeedbackColors.BACKGROUND.toInt())
+    val ToastBg = Color(0xFFFFFFFF)
 
-    val Pink = Color(FeedbackColors.ACCENT.toInt())
-    val PinkDeep = Color(0xFFE25373)
-    val PinkSoft = Color(0xFFFFE8ED)
-    val PinkLine = Color(0xFFF6AABA)
+    val Pink = Color(0xFFF0708A)
+    val PinkDeep = Color(0xFFE25B78)
+    val PinkSoft = Color(0xFFFFF0F3)
+    val PinkLine = Color(0xFFF0708A)
 
-    val Orange = Color(0xFFF7A928)
-    val OrangeSoft = Color(0xFFFFF1D9)
+    val Orange = Color(0xFFF5A623)
+    val OrangeSoft = Color(0xFFFFE8C2)
 
-    val Mint = Color(0xFF4FC6B0)
-    val MintSoft = Color(0xFFDDF5F0)
+    val Mint = Color(0xFF3DB8A6)
+    val MintSoft = Color(0xFFE5F7F4)
 
-    val Sky = Color(0xFF6E8CC6)
-    val SkySoft = Color(0xFFE9F0FC)
+    val Sky = Color(0xFF8E9BB5)
+    val SkySoft = Color(0xFFEEF2F8)
 
-    val Lemon = Color(0xFFFFD86B)
-    val Blush = Color(0xFFFFB3C1)
+    val Lemon = Color(0xFFFFD56A)
+    val Blush = Color(0xFFFFD9E4)
 
-    /**
-     * Calendar fills are soft but separated: rose for period, peach for fertile.
-     * Numbers use the darker ink of the same family so they stay readable.
-     */
-    val RoseFill = Color(0xFFF8B3C4)
-    val RoseDeep = Color(0xFFE56E8A)
-    val RoseInk = Color(0xFF5C2438)
-    val PeachFill = Color(0xFFF6C9A3)
-    val PeachDeep = Color(0xFFF0B078)
-    val PeachInk = Color(0xFF6B3E22)
-    val Cream = Color(0xFFFFF8F6)
-    val Petal = Color(0xFFE56E8A)
-    val PredictedInk = Color(0xFF8A3A52)
-    val Lavender = Color(0xFFE4D9F5)
-    val LavenderInk = Color(0xFF5C4A78)
-    val LavenderLine = Color(0xFFCDB7E8)
-    val Bloom = Color(0xFFC4476A)
-    val TodayRing = Color(0xFF5C4A78)
-    val CalendarWash = Color(0xFFFFF4EF)
+    /** Flat calendar fills. Numbers on a fill are white. */
+    val RoseFill = Color(0xFFF0708A)
+    val RoseDeep = Color(0xFFE25B78)
+    val RoseInk = Color(0xFFE25B78)
+    val PeachFill = Color(0xFFF5A623)
+    val PeachDeep = Color(0xFFE09010)
+    val PeachInk = Color(0xFFC47A12)
+    val Cream = Color(0xFFF5F6FA)
+    val Petal = Color(0xFFF0708A)
+    val PredictedInk = Color(0xFFF0708A)
+    val Lavender = Color(0xFFEEF0F6)
+    val LavenderInk = Color(0xFF5C6B8A)
+    val LavenderLine = Color(0xFFD5D9E6)
+    val Bloom = Color(0xFFF0708A)
+    val TodayRing = Color(0xFFF0708A)
+    val CalendarWash = Color(0xFFF5F6FA)
+    val Sheet = Color(0xFFF3F4F8)
+    val Segment = Color(0xFFFFE3B3)
 }
 
-/** Same fills the day cells and the legend swatches use. */
-val PeriodBrush = Brush.verticalGradient(listOf(Palette.RoseFill, Palette.RoseDeep))
-val FertileBrush = Brush.verticalGradient(listOf(Palette.PeachFill, Palette.PeachDeep))
+/** Flat fills, kept so older call sites do not paint a gradient. */
+val PeriodBrush = Brush.linearGradient(listOf(Palette.RoseFill, Palette.RoseFill))
+val FertileBrush = Brush.linearGradient(listOf(Palette.PeachFill, Palette.PeachFill))
 
 /** Rounded numerals (Nunito, variable font). Chinese text stays in the system sans. */
 @OptIn(ExperimentalTextApi::class)
@@ -112,7 +111,7 @@ private val colors = lightColorScheme(
     outlineVariant = Palette.Line,
     // Snackbar and other "inverse" surfaces default to near-black. Keep them light
     // even if a future screen forgets to use WarmToast.
-    inverseSurface = Palette.ToastBg,
+    inverseSurface = Color.White,
     inverseOnSurface = Palette.Ink,
     inversePrimary = Palette.PinkDeep,
     surfaceTint = Color.Transparent,

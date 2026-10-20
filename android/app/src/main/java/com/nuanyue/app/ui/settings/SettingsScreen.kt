@@ -31,11 +31,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.BatteryChargingFull
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Schedule
@@ -59,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -285,7 +283,7 @@ internal fun SettingsPage(
         SoftCard {
             SectionTitle("数据")
             Spacer(Modifier.height(4.dp))
-            ActionRow(Icons.Rounded.IosShare, "导出", "JSON 格式") {
+            ActionRow(Icons.Outlined.IosShare, "导出", "JSON", Palette.Sky, Palette.SkySoft) {
                 scope.launch {
                     val json = hooks.exportJson()
                     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, json)
@@ -293,12 +291,14 @@ internal fun SettingsPage(
                 }
             }
             ActionRow(
-                Icons.Rounded.Download,
+                Icons.Outlined.Download,
                 "检查更新",
                 update?.let { "有新版本 ${it.versionName}" } ?: "当前 ${BuildConfig.VERSION_NAME}",
+                Palette.Mint,
+                Palette.MintSoft,
             ) { hooks.checkUpdate() }
             if (!s.isPartner) {
-                ActionRow(Icons.Rounded.DeleteOutline, "清空所有记录", "无法恢复", danger = true) { dialog = "clear" }
+                ActionRow(Icons.Outlined.Delete, "清空所有记录", "无法恢复", Palette.Pink, Palette.PinkSoft, danger = true) { dialog = "clear" }
             }
         }
         Spacer(Modifier.height(20.dp))
@@ -332,28 +332,18 @@ internal fun SettingsPage(
 @Composable
 private fun ProfileCard(state: UiState, onEditName: () -> Unit) {
     val s = state.settings
-    SoftCard(
-        onClick = onEditName,
-        brush = Brush.horizontalGradient(listOf(Color(0xFFFFE4EB), Color(0xFFFFF6F7), Color.White)),
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onEditName).padding(top = 8.dp, bottom = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            com.nuanyue.app.ui.components.Mascot(Modifier.size(64.dp))
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge)
-                Text(
-                    if (s.isPartner) "伴侣 · 只能查看，不能修改" else "已记录 ${state.snapshot.periods.size} 次经期",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Text(
-                "编辑",
-                fontSize = 12.sp,
-                color = Palette.PinkDeep,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clip(CircleShape).background(Color.White).padding(horizontal = 10.dp, vertical = 5.dp),
-            )
-        }
+        com.nuanyue.app.ui.components.Mascot(Modifier.size(76.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+        Text(
+            if (s.isPartner) "伴侣 · 只能查看，不能修改" else "已记录 ${state.snapshot.periods.size} 次经期",
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+        )
     }
 }
 
@@ -384,7 +374,15 @@ private fun StepButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit)
 }
 
 @Composable
-private fun ActionRow(icon: ImageVector, title: String, subtitle: String, danger: Boolean = false, onClick: () -> Unit) {
+private fun ActionRow(
+    icon: ImageVector,
+    title: String,
+    hint: String,
+    tint: Color,
+    bg: Color,
+    danger: Boolean = false,
+    onClick: () -> Unit,
+) {
     val source = remember { MutableInteractionSource() }
     val scale = pressScale(source, 0.98f)
     Row(
@@ -394,12 +392,16 @@ private fun ActionRow(icon: ImageVector, title: String, subtitle: String, danger
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBadge(icon, if (danger) Palette.Pink else Palette.Ink, if (danger) Palette.PinkSoft else Palette.Panel, 34.dp)
+        IconBadge(icon, tint, bg, 32.dp)
         Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = if (danger) Palette.Pink else Palette.Ink)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
-        }
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (danger) Palette.Pink else Palette.Ink,
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
+        )
+        Text(hint, style = MaterialTheme.typography.bodySmall, color = Palette.InkSoft, maxLines = 1)
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
     }
 }

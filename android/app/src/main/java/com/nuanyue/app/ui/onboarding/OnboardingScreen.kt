@@ -62,7 +62,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -114,11 +113,7 @@ fun OnboardingScreen(
         onFinish(nickname.trim(), start, periodLen, cycleLen)
     }
 
-    Box(
-        Modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color(0xFFFFE8EE), Palette.Bg, Palette.Bg)),
-        ),
-    ) {
+    Box(Modifier.fillMaxSize().background(Palette.Bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp)) {
             Spacer(Modifier.height(18.dp))
             if (step > 0) StepDots(step)
@@ -196,7 +191,7 @@ private fun StepDots(step: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         (1..3).forEach { i ->
             val w by animateDpAsState(if (i == step) 22.dp else 6.dp, spring(dampingRatio = 0.7f), label = "dot")
-            Box(Modifier.height(6.dp).width(w).clip(CircleShape).background(if (i <= step) Palette.Pink else Palette.PinkLine.copy(alpha = 0.7f)))
+            Box(Modifier.height(6.dp).width(w).clip(CircleShape).background(if (i <= step) Palette.Pink else Palette.Line))
         }
     }
 }
