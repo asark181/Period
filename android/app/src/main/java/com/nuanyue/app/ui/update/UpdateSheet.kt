@@ -64,7 +64,7 @@ fun UpdateSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Palette.Card,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = Palette.Petal) },
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Palette.PinkLine) },
     ) {
         UpdatePanel(
             offer,
@@ -96,7 +96,7 @@ fun UpdatePanel(
         )
         if (offer.message.isNotBlank()) {
             Spacer(Modifier.height(6.dp))
-            Text(offer.message, color = Palette.RoseInk, fontSize = 13.sp)
+            Text(offer.message, color = Palette.PinkDeep, fontSize = 13.sp)
         }
         if (offer.phase == UpdatePhase.Downloading) {
             Spacer(Modifier.height(12.dp))
@@ -138,7 +138,7 @@ fun UpdatePanel(
         if (showNotifyHint) {
             Text(
                 "开启通知，有新版本时提醒一次",
-                color = Palette.LavenderInk,
+                color = Palette.Sky,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,

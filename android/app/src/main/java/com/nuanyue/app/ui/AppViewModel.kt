@@ -10,7 +10,6 @@ import com.nuanyue.app.domain.CycleSnapshot
 import com.nuanyue.app.notify.Reminders
 import com.nuanyue.app.sync.SyncClient
 import com.nuanyue.app.sync.VersionInfo
-import com.nuanyue.app.update.ManualCheck
 import com.nuanyue.app.update.UpdateUi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,9 +41,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val phrase: StateFlow<com.nuanyue.app.data.PhraseEntity?> = _phrase.asStateFlow()
     private val _syncing = MutableStateFlow(false)
     val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
-
     val update: StateFlow<UpdateUi?> = app.updates.ui
-    val manualCheck: StateFlow<ManualCheck> = app.updates.manual
 
     val state: StateFlow<UiState> = combine(app.settings.flow, repo.periods, today) { s, periods, day ->
         UiState(
@@ -176,8 +173,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         runCatching { SyncClient().latestVersion() }
     }
 
-    fun checkFromUser() = app.updates.checkFromUser()
-    fun clearUpToDate() = app.updates.clearUpToDate()
     fun updatePrimary(context: android.content.Context) = app.updates.onPrimary(context)
     fun dismissUpdate() = app.updates.dismissSheet()
     fun openUpdatePage(context: android.content.Context) = app.updates.openPage(context)

@@ -31,10 +31,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.BatteryChargingFull
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Schedule
@@ -50,7 +51,6 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -72,14 +73,6 @@ import com.nuanyue.app.BuildConfig
 import com.nuanyue.app.data.AppSettings
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
-import com.nuanyue.app.ui.update.UpdatePanel
-import com.nuanyue.app.ui.theme.NyColors
-import com.nuanyue.app.update.ManualCheck
-import com.nuanyue.app.update.UpdateUi
-import com.nuanyue.app.update.updateRowModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import com.nuanyue.app.ui.components.PrimaryButton
 import com.nuanyue.app.ui.components.IconBadge
 import com.nuanyue.app.ui.components.Pill
@@ -95,27 +88,53 @@ import java.util.Locale
 
 private val DialogShape = RoundedCornerShape(30.dp)
 
-internal class SettingsHooks(
-    val syncing: StateFlow<Boolean> = MutableStateFlow(false),
+/** Click handlers for [SettingsPage]. Screenshots pass an empty one; the app passes the view model. */
+internal class SettingsActions(
+    val syncing: Boolean = false,
     val updateSettings: ((AppSettings) -> AppSettings) -> Unit = {},
-    val toast: (String) -> Unit = {},
     val testNotification: () -> Unit = {},
     val createInvite: () -> Unit = {},
     val syncNow: () -> Unit = {},
+    val toast: (String) -> Unit = {},
     val exportJson: suspend () -> String = { "{}" },
+    val checkUpdate: suspend () -> Result<com.nuanyue.app.sync.VersionInfo> = {
+        Result.failure(IllegalStateException("no network"))
+    },
     val joinInvite: (String, Boolean, (Boolean, String?) -> Unit) -> Unit = { _, _, done -> done(false, null) },
-    val logout: () -> Unit = {},
+    val syncLogout: () -> Unit = {},
     val clearAll: () -> Unit = {},
-    val checkUpdate: () -> Unit = {},
-    val clearUpToDate: () -> Unit = {},
-    val manualCheck: StateFlow<ManualCheck> = MutableStateFlow(ManualCheck.Idle),
-    val updatePrimary: () -> Unit = {},
-    val openPage: () -> Unit = {},
 )
 
 @Composable
-fun SettingsScreen(state: UiState, vm: AppViewModel, update: UpdateUi? = null) {
+fun SettingsScreen(state: UiState, vm: AppViewModel) {
+    val syncing by vm.syncing.collectAsStateWithLifecycle()
+    SettingsPage(
+        state,
+        SettingsActions(
+            syncing = syncing,
+            updateSettings = vm::updateSettings,
+            testNotification = vm::testNotification,
+            createInvite = vm::createInvite,
+            syncNow = vm::syncNow,
+            toast = vm::toast,
+            exportJson = vm::exportJson,
+            checkUpdate = vm::checkUpdate,
+            joinInvite = vm::joinInvite,
+            syncLogout = vm::syncLogout,
+            clearAll = vm::clearAll,
+        ),
+    )
+}
+
+@Composable
+internal fun SettingsPage(state: UiState, actions: SettingsActions) {
+    val s = state.settings
     val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var dialog by remember { mutableStateOf<String?>(null) }
+    var syncError by remember { mutableStateOf<String?>(null) }
+    val syncing = actions.syncing
+
     var notifGranted by remember {
         mutableStateOf(
             Build.VERSION.SDK_INT < 33 ||
@@ -123,61 +142,10 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, update: UpdateUi? = null) {
         )
     }
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifGranted = it }
-    SettingsPage(
-        state,
-        update,
-        SettingsHooks(
-            syncing = vm.syncing,
-            updateSettings = vm::updateSettings,
-            toast = vm::toast,
-            testNotification = vm::testNotification,
-            createInvite = vm::createInvite,
-            syncNow = vm::syncNow,
-            exportJson = vm::exportJson,
-            joinInvite = vm::joinInvite,
-            logout = vm::syncLogout,
-            clearAll = vm::clearAll,
-            checkUpdate = vm::checkFromUser,
-            clearUpToDate = vm::clearUpToDate,
-            manualCheck = vm.manualCheck,
-            updatePrimary = { vm.updatePrimary(ctx) },
-            openPage = { vm.openUpdatePage(ctx) },
-        ),
-        notifGranted = notifGranted,
-        onAskNotify = { if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-    )
-}
 
-@Composable
-internal fun SettingsPage(
-    state: UiState,
-    update: UpdateUi?,
-    hooks: SettingsHooks,
-    notifGranted: Boolean = true,
-    onAskNotify: () -> Unit = {},
-) {
-    val s = state.settings
-    val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var dialog by remember { mutableStateOf<String?>(null) }
-    var syncError by remember { mutableStateOf<String?>(null) }
-    val syncing by hooks.syncing.collectAsStateWithLifecycle()
-    val manual by hooks.manualCheck.collectAsStateWithLifecycle()
-    LaunchedEffect(manual) {
-        if (manual is ManualCheck.UpToDate) {
-            delay(3_000)
-            hooks.clearUpToDate()
-        }
-    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
         ProfileCard(state) { dialog = "nickname" }
-        if (update != null) {
-            Spacer(Modifier.height(16.dp))
-            SoftCard {
-                UpdatePanel(update, onPrimary = hooks.updatePrimary, onPage = hooks.openPage)
-            }
-        }
         Spacer(Modifier.height(16.dp))
 
         // ---- Cycle ----
@@ -185,8 +153,8 @@ internal fun SettingsPage(
             SectionTitle("周期")
             Text("记录不到两次时用这里的数字预测，之后按实际记录计算", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
             Spacer(Modifier.height(8.dp))
-            Stepper("默认周期长度", s.defaultCycle, "天", 20..45, enabled = !s.isPartner) { v -> hooks.updateSettings { it.copy(defaultCycle = v) } }
-            Stepper("默认经期天数", s.defaultPeriod, "天", 2..10, enabled = !s.isPartner) { v -> hooks.updateSettings { it.copy(defaultPeriod = v) } }
+            Stepper("默认周期长度", s.defaultCycle, "天", 20..45, enabled = !s.isPartner) { v -> actions.updateSettings { it.copy(defaultCycle = v) } }
+            Stepper("默认经期天数", s.defaultPeriod, "天", 2..10, enabled = !s.isPartner) { v -> actions.updateSettings { it.copy(defaultPeriod = v) } }
         }
         Spacer(Modifier.height(16.dp))
 
@@ -197,7 +165,7 @@ internal fun SettingsPage(
             if (!notifGranted) {
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(14.dp)).background(Palette.OrangeSoft)
-                        .clickable(onClick = onAskNotify)
+                        .clickable { if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -206,7 +174,7 @@ internal fun SettingsPage(
                     Text("没有通知权限，收不到提醒。点这里开启。", fontSize = 13.sp, modifier = Modifier.weight(1f))
                 }
             }
-            SwitchRow("开启提醒", "每天在下面的时间检查一次", s.remindEnabled) { v -> hooks.updateSettings { it.copy(remindEnabled = v) } }
+            SwitchRow("开启提醒", "每天在下面的时间检查一次", s.remindEnabled) { v -> actions.updateSettings { it.copy(remindEnabled = v) } }
             val on = s.remindEnabled
             Row(
                 Modifier.fillMaxWidth().clickable(enabled = on) { dialog = "time" }.padding(vertical = 10.dp),
@@ -217,19 +185,20 @@ internal fun SettingsPage(
                 Spacer(Modifier.width(4.dp))
                 com.nuanyue.app.ui.components.Numeral("%02d:%02d".format(s.remindHour, s.remindMinute), 22.sp)
             }
-            SwitchRow("经期将至", "提前 ${s.remindBeforeDays} 天，当天再提醒一次", s.remindBefore, on) { v -> hooks.updateSettings { it.copy(remindBefore = v) } }
+            SwitchRow("经期将至", "提前 ${s.remindBeforeDays} 天，当天再提醒一次", s.remindBefore, on) { v -> actions.updateSettings { it.copy(remindBefore = v) } }
             if (s.remindBefore) {
-                Stepper("提前天数", s.remindBeforeDays, "天", 1..7, enabled = on) { v -> hooks.updateSettings { it.copy(remindBeforeDays = v) } }
+                Stepper("提前天数", s.remindBeforeDays, "天", 1..7, enabled = on) { v -> actions.updateSettings { it.copy(remindBeforeDays = v) } }
             }
-            SwitchRow("经期推迟", "推迟第 1、3、7、14 天", s.remindLate, on) { v -> hooks.updateSettings { it.copy(remindLate = v) } }
+            SwitchRow("经期推迟", "推迟第 1、3、7、14 天", s.remindLate, on) { v -> actions.updateSettings { it.copy(remindLate = v) } }
             if (!s.isPartner) {
-                SwitchRow("问一下结束没有", "超过平均经期还没点「走了」时", s.remindEnd, on) { v -> hooks.updateSettings { it.copy(remindEnd = v) } }
+                SwitchRow("问一下结束没有", "超过平均经期还没点「走了」时", s.remindEnd, on) { v -> actions.updateSettings { it.copy(remindEnd = v) } }
             }
-            SwitchRow("易孕期和排卵日", "进入易孕期、排卵日当天", s.remindFertile, on) { v -> hooks.updateSettings { it.copy(remindFertile = v) } }
+            SwitchRow("易孕期和排卵日", "进入易孕期、排卵日当天", s.remindFertile, on) { v -> actions.updateSettings { it.copy(remindFertile = v) } }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill("发一条试试", false, {
-                    if (!notifGranted) onAskNotify() else hooks.testNotification()
+                    if (!notifGranted && Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    else actions.testNotification()
                 })
                 Pill("提醒不准时？", false, { dialog = "battery" })
             }
@@ -247,7 +216,7 @@ internal fun SettingsPage(
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PrimaryButton("生成邀请码", { hooks.createInvite() }, Modifier.weight(1f), height = 46.dp)
+                    PrimaryButton("生成邀请码", { actions.createInvite() }, Modifier.weight(1f), height = 46.dp)
                     PrimaryButton("输入邀请码", { dialog = "sync" }, Modifier.weight(1f), height = 46.dp, container = Palette.PinkSoft, content = Palette.PinkDeep)
                 }
             } else {
@@ -280,12 +249,12 @@ internal fun SettingsPage(
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill("立即同步", false, { hooks.syncNow() })
+                    Pill("立即同步", false, { actions.syncNow() })
                     if (invite) {
                         Pill("复制邀请码", false, {
                             val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
                             cm.setPrimaryClip(android.content.ClipData.newPlainText("暖月邀请码", com.nuanyue.app.sync.Crypto.displayInvite(s.syncAccount)))
-                            hooks.toast("邀请码复制好啦")
+                            actions.toast("邀请码复制好啦")
                         })
                     }
                     Pill("退出", false, { dialog = "logout" })
@@ -298,16 +267,29 @@ internal fun SettingsPage(
         SoftCard {
             SectionTitle("数据")
             Spacer(Modifier.height(4.dp))
-            ActionRow(Icons.Outlined.IosShare, "导出", "JSON", Palette.Sky, Palette.SkySoft) {
+            ActionRow(Icons.Rounded.IosShare, "导出", "JSON 格式") {
                 scope.launch {
-                    val json = hooks.exportJson()
+                    val json = actions.exportJson()
                     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, json)
                     ctx.startActivity(Intent.createChooser(send, "导出暖月数据"))
                 }
             }
-            UpdateCheckRow(manual, BuildConfig.VERSION_NAME, update?.versionName) { hooks.checkUpdate() }
+            ActionRow(Icons.Rounded.Download, "检查更新", "当前 ${BuildConfig.VERSION_NAME}") {
+                scope.launch {
+                    val r = actions.checkUpdate()
+                    val v = r.getOrNull()
+                    when {
+                        v == null -> actions.toast("检查失败：${r.exceptionOrNull()?.message ?: "网络异常"}")
+                        v.versionCode > BuildConfig.VERSION_CODE -> {
+                            actions.toast("有新版本 ${v.versionName}，打开下载页")
+                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(v.url)))
+                        }
+                        else -> actions.toast("已是最新版本")
+                    }
+                }
+            }
             if (!s.isPartner) {
-                ActionRow(Icons.Outlined.Delete, "清空所有记录", "无法恢复", Palette.Pink, Palette.PinkSoft, danger = true) { dialog = "clear" }
+                ActionRow(Icons.Rounded.DeleteOutline, "清空所有记录", "无法恢复", danger = true) { dialog = "clear" }
             }
         }
         Spacer(Modifier.height(20.dp))
@@ -321,17 +303,17 @@ internal fun SettingsPage(
 
     when (dialog) {
         "nickname" -> TextDialog("称呼", s.nickname, 10, placeholder = "首页问候时使用，可以留空", onDismiss = { dialog = null }) { v ->
-            hooks.updateSettings { it.copy(nickname = v) }
+            actions.updateSettings { it.copy(nickname = v) }
         }
         "time" -> TimeDialog(s.remindHour, s.remindMinute, onDismiss = { dialog = null }) { h, m ->
-            hooks.updateSettings { it.copy(remindHour = h, remindMinute = m) }
+            actions.updateSettings { it.copy(remindHour = h, remindMinute = m) }
         }
         "sync" -> SyncDialog(syncing, syncError, onDismiss = { dialog = null; syncError = null }) { code, partner ->
             syncError = null
-            hooks.joinInvite(code, partner) { ok, err -> if (ok) dialog = null else syncError = err }
+            actions.joinInvite(code, partner) { ok, err -> if (ok) dialog = null else syncError = err }
         }
-        "logout" -> ConfirmDialog("退出同步？", "本机和云端的数据都会保留。", onDismiss = { dialog = null }) { hooks.logout() }
-        "clear" -> ConfirmDialog("清空所有记录？", "经期和每日记录会全部删除，无法恢复。", onDismiss = { dialog = null }) { hooks.clearAll() }
+        "logout" -> ConfirmDialog("退出同步？", "本机和云端的数据都会保留。", onDismiss = { dialog = null }) { actions.syncLogout() }
+        "clear" -> ConfirmDialog("清空所有记录？", "经期和每日记录会全部删除，无法恢复。", onDismiss = { dialog = null }) { actions.clearAll() }
         "battery" -> BatteryDialog(onDismiss = { dialog = null }) {
             ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")))
         }
@@ -341,21 +323,28 @@ internal fun SettingsPage(
 @Composable
 private fun ProfileCard(state: UiState, onEditName: () -> Unit) {
     val s = state.settings
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onEditName).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    SoftCard(
+        onClick = onEditName,
+        brush = Brush.horizontalGradient(listOf(Color(0xFFFFE4EB), Color(0xFFFFF6F7), Color.White)),
     ) {
-        com.nuanyue.app.ui.components.Mascot(Modifier.size(56.dp), interactive = false)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            com.nuanyue.app.ui.components.Mascot(Modifier.size(64.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(s.nickname.ifBlank { "给自己起个昵称" }, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    if (s.isPartner) "伴侣 · 只能查看，不能修改" else "已记录 ${state.snapshot.periods.size} 次经期",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(
-                if (s.isPartner) "伴侣 · 只能查看" else "已记录 ${state.snapshot.periods.size} 次经期",
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
+                "编辑",
+                fontSize = 12.sp,
+                color = Palette.PinkDeep,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clip(CircleShape).background(Color.White).padding(horizontal = 10.dp, vertical = 5.dp),
             )
         }
-        Text("编辑", color = com.nuanyue.app.ui.theme.NyColors.RoseStrong, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -386,63 +375,23 @@ private fun StepButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit)
 }
 
 @Composable
-internal fun UpdateCheckRow(
-    manual: ManualCheck,
-    versionName: String,
-    newerName: String?,
-    onCheck: () -> Unit,
-) {
-    val row = updateRowModel(manual, versionName, newerName)
-    ActionRow(
-        Icons.Outlined.Download,
-        "检查更新",
-        row.hint.orEmpty(),
-        Palette.Mint,
-        Palette.MintSoft,
-        hintColor = if (row.error) NyColors.RoseStrong else NyColors.InkSecondary,
-        enabled = row.clickable,
-        showSpinner = row.spinner,
-        onClick = onCheck,
-    )
-}
-
-@Composable
-private fun ActionRow(
-    icon: ImageVector,
-    title: String,
-    hint: String,
-    tint: Color,
-    bg: Color,
-    danger: Boolean = false,
-    hintColor: Color = Palette.InkSoft,
-    enabled: Boolean = true,
-    showSpinner: Boolean = false,
-    onClick: () -> Unit,
-) {
+private fun ActionRow(icon: ImageVector, title: String, subtitle: String, danger: Boolean = false, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val scale = pressScale(source, 0.98f)
     Row(
         Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(16.dp))
-            .clickable(source, indication = null, enabled = enabled, onClick = onClick)
+            .clickable(source, indication = null, onClick = onClick)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBadge(icon, tint, bg, 32.dp)
+        IconBadge(icon, if (danger) Palette.Pink else Palette.Ink, if (danger) Palette.PinkSoft else Palette.Panel, 34.dp)
         Spacer(Modifier.width(12.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (danger) Palette.Pink else Palette.Ink,
-            maxLines = 1,
-            modifier = Modifier.weight(1f),
-        )
-        if (showSpinner) {
-            CircularProgressIndicator(Modifier.size(16.dp), color = NyColors.InkSecondary, strokeWidth = 2.dp)
-        } else {
-            Text(hint, style = MaterialTheme.typography.bodySmall, color = hintColor, maxLines = 1)
-            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = if (danger) Palette.Pink else Palette.Ink)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall)
         }
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Palette.InkFaint)
     }
 }
 
@@ -498,7 +447,7 @@ private fun TimeDialog(hour: Int, minute: Int, onDismiss: () -> Unit, onSave: (I
 }
 
 @Composable
-private fun SyncDialog(syncing: Boolean, error: String?, onDismiss: () -> Unit, onSubmit: (String, Boolean) -> Unit) {
+internal fun SyncDialog(syncing: Boolean, error: String?, onDismiss: () -> Unit, onSubmit: (String, Boolean) -> Unit) {
     var code by remember { mutableStateOf("") }
     var partner by remember { mutableStateOf(false) }
     AlertDialog(
@@ -544,7 +493,7 @@ private fun SyncDialog(syncing: Boolean, error: String?, onDismiss: () -> Unit, 
 }
 
 @Composable
-private fun ConfirmDialog(title: String, body: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+internal fun ConfirmDialog(title: String, body: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,
@@ -558,7 +507,7 @@ private fun ConfirmDialog(title: String, body: String, onDismiss: () -> Unit, on
 }
 
 @Composable
-private fun BatteryDialog(onDismiss: () -> Unit, onOpen: () -> Unit) {
+internal fun BatteryDialog(onDismiss: () -> Unit, onOpen: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.Card,

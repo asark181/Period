@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -37,22 +36,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -60,19 +54,12 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.domain.DayType
-import com.nuanyue.app.ui.theme.FertileBrush
-import com.nuanyue.app.ui.theme.DayKind
-import com.nuanyue.app.ui.theme.NyColors
-import com.nuanyue.app.ui.theme.NyRadius
-import com.nuanyue.app.ui.theme.NySpace
 import com.nuanyue.app.ui.theme.Palette
-import com.nuanyue.app.ui.theme.dayVisual
-import com.nuanyue.app.ui.theme.PeriodBrush
 import com.nuanyue.app.ui.theme.Rounded
 
-private val cardShape = RoundedCornerShape(16.dp)
+private val cardShape = RoundedCornerShape(26.dp)
 
-/** White rounded card on the grey page. Shadow stays very light. */
+/** White rounded card with a soft rose shadow. */
 @Composable
 fun SoftCard(
     modifier: Modifier = Modifier,
@@ -86,7 +73,7 @@ fun SoftCard(
     Column(
         modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .shadow(3.dp, cardShape, ambientColor = Color(0x0A2B3040), spotColor = Color(0x102B3040))
+            .shadow(10.dp, cardShape, ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB))
             .clip(cardShape)
             .background(brush)
             .then(
@@ -100,7 +87,7 @@ fun SoftCard(
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: @Composable (() -> Unit)? = null) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.padding(end = 8.dp).size(width = 3.dp, height = 12.dp).clip(CircleShape).background(Palette.Sky))
+        Box(Modifier.padding(end = 8.dp).size(width = 4.dp, height = 14.dp).clip(CircleShape).background(Palette.Pink))
         Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
@@ -232,49 +219,19 @@ fun Hairline(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LegendDot(
-    color: Color,
-    label: String,
-    hollow: Boolean = false,
-    heart: Boolean = false,
-    dashed: Boolean = false,
-    brush: Brush? = null,
-    marker: Boolean = false,
-) {
-    val swatch = RoundedCornerShape(4.dp)
+fun LegendDot(color: Color, label: String, hollow: Boolean = false, heart: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (heart) {
             Icon(if (hollow) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite, null, tint = color, modifier = Modifier.size(12.dp))
         } else {
             Box(
-                Modifier.size(12.dp).clip(swatch)
-                    .then(
-                        when {
-                            dashed -> Modifier.dashedRounded(color, 1.4.dp, 4.dp)
-                            brush != null -> Modifier.background(brush)
-                            hollow -> Modifier.border(1.2.dp, color, swatch)
-                            else -> Modifier.background(color)
-                        },
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (marker) Icon(Icons.Rounded.Spa, null, tint = Palette.Bloom, modifier = Modifier.size(9.dp))
-            }
+                Modifier.size(10.dp).clip(RoundedCornerShape(3.dp))
+                    .then(if (hollow) Modifier.border(1.2.dp, color, RoundedCornerShape(3.dp)) else Modifier.background(color)),
+            )
         }
         Spacer(Modifier.width(5.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+        Text(label, style = MaterialTheme.typography.bodySmall)
     }
-}
-
-private fun Modifier.dashedRounded(color: Color, width: Dp, corner: Dp): Modifier = drawBehind {
-    val stroke = width.toPx()
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(stroke / 2, stroke / 2),
-        size = Size(size.width - stroke, size.height - stroke),
-        cornerRadius = CornerRadius(corner.toPx(), corner.toPx()),
-        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.5.dp.toPx(), 2.5.dp.toPx()))),
-    )
 }
 
 @Composable
@@ -300,7 +257,7 @@ fun CuteSwitch(checked: Boolean, enabled: Boolean = true, onChange: (Boolean) ->
         onCheckedChange = onChange,
         enabled = enabled,
         colors = SwitchDefaults.colors(
-            checkedTrackColor = NyColors.Rose,
+            checkedTrackColor = Palette.Pink,
             checkedThumbColor = Color.White,
             uncheckedTrackColor = Palette.Line,
             uncheckedThumbColor = Color.White,
@@ -319,22 +276,18 @@ fun TagChip(text: String, color: Color) {
 
 fun Color.darken(f: Float = 0.82f) = Color(red * f, green * f, blue * f, alpha)
 
-fun DayType.color(): Color = dayVisual(dayKind(muted = false)).let { it.fill ?: it.stroke ?: it.dot ?: NyColors.InkTertiary }
-
-fun DayType.dayKind(muted: Boolean = false): DayKind = when {
-    muted -> DayKind.OutOfMonth
-    this == DayType.PERIOD -> DayKind.Period
-    this == DayType.PREDICTED_PERIOD -> DayKind.Predicted
-    this == DayType.FERTILE -> DayKind.Fertile
-    this == DayType.OVULATION -> DayKind.Ovulation
-    else -> DayKind.Normal
+fun DayType.color(): Color = when (this) {
+    DayType.PERIOD -> Palette.Pink
+    DayType.PREDICTED_PERIOD -> Palette.PinkLine
+    DayType.FERTILE -> Palette.Orange
+    DayType.OVULATION -> Palette.Orange
+    DayType.SAFE -> Palette.Mint
+    DayType.UNKNOWN -> Palette.InkFaint
 }
 
 /**
- * Rounded square from [dayVisual]. Every state uses the same outer size.
- * Today draws an ink ring with a gap outside the fill. Predicted is a dashed
- * outline. Ovulation adds a dot under the number. Numbers stay ink, including
- * on the period fill.
+ * One date chip: filled rounded square for period and fertile days, pink outline for a
+ * predicted period, a heart for ovulation, and a double pink ring for today.
  */
 @Composable
 fun DateChip(
@@ -345,81 +298,56 @@ fun DateChip(
     size: Dp,
     hasRecord: Boolean = false,
     muted: Boolean = false,
+    cellWidth: Dp = size,
+    cellHeight: Dp = size,
     onClick: (() -> Unit)? = null,
 ) {
-    val visual = dayVisual(type.dayKind(muted))
-    val shape = NyRadius.chip
-    val font = (if (size < 28.dp) 9f else if (size < 34.dp) 13f else 15f) / LocalDensity.current.fontScale
-    val source = remember { MutableInteractionSource() }
-    val scale = pressScale(source, 0.94f)
-    val ringPad = NySpace.todayRingGap + NySpace.todayRingWidth
+    val basis = minOf(cellWidth, cellHeight)
+    val shape = RoundedCornerShape(basis * 0.32f)
+    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
+    val bg = when (type) {
+        DayType.PERIOD -> Palette.Pink
+        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
+        DayType.PREDICTED_PERIOD -> Color.White
+        else -> Color.Transparent
+    }
+    val fg = if (filled) Color.White else if (muted) Palette.InkSoft else Palette.Ink
+    // Prefer a readable size, but never larger than the cell — including when the system font scale is up.
+    val preferred = (basis.value * 0.42f).coerceIn(10f, 16f)
+    val cap = (basis.value * 0.62f) / LocalDensity.current.fontScale
+    val font = minOf(preferred, cap)
     Box(
-        Modifier.size(size + ringPad * 2)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .then(if (onClick != null) Modifier.clickable(source, indication = null, onClick = onClick) else Modifier),
+        Modifier.size(cellWidth, cellHeight)
+            .then(if (isSelected) Modifier.border(2.dp, Palette.Sky, RoundedCornerShape(basis * 0.36f)) else Modifier)
+            .padding(if (isSelected) 2.dp else 0.dp)
+            .clip(shape)
+            .background(bg)
+            .then(if (type == DayType.PREDICTED_PERIOD || (isToday && !filled)) Modifier.border(1.5.dp, Palette.PinkLine, shape) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (isToday) {
-            Box(
-                Modifier.size(size + NySpace.todayRingGap * 2 + NySpace.todayRingWidth)
-                    .border(NySpace.todayRingWidth, NyColors.TodayRing, RoundedCornerShape(14.dp)),
+        if (isToday && !filled) {
+            Box(Modifier.fillMaxSize().padding(2.dp).border(1.dp, Palette.PinkLine, RoundedCornerShape(basis * 0.24f)))
+        }
+        if (type == DayType.OVULATION && !isToday) {
+            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(basis * 0.55f))
+            Text(label, fontFamily = Rounded, fontWeight = FontWeight.ExtraBold, fontSize = (font * 0.7f).sp, color = Palette.Orange, maxLines = 1)
+        } else {
+            Text(
+                if (isToday) "今" else label,
+                // Nunito has no Chinese glyphs; "今" follows the text style so it stays the system face.
+                fontFamily = if (isToday) null else Rounded,
+                fontWeight = FontWeight.Bold,
+                fontSize = font.sp,
+                color = fg,
+                maxLines = 1,
             )
         }
-        Box(
-            Modifier.size(size)
-                .clip(shape)
-                .background(visual.fill ?: Color.Transparent)
-                .then(
-                    if (visual.dashed && visual.stroke != null) {
-                        Modifier.drawBehind {
-                            val stroke = NySpace.predictedStroke.toPx()
-                            val inset = stroke / 2f
-                            drawRoundRect(
-                                color = visual.stroke,
-                                topLeft = Offset(inset, inset),
-                                size = Size(this.size.width - stroke, this.size.height - stroke),
-                                cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx()),
-                                style = Stroke(
-                                    width = stroke,
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        floatArrayOf(NySpace.predictedDash.toPx(), NySpace.predictedGap.toPx()),
-                                    ),
-                                ),
-                            )
-                        }
-                    } else if (isSelected && !isToday && visual.fill == null) {
-                        Modifier.border(1.dp, NyColors.Hairline, shape)
-                    } else {
-                        Modifier
-                    },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(
-                    label,
-                    maxLines = 1,
-                    style = TextStyle(
-                        fontFamily = Rounded,
-                        fontWeight = visual.weight,
-                        fontSize = font.sp,
-                        lineHeight = font.sp,
-                        color = visual.text,
-                        platformStyle = PlatformTextStyle(includeFontPadding = false),
-                    ),
-                )
-                if (visual.dot != null && size >= 28.dp) {
-                    Box(Modifier.padding(top = 1.dp).size(NySpace.ovulationDot).clip(CircleShape).background(visual.dot))
-                } else if (isToday && size >= 32.dp) {
-                    Text("今", fontSize = 8.sp, lineHeight = 8.sp, color = NyColors.InkSecondary, fontWeight = FontWeight.Medium)
-                }
-            }
-            if (hasRecord && visual.fill == null && visual.dot == null) {
-                Box(
-                    Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(3.dp).clip(CircleShape)
-                        .background(NyColors.Rose),
-                )
-            }
+        if (hasRecord) {
+            Box(
+                Modifier.align(Alignment.BottomCenter).padding(bottom = basis * 0.08f).size(4.dp).clip(CircleShape)
+                    .background(if (filled) Color.White else Palette.Mint),
+            )
         }
     }
 }

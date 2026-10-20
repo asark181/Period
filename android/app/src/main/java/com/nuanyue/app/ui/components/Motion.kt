@@ -14,9 +14,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -24,8 +21,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,7 +46,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -73,97 +67,75 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.ui.theme.Palette
 
-/** False when the system animator scale is 0, or a screenshot asks for a still frame. */
-val LocalMotion = compositionLocalOf { true }
-
-/**
- * Two pale discs that drift a few pixels. Still when motion is off, so screenshots
- * and reduced-motion stay on the first frame.
- */
-@Composable
-fun DriftWash(modifier: Modifier = Modifier) {
-    val motion = LocalMotion.current
-    val shift = if (motion) {
-        val t = rememberInfiniteTransition(label = "wash")
-        t.animateFloat(0f, 1f, infiniteRepeatable(tween(9000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "washX").value
-    } else {
-        0.35f
-    }
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        drawCircle(Color(0x33F6D5DE), w * 0.42f, Offset(w * (0.15f + 0.08f * shift), h * 0.2f))
-        drawCircle(Color(0x22E4D9F5), w * 0.36f, Offset(w * (0.82f - 0.06f * shift), h * 0.85f))
-    }
-}
-
 /** Scale that dips while pressed and springs back with a little wobble. */
 @Composable
 fun pressScale(source: MutableInteractionSource, pressed: Float = 0.9f): Float {
     val isPressed by source.collectIsPressedAsState()
-    val motion = LocalMotion.current
     val s by animateFloatAsState(
         if (isPressed) pressed else 1f,
-        if (motion) spring(dampingRatio = if (isPressed) 1f else 0.35f, stiffness = Spring.StiffnessMedium) else tween(0),
+        spring(dampingRatio = if (isPressed) 1f else 0.35f, stiffness = Spring.StiffnessMedium),
         label = "press",
     )
     return s
 }
 
 /**
- * Compact square action under the calendar. The relevant one is a pink outline
- * with a filled icon; the other stays a grey outline.
+ * The big 「月经开始 / 月经结束」 button. Turning on: the fill grows from the centre like ink,
+ * the icon spins into a check mark and a burst of hearts flies out.
  */
 @Composable
-fun PeriodButton(
-    icon: ImageVector,
-    label: String,
-    active: Boolean,
-    tint: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
+fun PeriodButton(icon: ImageVector, label: String, active: Boolean, tint: Color, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
-    val scale = pressScale(source, 0.92f)
-    val shape = RoundedCornerShape(14.dp)
-    val border = when {
-        !enabled -> Palette.Line
-        active -> tint
-        else -> Color(0xFFD5D8E2)
+    val scale = pressScale(source, 0.86f)
+    val fill = remember { Animatable(if (active) 1f else 0f) }
+    var burst by remember { mutableIntStateOf(0) }
+    var first by remember { mutableStateOf(true) }
+    LaunchedEffect(active) {
+        if (first) { first = false; fill.snapTo(if (active) 1f else 0f); return@LaunchedEffect }
+        if (active) burst++
+        fill.animateTo(if (active) 1f else 0f, spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow))
     }
-    val iconTint = when {
-        !enabled -> Palette.InkFaint
-        active -> tint
-        else -> Color(0xFFB0B6C4)
-    }
-    val labelColor = when {
-        !enabled -> Palette.InkFaint
-        active -> tint
-        else -> Palette.InkSoft
-    }
-    Column(modifier.width(84.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier.size(48.dp)
-                .graphicsLayer { scaleX = scale; scaleY = scale }
-                .clip(shape)
-                .background(Color.White)
-                .border(1.5.dp, border, shape)
-                .clickable(source, indication = null, enabled = enabled, onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, label, tint = iconTint, modifier = Modifier.size(22.dp))
+    val labelColor by animateColorAsState(if (active) tint.darken(0.9f) else Palette.InkSoft, label = "label")
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(88.dp)) {
+        // fixed-size host so the burst can overflow without affecting layout
+        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+            HeartBurst(burst, Modifier.requiredSize(160.dp))
+            Box(
+                Modifier.size(64.dp)
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .shadow((2 + 8 * fill.value).dp, RoundedCornerShape(22.dp), spotColor = tint.copy(alpha = 0.5f))
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .border(2.dp, if (fill.value > 0.01f) tint else Palette.Line, RoundedCornerShape(22.dp))
+                    .clickable(source, indication = null, onClick = onClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                // ink-fill reveal
+                Canvas(Modifier.fillMaxSize()) {
+                    val r = size.maxDimension * 0.75f * fill.value
+                    if (r > 0f) drawCircle(tint, r, center)
+                }
+                AnimatedContent(
+                    active,
+                    transitionSpec = {
+                        (scaleIn(spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMedium), initialScale = 0.3f) + fadeIn()) togetherWith
+                            (scaleOut(targetScale = 0.3f) + fadeOut())
+                    },
+                    label = "icon",
+                ) { on ->
+                    val spin = remember { Animatable(if (on) -120f else 0f) }
+                    LaunchedEffect(Unit) { spin.animateTo(0f, spring(dampingRatio = 0.5f)) }
+                    Icon(
+                        if (on) Icons.Rounded.Check else icon, label,
+                        tint = if (on) Color.White else Palette.InkFaint,
+                        modifier = Modifier.size(30.dp).graphicsLayer { rotationZ = spin.value },
+                    )
+                }
+            }
         }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            label,
-            fontSize = 11.sp,
-            color = labelColor,
-            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = 2,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            lineHeight = 13.sp,
-        )
+        Spacer(Modifier.height(8.dp))
+        Text(label, fontSize = 13.sp, color = labelColor, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
@@ -181,12 +153,12 @@ fun SlidingSegmented(
     val haptic = LocalHapticFeedback.current
     val offset by animateDpAsState(itemSize * selected, spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow), label = "seg")
     Box(
-        Modifier.clip(CircleShape).background(Color.White).border(1.dp, Palette.Line, CircleShape).padding(3.dp),
+        Modifier.shadow(8.dp, CircleShape, ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB)).clip(CircleShape).background(Color.White).padding(5.dp),
     ) {
-        Box(Modifier.offset(x = offset).size(itemSize).clip(CircleShape).background(Palette.Segment))
+        Box(Modifier.offset(x = offset).size(itemSize).clip(CircleShape).background(Palette.OrangeSoft))
         Row {
             options.forEachIndexed { i, icon ->
-                val tint by animateColorAsState(if (i == selected) Palette.Ink else Palette.InkFaint, label = "segTint")
+                val tint by animateColorAsState(if (i == selected) Palette.Orange else Palette.InkSoft, label = "segTint")
                 val pop by animateFloatAsState(if (i == selected) 1.12f else 1f, spring(dampingRatio = 0.4f), label = "segPop")
                 Box(
                     Modifier.size(itemSize).clip(CircleShape)
@@ -212,7 +184,7 @@ fun Sticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float
 /** Floats a sticker gently up and down, for decoration. */
 @Composable
 fun FloatingSticker(@DrawableRes id: Int, modifier: Modifier = Modifier, rotation: Float = 0f, amplitude: Dp = 3.dp, periodMs: Int = 2400, motion: Boolean = true) {
-    if (!motion || !LocalMotion.current) {
+    if (!motion) {
         Sticker(id, modifier, rotation)
         return
     }
@@ -228,33 +200,5 @@ fun SlidingIndicator(count: Int, selected: Int, modifier: Modifier = Modifier, c
         val slot = maxWidth / count
         val x by animateDpAsState(slot * selected + (slot - pillWidth) / 2, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow), label = "ind")
         Box(Modifier.offset(x = x).width(pillWidth).height(pillHeight).clip(CircleShape).background(color))
-    }
-}
-
-/** A short bloom of petals after a period is recorded. Stays still when motion is off. */
-@Composable
-fun PetalBloom(tick: Int, modifier: Modifier = Modifier) {
-    if (!LocalMotion.current) return
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(tick) {
-        if (tick == 0) return@LaunchedEffect
-        progress.snapTo(0f)
-        progress.animateTo(1f, tween(680, easing = FastOutSlowInEasing))
-    }
-    val t = progress.value
-    if (t <= 0f || t >= 1f) return
-    Canvas(modifier) {
-        val colors = listOf(Color(0xFFE7A3B5), Color(0xFFF3C7A8), Color(0xFFD9C6EE))
-        repeat(7) { i ->
-            val ang = -PI / 2 + i * PI * 2 / 7
-            val dist = size.minDimension * 0.42f * t
-            val r = size.minDimension * 0.055f * (1f - t * 0.4f)
-            drawCircle(
-                colors[i % 3].copy(alpha = 1f - t),
-                r,
-                Offset(center.x + (cos(ang) * dist).toFloat(), center.y + (sin(ang) * dist).toFloat()),
-            )
-        }
-        drawCircle(Color(0xFFF6D5DE).copy(alpha = (1f - t) * 0.55f), size.minDimension * 0.55f * t, style = Stroke(width = 3.dp.toPx()))
     }
 }

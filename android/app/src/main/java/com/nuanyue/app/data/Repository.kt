@@ -20,8 +20,9 @@ class Repository(
     suspend fun recordsNow(): List<DayRecordEntity> = db.dayRecordDao().getAll()
     suspend fun record(day: LocalDate): DayRecordEntity? = db.dayRecordDao().get(day.toEpochDay())
 
-    /** "大姨妈来了" on [date]. */
+    /** "大姨妈来了" on [date]. A future day is not a record. */
     suspend fun markStart(date: LocalDate, defaultPeriod: Int) {
+        if (date.isAfter(LocalDate.now())) return
         val all = db.periodDao().getAll().sortedBy { it.startDay }
         val day = date.toEpochDay()
         // Already a start.
@@ -58,8 +59,9 @@ class Repository(
         save(p.copy(deleted = true))
     }
 
-    /** "大姨妈走了" on [date]. */
+    /** "大姨妈走了" on [date]. A future day is not a record. */
     suspend fun markEnd(date: LocalDate) {
+        if (date.isAfter(LocalDate.now())) return
         val day = date.toEpochDay()
         val p = db.periodDao().getAll()
             .lastOrNull { it.startDay <= day && day - it.startDay < CycleEngine.MAX_PERIOD_DAYS } ?: return
@@ -78,6 +80,8 @@ class Repository(
     }
 
     suspend fun addPeriod(start: LocalDate, end: LocalDate?) {
+        val today = LocalDate.now()
+        if (start.isAfter(today) || (end != null && end.isAfter(today))) return
         save(PeriodEntity(id = newId(), startDay = start.toEpochDay(), endDay = end?.toEpochDay()))
     }
 
@@ -113,8 +117,9 @@ class Repository(
 
     /** Record-level merge: for each key keep the newest version (tombstones included). */
     suspend fun merge(remote: BackupData) {
+        val today = LocalDate.now()
         val localPeriods = db.periodDao().getAllIncludingDeleted().associateBy { it.id }
-        val periods = remote.periods.filter { r -> (localPeriods[r.id]?.updatedAt ?: -1) < r.updatedAt }
+        val periods = remote.periods.withoutFutureRecords(today).filter { r -> (localPeriods[r.id]?.updatedAt ?: -1) < r.updatedAt }
         db.periodDao().upsertAll(periods)
         val localRecords = db.dayRecordDao().getAllIncludingDeleted().associateBy { it.day }
         val records = remote.records.filter { r -> (localRecords[r.day]?.updatedAt ?: -1) < r.updatedAt }
@@ -127,12 +132,13 @@ class Repository(
     suspend fun replaceWith(remote: BackupData) {
         db.periodDao().clear()
         db.dayRecordDao().clear()
-        db.periodDao().upsertAll(remote.periods)
+        db.periodDao().upsertAll(remote.periods.withoutFutureRecords(LocalDate.now()))
         db.dayRecordDao().upsertAll(remote.records)
         onChanged(false)
     }
 
     private suspend fun save(p: PeriodEntity) {
+        if (p.rejectsFutureRecord(LocalDate.now())) return
         db.periodDao().upsert(p.copy(updatedAt = System.currentTimeMillis()))
         touch()
     }
@@ -160,6 +166,18 @@ data class Profile(
     val nickname: String = "",
     val loveNote: String = "",
 )
+
+/** A non-deleted period whose start or end is after [today] must not be stored or imported. */
+internal fun PeriodEntity.rejectsFutureRecord(today: LocalDate): Boolean {
+    if (deleted) return false
+    val day = today.toEpochDay()
+    if (startDay > day) return true
+    val end = endDay ?: return false
+    return end > day
+}
+
+internal fun List<PeriodEntity>.withoutFutureRecords(today: LocalDate): List<PeriodEntity> =
+    filterNot { it.rejectsFutureRecord(today) }
 
 fun PeriodEntity.toDomain() = Period(
     id = id,

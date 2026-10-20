@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.nuanyue.app.R
-import com.nuanyue.app.ui.components.LocalMotion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -55,10 +54,9 @@ fun Mascot(modifier: Modifier = Modifier, mood: MoonMood = MoonMood.HAPPY, inter
     var giggle by remember { mutableStateOf(false) }
     var burst by remember { mutableIntStateOf(0) }
 
-    val play = motion && LocalMotion.current
     val breathe: Float
     val zFloat: Float
-    if (play) {
+    if (motion) {
         val idle = rememberInfiniteTransition(label = "idle")
         breathe = idle.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "breathe").value
         zFloat = idle.animateFloat(0f, 1f, infiniteRepeatable(tween(2200, easing = LinearEasing), RepeatMode.Reverse), label = "z").value
@@ -67,8 +65,8 @@ fun Mascot(modifier: Modifier = Modifier, mood: MoonMood = MoonMood.HAPPY, inter
         zFloat = 0f
     }
 
-    LaunchedEffect(mood, play) {
-        if (!play) return@LaunchedEffect
+    LaunchedEffect(mood, motion) {
+        if (!motion) return@LaunchedEffect
         while (true) {
             delay(Random.nextLong(2600, 5200))
             if (mood == MoonMood.HAPPY) {
