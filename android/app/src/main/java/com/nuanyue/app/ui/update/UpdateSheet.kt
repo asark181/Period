@@ -104,8 +104,8 @@ fun UpdatePanel(
             LinearProgressIndicator(
                 progress = { fraction },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(8.dp)),
-                color = Palette.Bloom,
-                trackColor = Palette.RoseFill,
+                color = Palette.Pink,
+                trackColor = Palette.PinkSoft,
             )
             Spacer(Modifier.height(6.dp))
             Text(

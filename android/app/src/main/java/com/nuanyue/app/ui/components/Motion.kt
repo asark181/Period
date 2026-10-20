@@ -111,62 +111,59 @@ fun pressScale(source: MutableInteractionSource, pressed: Float = 0.9f): Float {
 }
 
 /**
- * The big 「月经开始 / 月经结束」 button. Turning on: the fill grows from the centre like ink,
- * the icon spins into a check mark and a burst of hearts flies out.
+ * Compact square action under the calendar. The relevant one is a pink outline
+ * with a filled icon; the other stays a grey outline.
  */
 @Composable
-fun PeriodButton(icon: ImageVector, label: String, active: Boolean, tint: Color, onClick: () -> Unit) {
+fun PeriodButton(
+    icon: ImageVector,
+    label: String,
+    active: Boolean,
+    tint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     val source = remember { MutableInteractionSource() }
-    val scale = pressScale(source, 0.86f)
-    val fill = remember { Animatable(if (active) 1f else 0f) }
-    var burst by remember { mutableIntStateOf(0) }
-    var first by remember { mutableStateOf(true) }
-    LaunchedEffect(active) {
-        if (first) { first = false; fill.snapTo(if (active) 1f else 0f); return@LaunchedEffect }
-        if (active) burst++
-        fill.animateTo(if (active) 1f else 0f, spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow))
+    val scale = pressScale(source, 0.92f)
+    val shape = RoundedCornerShape(14.dp)
+    val border = when {
+        !enabled -> Palette.Line
+        active -> tint
+        else -> Color(0xFFD5D8E2)
     }
-    val labelColor by animateColorAsState(if (active) tint.darken(0.9f) else Palette.InkSoft, label = "label")
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(88.dp)) {
-        // fixed-size host so the burst can overflow without affecting layout
-        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-            HeartBurst(burst, Modifier.requiredSize(160.dp))
-            Box(
-                Modifier.size(64.dp)
-                    .graphicsLayer { scaleX = scale; scaleY = scale }
-                    .shadow((2 + 8 * fill.value).dp, RoundedCornerShape(22.dp), spotColor = tint.copy(alpha = 0.5f))
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(2.dp, if (fill.value > 0.01f) tint else Palette.Line, RoundedCornerShape(22.dp))
-                    .clickable(source, indication = null, onClick = onClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                // ink-fill reveal
-                Canvas(Modifier.fillMaxSize()) {
-                    val r = size.maxDimension * 0.75f * fill.value
-                    if (r > 0f) drawCircle(tint, r, center)
-                }
-                AnimatedContent(
-                    active,
-                    transitionSpec = {
-                        (scaleIn(spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMedium), initialScale = 0.3f) + fadeIn()) togetherWith
-                            (scaleOut(targetScale = 0.3f) + fadeOut())
-                    },
-                    label = "icon",
-                ) { on ->
-                    val spin = remember { Animatable(if (on) -120f else 0f) }
-                    LaunchedEffect(Unit) { spin.animateTo(0f, spring(dampingRatio = 0.5f)) }
-                    Icon(
-                        if (on) Icons.Rounded.Check else icon, label,
-                        tint = if (on) Color.White else Palette.InkFaint,
-                        modifier = Modifier.size(30.dp).graphicsLayer { rotationZ = spin.value },
-                    )
-                }
-            }
+    val iconTint = when {
+        !enabled -> Palette.InkFaint
+        active -> tint
+        else -> Color(0xFFB0B6C4)
+    }
+    val labelColor = when {
+        !enabled -> Palette.InkFaint
+        active -> tint
+        else -> Palette.InkSoft
+    }
+    Column(modifier.width(84.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(48.dp)
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .clip(shape)
+                .background(Color.White)
+                .border(1.5.dp, border, shape)
+                .clickable(source, indication = null, enabled = enabled, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, label, tint = iconTint, modifier = Modifier.size(22.dp))
         }
-        Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 13.sp, color = labelColor, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            label,
+            fontSize = 11.sp,
+            color = labelColor,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 13.sp,
+        )
     }
 }
 
@@ -184,12 +181,12 @@ fun SlidingSegmented(
     val haptic = LocalHapticFeedback.current
     val offset by animateDpAsState(itemSize * selected, spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow), label = "seg")
     Box(
-        Modifier.shadow(8.dp, CircleShape, ambientColor = Color(0x1AE59AAB), spotColor = Color(0x28E59AAB)).clip(CircleShape).background(Color.White).padding(5.dp),
+        Modifier.clip(CircleShape).background(Color.White).border(1.dp, Palette.Line, CircleShape).padding(3.dp),
     ) {
-        Box(Modifier.offset(x = offset).size(itemSize).clip(CircleShape).background(Palette.OrangeSoft))
+        Box(Modifier.offset(x = offset).size(itemSize).clip(CircleShape).background(Palette.Segment))
         Row {
             options.forEachIndexed { i, icon ->
-                val tint by animateColorAsState(if (i == selected) Palette.Orange else Palette.InkSoft, label = "segTint")
+                val tint by animateColorAsState(if (i == selected) Palette.Ink else Palette.InkFaint, label = "segTint")
                 val pop by animateFloatAsState(if (i == selected) 1.12f else 1f, spring(dampingRatio = 0.4f), label = "segPop")
                 Box(
                     Modifier.size(itemSize).clip(CircleShape)

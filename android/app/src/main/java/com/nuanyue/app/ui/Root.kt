@@ -14,23 +14,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Brightness3
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Brightness3
 import androidx.compose.material.icons.rounded.Person
@@ -49,7 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -61,8 +59,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuanyue.app.ui.components.LocalMotion
-import kotlin.math.ceil
-import kotlin.math.floor
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -173,98 +169,92 @@ private fun LoadingScreen() {
     }
 }
 
-private val barShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+private data class BubbleStyle(val wash: Color, val ink: Color, val outline: ImageVector, val filled: ImageVector)
 
+private val bubbles = listOf(
+    BubbleStyle(Color(0xFFFFD9E4), Palette.Pink, Icons.Outlined.Brightness3, Icons.Rounded.Brightness3),
+    BubbleStyle(Color(0xFFD9E6FF), Color(0xFF5B8DEF), Icons.Outlined.BarChart, Icons.Rounded.BarChart),
+    BubbleStyle(Color(0xFFFFE4C8), Palette.Orange, Icons.Outlined.Person, Icons.Rounded.Person),
+)
+
+/**
+ * White bar. The selected tab is a filled icon inside a pastel circle that sits
+ * up over the top edge. [slide] is only for a still mid-frame: the current tab
+ * is rising by that amount and the previous tab is sinking by the rest.
+ */
 @Composable
 internal fun BottomBar(current: Tab, slide: Float? = null, onSelect: (Tab) -> Unit) {
     val haptic = LocalHapticFeedback.current
     val motion = LocalMotion.current && slide == null
-    val target = slide ?: current.ordinal.toFloat()
-    val animated by animateFloatAsState(
-        target,
-        if (motion) spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow) else tween(0),
-        label = "blob",
-    )
-    val index = if (slide != null) slide else animated
-    val idle = Color(0xFF6A5560)
-    Column(
-        Modifier.fillMaxWidth()
-            .shadow(16.dp, barShape, clip = false, ambientColor = Color(0x14C47D92), spotColor = Color(0x22E7A3B5))
-            .clip(barShape)
-            .background(Color.White),
-    ) {
-        BoxWithConstraints(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 72.dp)) {
-            val count = Tab.entries.size
-            val slot = maxWidth / count
-            val base = floor(index.toDouble())
-            val p = (index - base).toFloat().coerceIn(0f, 1f)
-            val origin = base.toInt().coerceIn(0, count - 1)
-            val dest = ceil(index.toDouble()).toInt().coerceIn(0, count - 1)
-            // Leading edge arrives first and the tail snaps across, so the blob
-            // stretches between the two icons instead of floating in the gap.
-            val reach = (p / 0.38f).coerceIn(0f, 1f)
-            val follow = if (p < 0.62f) 0f else {
-                val t = ((p - 0.62f) / 0.38f).coerceIn(0f, 1f)
-                t * t
-            }
-            val rest = 62.dp
-            val c0 = slot * origin + slot / 2
-            val c1 = slot * dest + slot / 2
-            val left = (c0 - rest / 2) + ((c1 - rest / 2) - (c0 - rest / 2)) * follow
-            val right = (c0 + rest / 2) + ((c1 + rest / 2) - (c0 + rest / 2)) * reach
-            val blobW = (right - left).coerceAtLeast(rest)
-            val squash = ((blobW - rest) / slot).coerceIn(0f, 1f)
-            Box(
-                Modifier.offset(x = left, y = 12.dp)
-                    .width(blobW)
-                    .height(34.dp - 8.dp * squash)
-                    .shadow(8.dp, CircleShape, clip = false, ambientColor = Color(0x33E56E8A), spotColor = Color(0x44F8B3C4))
-                    .clip(CircleShape)
-                    .background(Brush.horizontalGradient(listOf(Palette.RoseFill, Palette.RoseDeep))),
-            )
-            Row(Modifier.fillMaxWidth().heightIn(min = 72.dp), verticalAlignment = Alignment.CenterVertically) {
-                Tab.entries.forEachIndexed { i, t ->
-                    val cover = when {
-                        i == origin && i == dest -> 1f
-                        i == origin -> 1f - follow
-                        i == dest -> reach
-                        else -> 0f
-                    }
-                    val hop by animateFloatAsState(
-                        if (slide != null) cover else if (i == current.ordinal) 1f else 0f,
-                        if (motion) spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMedium) else tween(0),
-                        label = "hop",
-                    )
-                    val chosen = hop > 0.55f
-                    val tint = if (chosen) Palette.RoseInk else idle
-                    val icon = if (chosen && t == Tab.ME) Icons.Rounded.Person else t.icon
-                    Column(
-                        Modifier.weight(1f).padding(top = 8.dp, bottom = 6.dp)
-                            .clickable(remember { MutableInteractionSource() }, indication = null) {
-                                if (t != current) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelect(t)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
+    // The circle is laid out inside this box, so the top half can sit above the
+    // white bar without drawing outside the bar's own bounds (those get clipped).
+    Box(Modifier.fillMaxWidth().navigationBarsPadding().height(86.dp)) {
+        Box(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(54.dp)
+                .shadow(6.dp, RectangleShape, clip = false, ambientColor = Color(0x102B3040), spotColor = Color(0x182B3040))
+                .background(Color.White),
+        )
+        Row(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 6.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Tab.entries.forEachIndexed { i, t ->
+                val style = bubbles[i]
+                val target = when {
+                    slide != null && i == current.ordinal -> slide
+                    slide != null && current.ordinal > 0 && i == current.ordinal - 1 -> 1f - slide
+                    slide != null -> 0f
+                    i == current.ordinal -> 1f
+                    else -> 0f
+                }
+                val pop by animateFloatAsState(
+                    target,
+                    if (motion) spring(dampingRatio = 0.28f, stiffness = Spring.StiffnessMedium) else tween(0),
+                    label = "pop",
+                )
+                val risen = pop > 0.5f
+                Column(
+                    Modifier.weight(1f)
+                        .clickable(remember { MutableInteractionSource() }, indication = null) {
+                            if (t != current) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSelect(t)
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(Modifier.fillMaxWidth().height(52.dp)) {
                         Box(
-                            Modifier.size(28.dp).graphicsLayer {
-                                translationY = -12f * hop * density
-                                scaleX = 1f + 0.14f * hop
-                                scaleY = 1f + 0.18f * hop
-                            },
-                        ) {
-                            Icon(icon, t.label, tint = tint, modifier = Modifier.size(24.dp).align(Alignment.Center))
-                        }
-                        Text(
+                            Modifier.align(Alignment.TopCenter).size(44.dp).graphicsLayer {
+                                val s = 0.8f + 0.2f * pop
+                                scaleX = s
+                                scaleY = s
+                                translationY = (1f - pop) * 12f * density
+                                alpha = pop.coerceIn(0f, 1f)
+                            }
+                                .shadow(5.dp, CircleShape, clip = false, ambientColor = Color(0x182B3040), spotColor = Color(0x262B3040))
+                                .clip(CircleShape)
+                                .background(style.wash),
+                        )
+                        Icon(
+                            if (risen) style.filled else style.outline,
                             t.label,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            fontWeight = if (chosen) FontWeight.Bold else FontWeight.Medium,
-                            color = if (chosen) Palette.RoseInk else idle,
-                            modifier = Modifier.padding(top = 1.dp),
+                            tint = if (risen) style.ink else Color(0xFFC5CAD6),
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp).size(22.dp)
+                                .graphicsLayer {
+                                    val s = if (pop > 0.02f) 0.8f + 0.2f * pop else 1f
+                                    scaleX = s
+                                    scaleY = s
+                                    translationY = -17f * pop * density
+                                },
                         )
                     }
+                    Text(
+                        t.label,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (risen) FontWeight.Bold else FontWeight.Normal,
+                        color = if (risen) Palette.Ink else Color(0xFF9AA3B2),
+                    )
                 }
             }
         }

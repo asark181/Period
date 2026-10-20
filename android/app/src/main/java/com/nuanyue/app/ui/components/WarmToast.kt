@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -43,7 +42,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nuanyue.app.ui.theme.FeedbackColors
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.toastHoldMs
 import kotlinx.coroutines.delay
@@ -88,10 +86,10 @@ private fun WarmToast(text: String) {
     Row(
         Modifier
             .widthIn(max = 340.dp)
-            .shadow(14.dp, toastShape, ambientColor = Color(0x33F2708A), spotColor = Color(0x40F2708A))
+            .shadow(8.dp, toastShape, ambientColor = Color(0x142B3040), spotColor = Color(0x1A2B3040))
             .clip(toastShape)
-            .background(Brush.horizontalGradient(listOf(Color(0xFFFFF1F4), Color(FeedbackColors.BACKGROUND.toInt()))))
-            .border(1.dp, Palette.PinkLine, toastShape)
+            .background(Color.White)
+            .border(1.dp, Palette.Line, toastShape)
             .semantics { liveRegion = LiveRegionMode.Polite }
             .padding(start = 10.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -107,7 +105,7 @@ private fun WarmToast(text: String) {
         ) { line ->
             Text(
                 line,
-                color = Color(FeedbackColors.INK.toInt()),
+                color = Palette.Ink,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 20.sp,

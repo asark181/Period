@@ -13,6 +13,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
@@ -96,12 +96,7 @@ fun StatsScreen(state: UiState) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column(
-            Modifier
-                .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xFFFFEEF2), Color.White)))
-                .padding(horizontal = 18.dp),
-        ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
             Spacer(Modifier.height(14.dp))
             StatsTabs(tab) { tab = it }
             Spacer(Modifier.height(8.dp))
@@ -139,25 +134,30 @@ fun StatsScreen(state: UiState) {
 @Composable
 private fun StatsTabs(tab: Int, onTab: (Int) -> Unit) {
     val labels = listOf("经期图表", "经期数据")
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
+    Box(
+        Modifier.fillMaxWidth().padding(horizontal = 28.dp)
+            .clip(CircleShape).background(Color.White).border(1.dp, Palette.Line, CircleShape).padding(3.dp),
+    ) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
         val slot = maxWidth / labels.size
         val x by animateDpAsState(slot * tab, spring(dampingRatio = 0.7f, stiffness = 380f), label = "statsTab")
-        Box(Modifier.offset(x = x).width(slot).height(36.dp).clip(CircleShape).background(Palette.PinkSoft))
+        Box(Modifier.offset(x = x).width(slot).height(32.dp).clip(CircleShape).background(Palette.Segment))
         Row(Modifier.fillMaxWidth()) {
             labels.forEachIndexed { i, label ->
                 val selected = tab == i
-                val color by animateColorAsState(if (selected) Palette.PinkDeep else Palette.InkSoft, label = "tabColor")
+                val color by animateColorAsState(if (selected) Palette.Ink else Palette.InkSoft, label = "tabColor")
                 val source = remember(i) { MutableInteractionSource() }
                 val scale = pressScale(source, 0.96f)
                 Box(
-                    Modifier.weight(1f).height(36.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+                    Modifier.weight(1f).height(32.dp).graphicsLayer { scaleX = scale; scaleY = scale }
                         .clip(CircleShape)
                         .clickable(source, indication = null) { onTab(i) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(label, color = color, fontSize = 15.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+                    Text(label, color = color, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
                 }
             }
+        }
         }
     }
 }
@@ -303,17 +303,16 @@ private fun CycleBars(rows: List<Row3>, avg: Int) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                 data.forEach { (start, v) ->
                     val off = mode == 0 && abs(v - avgLine) > 6
-                    val brush = if (off) Brush.verticalGradient(listOf(Palette.PeachFill, Palette.PeachInk))
-                    else Brush.verticalGradient(listOf(Palette.PinkLine, Palette.Pink))
+                    val bar = if (off) Palette.Orange else Palette.Pink
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Text(
                             "$v", fontSize = 11.sp, fontFamily = Rounded, fontWeight = FontWeight.Bold,
-                            color = if (off) Palette.PeachInk else Palette.InkSoft,
+                            color = if (off) Palette.Orange else Palette.InkSoft,
                         )
                         Spacer(Modifier.height(3.dp))
                         Box(
                             Modifier.width(14.dp).height((140 * v / maxV * anim.value).dp.coerceAtLeast(4.dp))
-                                .clip(RoundedCornerShape(7.dp)).background(brush),
+                                .clip(RoundedCornerShape(7.dp)).background(bar),
                         )
                         Spacer(Modifier.height(4.dp))
                         Text("${start.monthValue}月", fontSize = 10.sp, color = Palette.InkFaint)
