@@ -18,8 +18,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -59,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +81,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -97,6 +102,7 @@ import com.nuanyue.app.domain.Phase
 import com.nuanyue.app.ui.AppViewModel
 import com.nuanyue.app.ui.UiState
 import com.nuanyue.app.ui.components.DateChip
+import com.nuanyue.app.ui.components.dayKind
 import com.nuanyue.app.ui.components.LegendDot
 import com.nuanyue.app.ui.components.LocalMotion
 import com.nuanyue.app.ui.components.Mascot
@@ -107,8 +113,10 @@ import com.nuanyue.app.ui.components.PrimaryButton
 import com.nuanyue.app.ui.components.SlidingSegmented
 import com.nuanyue.app.ui.components.Sticker
 import com.nuanyue.app.ui.components.pressScale
+import com.nuanyue.app.ui.theme.NyColors
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.Rounded
+import com.nuanyue.app.ui.theme.dayVisual
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -284,62 +292,82 @@ private fun moodFor(state: UiState, now: LocalTime): MoonMood = when {
 @Composable
 private fun CompactHeader(state: UiState, mode: Int, now: LocalTime, motion: Boolean, roomy: Boolean, onMode: (Int) -> Unit) {
     val t = state.snapshot.today
-    val name = state.settings.nickname.takeIf { it.isNotBlank() && !state.settings.isPartner }
-    val hello = Copy.greeting(now) + (name?.let { "，$it" } ?: "")
-    val mood = if (state.settings.isPartner) "正在陪她一起看着日子" else Copy.mood(t.phase)
-    Row(
-        Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = if (roomy) 2.dp else 0.dp, bottom = if (roomy) 6.dp else 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            SlidingSegmented(
-                listOf(Icons.Outlined.CalendarMonth, Icons.Outlined.CalendarViewMonth, Icons.Outlined.DonutLarge),
-                mode, onMode, itemSize = if (roomy) 34.dp else 30.dp, descriptions = listOf("月历", "整年", "周期环"),
-            )
-            Spacer(Modifier.height(if (roomy) 4.dp else 2.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    hello,
-                    style = if (roomy) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                StatusPill(state)
-            }
-            Text(mood, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val today = state.today
+    val week = listOf("一", "二", "三", "四", "五", "六", "日")[today.dayOfWeek.value - 1]
+    val number = t.cycleDay?.toString() ?: "–"
+    val hero = if (roomy) 52.sp else 36.sp
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (roomy) 4.dp else 0.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ViewSwitch(mode, onMode, Modifier.weight(1f))
+            Mascot(Modifier.padding(start = 8.dp).size(if (roomy) 40.dp else 32.dp), moodFor(state, now), motion = motion)
         }
-        Mascot(Modifier.padding(start = 6.dp).size(if (roomy) 44.dp else 36.dp), moodFor(state, now), motion = motion)
+        Text(
+            "${today.monthValue}月${today.dayOfMonth}日 周$week",
+            color = NyColors.InkSecondary,
+            fontSize = 12.sp,
+            maxLines = 1,
+            modifier = Modifier.padding(top = if (roomy) 8.dp else 2.dp),
+        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("第", fontSize = if (roomy) 22.sp else 16.sp, color = NyColors.Ink)
+            Numeral(number, hero, NyColors.Ink, weight = FontWeight.SemiBold)
+            Text("天", fontSize = if (roomy) 22.sp else 16.sp, color = NyColors.Ink, modifier = Modifier.padding(bottom = if (roomy) 6.dp else 2.dp))
+        }
+        HeroSubtitle(state)
     }
 }
 
 @Composable
-private fun StatusPill(state: UiState) {
-    val snap = state.snapshot
-    val t = snap.today
-    val (prefix, num, suffix) = when {
-        !snap.hasData -> Triple("还没有记录", "", "")
-        t.phase == Phase.MENSTRUAL -> Triple("经期第", "${t.periodDay}", "天")
-        t.lateDays > 0 -> Triple("已推迟", "${t.lateDays}", "天")
-        t.daysUntilNext == 0 -> Triple("可能今天来", "", "")
-        else -> Triple("还有", "${t.daysUntilNext}", "天")
-    }
+private fun ViewSwitch(mode: Int, onMode: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val items = listOf(
+        Icons.Outlined.CalendarMonth to "月历",
+        Icons.Outlined.CalendarViewMonth to "整年",
+        Icons.Outlined.DonutLarge to "周期环",
+    )
     Row(
-        Modifier.clip(CircleShape).background(Palette.PinkSoft).border(1.dp, Palette.Pink, CircleShape)
-            .padding(horizontal = 10.dp, vertical = 3.dp),
+        modifier.clip(CircleShape).background(Color.White).border(1.dp, NyColors.Hairline, CircleShape).padding(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val ink = Palette.Pink
-        Text(prefix, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        if (num.isNotEmpty()) {
-            AnimatedContent(
-                num,
-                transitionSpec = { slideInVertically { -it } + fadeIn() togetherWith slideOutVertically { it } + fadeOut() },
-                label = "num",
-            ) { n ->
-                Numeral(n, 15.sp, ink, weight = FontWeight.ExtraBold)
+        items.forEachIndexed { i, (icon, label) ->
+            val on = i == mode
+            Row(
+                Modifier.clip(CircleShape)
+                    .background(if (on) Color.White else Color.Transparent)
+                    .border(if (on) 1.dp else 0.dp, if (on) NyColors.Hairline else Color.Transparent, CircleShape)
+                    .clickable { onMode(i) }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(icon, label, tint = if (on) NyColors.Ink else NyColors.InkSecondary, modifier = Modifier.size(14.dp))
+                Text(
+                    label,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (on) NyColors.Ink else NyColors.InkSecondary,
+                    modifier = Modifier.padding(start = 2.dp),
+                )
             }
-            Text(suffix, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun HeroSubtitle(state: UiState) {
+    val t = state.snapshot.today
+    val next = t.nextStart
+    val nextText = if (next == null) "还不确定" else "${next.monthValue}月${next.dayOfMonth}日"
+    when {
+        !state.snapshot.hasData -> Text("记下第一次月经开始", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
+        t.phase == Phase.MENSTRUAL && t.periodDaysLeft != null -> Text(
+            "这次大概还有 ${t.periodDaysLeft} 天，下次月经预计 $nextText",
+            color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
+        t.lateDays > 0 -> Text("已推迟 ${t.lateDays} 天", color = NyColors.RoseStrong, fontSize = 12.sp, maxLines = 1)
+        else -> Row {
+            Text("距下次月经约 ", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
+            Text("${t.daysUntilNext ?: "–"}", color = NyColors.RoseStrong, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text(" 天 · 预计 $nextText", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
         }
     }
 }
@@ -382,7 +410,7 @@ private fun MonthView(
             Spacer(Modifier.weight(1f))
             if (pager.currentPage != MONTHS_BACK) {
                 Text(
-                    "回今天", fontSize = 12.sp, color = Palette.Pink, maxLines = 1,
+                    "回今天", fontSize = 12.sp, color = NyColors.RoseStrong, maxLines = 1,
                     modifier = Modifier.clip(CircleShape).background(Palette.PinkSoft).clickable {
                         scope.launch { pager.animateScrollToPage(MONTHS_BACK) }
                         onSelect(state.today)
@@ -396,21 +424,20 @@ private fun MonthView(
             listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { i, d ->
                 Text(
                     d, modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
-                    fontSize = 12.sp, maxLines = 1, color = if (i >= 5) Palette.Pink else Palette.Sky,
+                    fontSize = 12.sp, maxLines = 1, color = if (i >= 5) NyColors.Weekend else NyColors.InkSecondary,
                 )
             }
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val ym = base.plusMonths((pager.currentPage - MONTHS_BACK).toLong())
             val rows = weekRows(ym).coerceAtLeast(1)
-            val gap = 6.dp
-            val fontScale = LocalDensity.current.fontScale
-            val legendBlock = (20.dp * fontScale).coerceIn(18.dp, 28.dp)
-            val cellFromW = ((maxWidth - gap * 6) / 7).coerceAtLeast(0.dp)
+            val legendBlock = 22.dp
             val gridBudget = (maxHeight - legendBlock).coerceAtLeast(0.dp)
-            val cellFromH = ((gridBudget - gap * (rows - 1)) / rows).coerceAtLeast(0.dp)
-            val cell = minOf(cellFromW, cellFromH, 40.dp)
-            val gridH = (cell * rows + gap * (rows - 1)).coerceAtLeast(1.dp)
+            val preferredRow = if (roomy) 48.dp else 40.dp
+            val rowH = minOf(preferredRow, gridBudget / rows).coerceAtLeast(1.dp)
+            val chip = minOf(if (roomy) 36.dp else 32.dp, rowH - 4.dp).coerceAtLeast(16.dp)
+            val gridH = rowH * rows
+            val monthTypes = (1..ym.lengthOfMonth()).map { infos[ym.atDay(it)]?.type }.toSet()
             Column(Modifier.fillMaxSize()) {
                 HorizontalPager(
                     pager,
@@ -420,17 +447,17 @@ private fun MonthView(
                 ) { page ->
                     val pageYm = base.plusMonths((page - MONTHS_BACK).toLong())
                     val drift = if (LocalMotion.current) pager.currentPageOffsetFraction else 0f
-                    MonthGrid(pageYm, cell, gap, infos, state.today, selected, drift, onSelect)
+                    MonthGrid(pageYm, chip, rowH, infos, state.today, selected, drift, onSelect)
                 }
                 FlowRow(
                     Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    LegendDot(Palette.Pink, "经期")
-                    LegendDot(Palette.Pink, "预测", hollow = true)
-                    LegendDot(Palette.Orange, "易孕")
-                    LegendDot(Palette.Pink, "排卵", heart = true)
+                    if (DayType.PERIOD in monthTypes) LegendDot(NyColors.PeriodFill, "经期")
+                    if (DayType.PREDICTED_PERIOD in monthTypes) LegendDot(NyColors.PredictedOutline, "预测", dashed = true)
+                    if (DayType.FERTILE in monthTypes || DayType.OVULATION in monthTypes) LegendDot(NyColors.Fertile, "易孕期")
+                    if (DayType.OVULATION in monthTypes) LegendDot(NyColors.Ovulation, "排卵日")
                 }
                 Spacer(Modifier.weight(1f))
             }
@@ -454,8 +481,8 @@ private fun ArrowBtn(icon: ImageVector, onClick: () -> Unit) {
 @Composable
 private fun MonthGrid(
     ym: YearMonth,
-    cell: Dp,
-    gap: Dp,
+    chip: Dp,
+    rowH: Dp,
     infos: Map<LocalDate, DayInfo>,
     today: LocalDate,
     selected: LocalDate,
@@ -465,16 +492,13 @@ private fun MonthGrid(
     val first = ym.atDay(1)
     val lead = first.dayOfWeek.value - java.time.DayOfWeek.MONDAY.value
     val rows = weekRows(ym)
-    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+    Column {
         for (r in 0 until rows) {
-            Row(
-                Modifier.fillMaxWidth().height(cell),
-                horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
-            ) {
+            Row(Modifier.fillMaxWidth().height(rowH)) {
                 for (c in 0 until 7) {
                     val idx = r * 7 + c - lead
                     Box(
-                        Modifier.size(cell).graphicsLayer {
+                        Modifier.weight(1f).fillMaxHeight().graphicsLayer {
                             translationY = drift * (c - 3) * 6f
                             alpha = 1f - kotlin.math.abs(drift) * 0.15f
                         },
@@ -487,8 +511,7 @@ private fun MonthGrid(
                                 infos[d]?.type ?: DayType.UNKNOWN,
                                 d == today,
                                 d == selected,
-                                size = cell,
-                                muted = d.isAfter(today),
+                                size = chip,
                             ) { onSelect(d) }
                         }
                     }
@@ -499,6 +522,12 @@ private fun MonthGrid(
 }
 
 // ---------------------------------------------------------------- year
+
+/**
+ * Latest measured day-grid height in px, keyed by month. The 360dp year snapshot
+ * reads this and fails when a grid lays out at zero.
+ */
+internal val LocalYearDayGridHeight = staticCompositionLocalOf<((Int, Int) -> Unit)?> { null }
 
 @Composable
 private fun YearView(
@@ -512,7 +541,10 @@ private fun YearView(
     val today = state.today
     val minYear = today.minusMonths(MONTHS_BACK.toLong()).year
     val maxYear = today.plusMonths(MONTHS_FORWARD.toLong()).year
-    Column(modifier.padding(horizontal = 12.dp)) {
+    BoxWithConstraints(modifier) {
+    val narrow = maxWidth < 400.dp
+    val columns = if (narrow) 2 else 3
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ArrowBtn(Icons.AutoMirrored.Rounded.KeyboardArrowLeft) { if (year > minYear) onYear(year - 1) }
@@ -533,13 +565,42 @@ private fun YearView(
             transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
             label = "yearGrid",
         ) { y ->
-            Column(Modifier.fillMaxSize()) {
-                for (row in 0 until 4) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        for (col in 0 until 3) {
-                            val ym = YearMonth.of(y, row * 3 + col + 1)
-                            MiniMonth(ym, infos, today, Modifier.weight(1f).fillMaxHeight()) { onMonth(ym) }
+            if (narrow) {
+                NarrowYearGrid(y, infos, today, onMonth)
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    val rows = 12 / columns
+                    for (row in 0 until rows) {
+                        Row(Modifier.weight(1f).fillMaxWidth()) {
+                            for (col in 0 until columns) {
+                                val ym = YearMonth.of(y, row * columns + col + 1)
+                                MiniMonth(ym, infos, today, Modifier.weight(1f).fillMaxHeight(), stretch = true) { onMonth(ym) }
+                            }
                         }
+                    }
+                }
+            }
+        }
+    }
+    }
+}
+
+/** Two months per row. The day grid's height comes from its width, and the year body scrolls when six rows do not fit. */
+@Composable
+private fun NarrowYearGrid(
+    year: Int,
+    infos: Map<LocalDate, DayInfo>,
+    today: LocalDate,
+    onMonth: (YearMonth) -> Unit,
+) {
+    val scroll = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxWidth().verticalScroll(scroll).padding(bottom = 8.dp)) {
+            for (row in 0 until 6) {
+                Row(Modifier.fillMaxWidth()) {
+                    for (col in 0 until 2) {
+                        val ym = YearMonth.of(year, row * 2 + col + 1)
+                        MiniMonth(ym, infos, today, Modifier.weight(1f), stretch = false) { onMonth(ym) }
                     }
                 }
             }
@@ -548,7 +609,14 @@ private fun YearView(
 }
 
 @Composable
-private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: LocalDate, modifier: Modifier, onClick: () -> Unit) {
+private fun MiniMonth(
+    ym: YearMonth,
+    infos: Map<LocalDate, DayInfo>,
+    today: LocalDate,
+    modifier: Modifier,
+    stretch: Boolean,
+    onClick: () -> Unit,
+) {
     val src = remember { MutableInteractionSource() }
     val s = pressScale(src, 0.96f)
     val isNow = ym == YearMonth.from(today)
@@ -560,60 +628,74 @@ private fun MiniMonth(ym: YearMonth, infos: Map<LocalDate, DayInfo>, today: Loca
             .clickable(src, indication = null, onClick = onClick).padding(horizontal = 3.dp, vertical = 2.dp),
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Numeral("${ym.monthValue}", 14.sp, if (isNow) Palette.Pink else Palette.Ink)
+            Numeral("${ym.monthValue}", 14.sp, if (isNow) NyColors.RoseStrong else Palette.Ink)
             Text("月", fontSize = 10.sp, color = Palette.InkSoft, maxLines = 1, modifier = Modifier.padding(bottom = 1.dp))
         }
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val rowH = if (rows == 0) maxHeight else maxHeight / rows
-            val font = (rowH.value * 0.62f).coerceIn(6f, 9f)
-            val showNumbers = rowH >= 8.dp
-            Column(Modifier.fillMaxSize()) {
-                for (r in 0 until rows) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        for (c in 0 until 7) {
-                            val idx = r * 7 + c - lead
-                            Box(Modifier.weight(1f).fillMaxHeight().padding(0.5.dp), contentAlignment = Alignment.Center) {
-                                if (idx in 0 until ym.lengthOfMonth()) {
-                                    val d = first.plusDays(idx.toLong())
-                                    val type = infos[d]?.type ?: DayType.UNKNOWN
-                                    val filled = type == DayType.PERIOD || type == DayType.FERTILE || type == DayType.OVULATION
-                                    val bg = when (type) {
-                                        DayType.PERIOD -> Palette.Pink
-                                        DayType.FERTILE, DayType.OVULATION -> Palette.Orange
-                                        else -> Color.Transparent
-                                    }
-                                    val ink = when {
-                                        filled -> Color.White
-                                        type == DayType.PREDICTED_PERIOD || d == today -> Palette.Pink
-                                        else -> Palette.Ink.copy(alpha = 0.78f)
-                                    }
-                                    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        val side = minOf(maxWidth, maxHeight)
-                                        val shape = RoundedCornerShape(minOf(3.dp, side * 0.28f))
-                                        Box(
-                                            Modifier.size(side).clip(shape).background(bg)
-                                                .then(
-                                                    when {
-                                                        type == DayType.PREDICTED_PERIOD -> Modifier.border(1.dp, Palette.Pink, shape)
-                                                        d == today && !filled -> Modifier.border(1.dp, Palette.Pink, shape)
-                                                        else -> Modifier
-                                                    },
-                                                ),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            if (showNumbers) {
-                                                Text(
-                                                    if (d == today) "今" else "${d.dayOfMonth}",
-                                                    fontFamily = if (d == today) null else Rounded,
-                                                    fontSize = font.sp,
-                                                    lineHeight = font.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    maxLines = 1,
-                                                    color = ink,
-                                                )
-                                            }
-                                        }
-                                    }
+        val report = LocalYearDayGridHeight.current
+        // Wide phones share the leftover body by weight. Narrow phones must not:
+        // a weight child under the month title collapses to 0. Size the grid from
+        // its width instead (7 columns × week rows), then let the year scroll.
+        val grid = if (stretch) {
+            Modifier.weight(1f).fillMaxWidth()
+        } else {
+            Modifier
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    report?.invoke(ym.monthValue, placeable.height)
+                    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                }
+                .fillMaxWidth()
+                .aspectRatio(7f / rows)
+        }
+        DayGrid(ym, infos, today, first, lead, rows, grid)
+    }
+}
+
+@Composable
+private fun DayGrid(
+    ym: YearMonth,
+    infos: Map<LocalDate, DayInfo>,
+    today: LocalDate,
+    first: LocalDate,
+    lead: Int,
+    rows: Int,
+    modifier: Modifier,
+) {
+    Column(modifier) {
+        for (r in 0 until rows) {
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                for (c in 0 until 7) {
+                    val idx = r * 7 + c - lead
+                    Box(Modifier.weight(1f).fillMaxHeight().padding(0.5.dp), contentAlignment = Alignment.Center) {
+                        if (idx in 0 until ym.lengthOfMonth()) {
+                            val d = first.plusDays(idx.toLong())
+                            val type = infos[d]?.type ?: DayType.UNKNOWN
+                            val visual = dayVisual(type.dayKind())
+                            BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                val side = minOf(maxWidth, maxHeight)
+                                val shape = RoundedCornerShape(minOf(4.dp, side * 0.28f))
+                                Box(
+                                    Modifier.size(side).clip(shape).background(visual.fill ?: Color.Transparent)
+                                        .then(
+                                            when {
+                                                visual.dashed && visual.stroke != null -> Modifier.border(1.dp, visual.stroke, shape)
+                                                d == today -> Modifier.border(1.dp, NyColors.TodayRing, shape)
+                                                else -> Modifier
+                                            },
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "${d.dayOfMonth}",
+                                        fontFamily = Rounded,
+                                        fontSize = 8.sp,
+                                        lineHeight = 8.sp,
+                                        fontWeight = visual.weight,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip,
+                                        color = visual.text,
+                                    )
                                 }
                             }
                         }
@@ -733,7 +815,7 @@ private fun CycleRingView(
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { which = i }.padding(horizontal = 4.dp, vertical = 2.dp),
                 ) {
                     Text(label, fontSize = 15.sp, maxLines = 1, fontWeight = if (which == i) FontWeight.Bold else FontWeight.Normal, color = if (which == i) Palette.Ink else Palette.InkFaint)
-                    Box(Modifier.padding(top = 2.dp).size(5.dp).graphicsLayer { scaleX = dot; scaleY = dot }.clip(CircleShape).background(Palette.Pink))
+                    Box(Modifier.padding(top = 2.dp).size(5.dp).graphicsLayer { scaleX = dot; scaleY = dot }.clip(CircleShape).background(NyColors.Rose))
                 }
             }
         }
@@ -752,7 +834,7 @@ private fun CycleRingView(
                             .offset((radius.value * cos(angle)).dp, (radius.value * sin(angle)).dp)
                             .graphicsLayer { alpha = local; scaleX = 0.5f + 0.5f * local; scaleY = 0.5f + 0.5f * local },
                     ) {
-                        DateChip("${d.dayOfMonth}", infos[d]?.type ?: DayType.UNKNOWN, d == today, d == selected, chip, muted = d.isAfter(today)) { onSelect(d) }
+                        DateChip("${d.dayOfMonth}", infos[d]?.type ?: DayType.UNKNOWN, d == today, d == selected, chip) { onSelect(d) }
                     }
                     if (d.dayOfMonth == 1 || i == 0) {
                         val lr = radius - chip
@@ -766,7 +848,7 @@ private fun CycleRingView(
                 val centre = (radius * 2 - chip * 2 - 28.dp).coerceAtLeast(48.dp)
                 val big = if (side < 240.dp) 22.sp else 32.sp
                 Column(
-                    Modifier.align(Alignment.Center).size(centre).clip(CircleShape).background(Palette.SkySoft).padding(4.dp),
+                    Modifier.align(Alignment.Center).size(centre).clip(CircleShape).background(Color.White).padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -779,8 +861,8 @@ private fun CycleRingView(
                         Text("天", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 3.dp))
                     }
                     Text(
-                        "%d-%02d-%02d".format(selected.year, selected.monthValue, selected.dayOfMonth),
-                        fontFamily = Rounded, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Palette.Sky, maxLines = 1,
+                        "${selected.monthValue}月${selected.dayOfMonth}日",
+                        fontWeight = FontWeight.Medium, fontSize = 12.sp, color = NyColors.InkSecondary, maxLines = 1,
                     )
                 }
             }
@@ -815,61 +897,61 @@ private fun DayDock(
         dayActions(date, state.today, state.snapshot.periods)
     }
     val brief = dayBrief(date, state.today, info, state.snapshot)
-    val sheet = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+    val week = listOf("一", "二", "三", "四", "五", "六", "日")[date.dayOfWeek.value - 1]
+    val sheet = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     Column(
         Modifier.fillMaxWidth()
-            .shadow(8.dp, sheet, clip = false, ambientColor = Color(0x0A2B3040), spotColor = Color(0x142B3040))
             .clip(sheet)
-            .background(Palette.Sheet)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (roomy) 8.dp else 4.dp),
+            .background(NyColors.SurfaceSunken)
+            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = if (roomy) 8.dp else 4.dp),
     ) {
         Box(
-            Modifier.align(Alignment.CenterHorizontally).padding(bottom = 8.dp)
-                .size(width = 36.dp, height = 4.dp).clip(CircleShape).background(Color(0xFFD8DCE6)),
+            Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp)
+                .size(width = 36.dp, height = 4.dp).clip(CircleShape).background(NyColors.Hairline),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(brief.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    brief.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = if (roomy) 2 else 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                "${date.monthValue}月${date.dayOfMonth}日 周$week",
+                fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = NyColors.Ink,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(brief.title, fontSize = 12.sp, maxLines = 1, color = NyColors.InkSecondary, overflow = TextOverflow.Ellipsis)
             if (date != state.today) {
                 Text(
-                    "回到今天", fontSize = 12.sp, color = Palette.Sky, maxLines = 1,
-                    modifier = Modifier.clip(CircleShape).clickable(onClick = onToday).padding(horizontal = 6.dp, vertical = 4.dp),
+                    "回到今天", fontSize = 12.sp, color = NyColors.RoseStrong, maxLines = 1,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onToday).padding(start = 8.dp, top = 2.dp, bottom = 2.dp),
                 )
             }
         }
-        Spacer(Modifier.height(if (roomy) 10.dp else 6.dp))
+        Spacer(Modifier.height(if (roomy) 8.dp else 4.dp))
         if (state.settings.isPartner) {
             Text("这是她的记录，只能查看", style = MaterialTheme.typography.bodySmall, maxLines = 1)
         } else {
-            val ordered = listOfNotNull(actions.primary, actions.secondary).sortedByDescending { it.pending.start }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally),
-            ) {
-                ordered.forEach { action ->
-                    PeriodButton(
-                        icon = if (action.pending.start) Icons.Rounded.PlayArrow else Icons.Rounded.Stop,
-                        label = action.label,
-                        active = action == actions.primary && actions.blockedReason == null,
-                        tint = Palette.Pink,
-                        enabled = actions.blockedReason == null,
-                        onClick = {
+            PrimaryButton(
+                actions.primary.label,
+                onClick = {
+                    val reason = actions.blockedReason
+                    if (reason != null) onToast(reason) else onAsk(actions.primary.pending)
+                },
+                modifier = Modifier.fillMaxWidth().testTag("home-primary"),
+                enabled = actions.blockedReason == null,
+                height = if (roomy) 48.dp else 44.dp,
+            )
+            actions.secondary?.let { secondary ->
+                Text(
+                    secondary.label,
+                    color = NyColors.RoseStrong,
+                    fontSize = 12.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).testTag("home-secondary")
+                        .clip(CircleShape)
+                        .clickable {
                             val reason = actions.blockedReason
-                            if (reason != null) onToast(reason) else onAsk(action.pending)
-                        },
-                        modifier = Modifier.testTag(if (action == actions.primary) "home-primary" else "home-secondary"),
-                    )
-                }
+                            if (reason != null) onToast(reason) else onAsk(secondary.pending)
+                        }
+                        .padding(vertical = 4.dp),
+                )
             }
         }
-        Spacer(Modifier.height(if (roomy) 6.dp else 2.dp))
         PhraseLine(phrase, onNextPhrase, roomy)
     }
 }
@@ -895,7 +977,7 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit, roomy: Boolean
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Text("换一句", color = Palette.InkFaint, fontSize = 12.sp, maxLines = 1)
+        Text("换一句", color = NyColors.InkSecondary, fontSize = 12.sp, maxLines = 1)
     }
 }
 
@@ -903,36 +985,62 @@ private fun PhraseLine(phrase: PhraseEntity?, onNext: () -> Unit, roomy: Boolean
 private fun ConfirmSheet(p: Pending, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val md = "${p.date.monthValue}月${p.date.dayOfMonth}日"
-    val (title, body, sticker) = when {
-        p.start && p.undo -> Triple("取消 $md 的开始？", "这次经期会删掉，预测会重算。", R.drawable.st_cloud)
-        p.start -> Triple("$md 月经来了吗？", "这天会记成这次经期的第一天，之后的预测跟着改。", R.drawable.st_drop)
-        p.undo -> Triple("取消 $md 的结束？", "会改回这次经期还没结束。", R.drawable.st_cloud)
-        else -> Triple("$md 月经走了吗？", "这天会记成这次经期的最后一天。", R.drawable.st_bottle)
-    }
-    val wobble = remember { Animatable(-8f) }
-    LaunchedEffect(Unit) { wobble.animateTo(0f, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
-        containerColor = Palette.Card,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = Palette.InkFaint) },
+        containerColor = Color.White,
+        dragHandle = null,
     ) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 22.dp).navigationBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Sticker(sticker, Modifier.size(40.dp).graphicsLayer { rotationZ = wobble.value })
-            Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(4.dp))
-            Text(body, style = MaterialTheme.typography.bodySmall, color = Palette.InkSoft, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryButton("再想想", { scope.launch { sheet.hide(); onDismiss() } }, Modifier.weight(1f), height = 44.dp, container = Palette.Panel, content = Palette.InkSoft)
-                PrimaryButton(if (p.undo) "确认取消" else "确认", { scope.launch { sheet.hide(); onConfirm() } }, Modifier.weight(1f), height = 44.dp)
+        ConfirmBody(p, onDismiss = { scope.launch { sheet.hide(); onDismiss() } }, onConfirm = { scope.launch { sheet.hide(); onConfirm() } })
+    }
+}
+
+@Composable
+internal fun ConfirmBody(p: Pending, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val weekNames = listOf("一", "二", "三", "四", "五", "六", "日")
+    val week = weekNames[p.date.dayOfWeek.value - 1]
+    val (title, body, dateLabel) = when {
+        p.start && p.undo -> Triple("取消开始？", "这次经期会删掉，之后的预测会重算。", "开始日期")
+        p.start -> Triple("月经来了？", "确认后会记录为本次经期第 1 天，并更新之后的预测。", "开始日期")
+        p.undo -> Triple("取消结束？", "会改回这次经期还没结束。", "结束日期")
+        else -> Triple("月经走了？", "这天会记成这次经期的最后一天。", "结束日期")
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).navigationBarsPadding().padding(bottom = 12.dp)) {
+        Box(
+            Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp, bottom = 16.dp)
+                .size(width = 36.dp, height = 4.dp).clip(CircleShape).background(NyColors.Hairline),
+        )
+        Text(title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = NyColors.Ink)
+        Spacer(Modifier.height(6.dp))
+        Text(body, fontSize = 13.sp, color = NyColors.InkSecondary)
+        Spacer(Modifier.height(14.dp))
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(NyColors.SurfaceSunken).padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(dateLabel, fontSize = 13.sp, color = NyColors.InkSecondary, modifier = Modifier.weight(1f))
+                Text("${p.date.monthValue}月${p.date.dayOfMonth}日 周$week", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = NyColors.Ink)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                (-3..3).forEach { offset ->
+                    val d = p.date.plusDays(offset.toLong())
+                    val on = offset == 0
+                    Column(
+                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if (on) NyColors.PrimaryButton else Color.Transparent).padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(weekNames[d.dayOfWeek.value - 1], fontSize = 11.sp, color = if (on) Color.White else NyColors.InkSecondary)
+                        Text("${d.dayOfMonth}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (on) Color.White else NyColors.Ink)
+                    }
+                }
+            }
         }
+        Spacer(Modifier.height(18.dp))
+        PrimaryButton(if (p.undo) "确认取消" else "确认", onConfirm, Modifier.fillMaxWidth(), height = 52.dp)
+        Text(
+            "再想想",
+            color = NyColors.RoseStrong,
+            fontSize = 14.sp,
+            modifier = Modifier.align(Alignment.CenterHorizontally).clip(CircleShape).clickable(onClick = onDismiss).padding(vertical = 10.dp),
+        )
     }
 }

@@ -1,9 +1,11 @@
 package com.nuanyue.app
 
 import com.nuanyue.app.ui.theme.FeedbackColors
+import com.nuanyue.app.ui.theme.NyColors
 import com.nuanyue.app.ui.theme.contrastRatio
 import com.nuanyue.app.ui.theme.relativeLuminance
 import com.nuanyue.app.ui.theme.toastHoldMs
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,6 +24,21 @@ class FeedbackTest {
         assertTrue(contrastRatio(FeedbackColors.MATERIAL_INVERSE_SURFACE, FeedbackColors.INK) < 2.0)
     }
 
+    @Test fun tokenTextPairsMeetAa() {
+        assertTrue(contrastRatio(NyColors.Ink.argb(), NyColors.Bg.argb()) >= 7.0)
+        assertTrue(contrastRatio(NyColors.InkSecondary.argb(), NyColors.Bg.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.InkSecondary.argb(), NyColors.Surface.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.InkSecondary.argb(), NyColors.SurfaceSunken.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.RoseStrong.argb(), NyColors.Bg.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.RoseStrong.argb(), NyColors.Surface.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.RoseStrong.argb(), NyColors.SurfaceSunken.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.Weekend.argb(), NyColors.Bg.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.TabUnselected.argb(), NyColors.Surface.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.OnPeriod.argb(), NyColors.PeriodFill.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.OnPrimaryButton.argb(), NyColors.PrimaryButton.argb()) >= 4.5)
+        assertTrue(contrastRatio(NyColors.Ink.argb(), NyColors.Fertile.argb()) >= 4.5)
+    }
+
     @Test fun toastStaysUpLongEnoughToRead() {
         assertEquals(2400L, toastHoldMs("同步完成"))
         val longer = toastHoldMs("邀请码生成好啦，发给他就可以一起看了")
@@ -29,4 +46,9 @@ class FeedbackTest {
         assertTrue(longer <= 4200L)
         assertEquals(4200L, toastHoldMs("错".repeat(80)))
     }
+}
+
+private fun Color.argb(): Long {
+    fun channel(x: Float) = (x * 255f).toInt().coerceIn(0, 255).toLong()
+    return (channel(alpha) shl 24) or (channel(red) shl 16) or (channel(green) shl 8) or channel(blue)
 }

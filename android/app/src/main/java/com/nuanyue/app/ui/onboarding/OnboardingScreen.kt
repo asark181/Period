@@ -77,6 +77,7 @@ import com.nuanyue.app.ui.components.Mascot
 import com.nuanyue.app.ui.components.Numeral
 import com.nuanyue.app.ui.components.Pill
 import com.nuanyue.app.ui.components.PrimaryButton
+import com.nuanyue.app.ui.theme.NyColors
 import com.nuanyue.app.ui.theme.Palette
 import com.nuanyue.app.ui.theme.Rounded
 import java.time.Instant
@@ -92,6 +93,7 @@ fun OnboardingScreen(
     onInvite: (code: String, asPartner: Boolean, onError: (String) -> Unit) -> Unit,
 ) {
     var step by rememberSaveable { mutableIntStateOf(0) }
+    var self by rememberSaveable { mutableStateOf(true) }
     var nickname by rememberSaveable { mutableStateOf("") }
     var periodLen by rememberSaveable { mutableIntStateOf(5) }
     var cycleLen by rememberSaveable { mutableIntStateOf(28) }
@@ -129,8 +131,8 @@ fun OnboardingScreen(
                 ) { s ->
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         when (s) {
-                            0 -> Welcome()
-                            INVITE -> InviteStep(syncing) { code, partner, onError -> askNotify(); onInvite(code, partner, onError) }
+                            0 -> RolePick(self) { self = it }
+                            INVITE -> InviteStep(syncing, startAsPartner = true) { code, partner, onError -> askNotify(); onInvite(code, partner, onError) }
                             1 -> NameStep(nickname) { nickname = it }
                             2 -> {
                                 StepTitle("上一次大姨妈是哪天来的？", "记不清也没关系，可以跳过，下次来的那天再点就好。")
@@ -160,8 +162,8 @@ fun OnboardingScreen(
                 Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     when {
                         step == 0 -> Text(
-                            "我有邀请码", color = Palette.Pink, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clip(CircleShape).clickable { step = INVITE }.padding(12.dp),
+                            "数据仅保存在你的手机，可随时导出。",
+                            color = NyColors.InkSecondary, fontSize = 12.sp,
                         )
                         else -> Text("上一步", color = Palette.InkSoft, modifier = Modifier.clip(CircleShape).clickable { step-- }.padding(12.dp))
                     }
@@ -170,10 +172,20 @@ fun OnboardingScreen(
                         Text("跳过", color = Palette.InkSoft, modifier = Modifier.clip(CircleShape).clickable { step++ }.padding(12.dp))
                         Spacer(Modifier.width(8.dp))
                     }
+                    if (step != 0) {
+                        PrimaryButton(
+                            when (step) { 3 -> "完成"; else -> "下一步" },
+                            onClick = { if (step < 3) step++ else finish() },
+                            enabled = step != 2 || dateState.selectedDateMillis != null,
+                        )
+                    }
+                }
+                if (step == 0) {
                     PrimaryButton(
-                        when (step) { 0 -> "开始使用"; 3 -> "完成"; else -> "下一步" },
-                        onClick = { if (step < 3) step++ else finish() },
-                        enabled = step != 2 || dateState.selectedDateMillis != null,
+                        "继续",
+                        onClick = { if (self) step = 1 else step = INVITE },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        height = 52.dp,
                     )
                 }
             } else {
@@ -197,34 +209,48 @@ private fun StepDots(step: Int) {
 }
 
 @Composable
-private fun Welcome() {
-    val pop = remember { Animatable(0.86f) }
-    LaunchedEffect(Unit) {
-        pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow))
-    }
-    Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Square art with wide empty margins. A 16:10 crop keeps 小月 and the notebook
-        // and leaves room for the title underneath.
-        Box(contentAlignment = Alignment.Center) {
-            FloatingSticker(R.drawable.st_cloud, Modifier.offset(x = (-128).dp, y = (-92).dp).size(34.dp), rotation = -8f, periodMs = 2800)
-            Image(
-                painter = painterResource(R.drawable.illu_welcome),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth(0.88f)
-                    .widthIn(max = 380.dp)
-                    .aspectRatio(1.6f)
-                    .graphicsLayer { scaleX = pop.value; scaleY = pop.value },
-            )
-        }
-        Spacer(Modifier.height(20.dp))
-        Text("你好呀，我是小月", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
+internal fun RolePick(self: Boolean, onSelf: (Boolean) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Text(
-            "帮你记下每次月经开始和结束，\n算出下一次大概哪天来，\n快到的时候提醒你。",
-            style = MaterialTheme.typography.bodyLarge, color = Palette.InkSoft, textAlign = TextAlign.Center, lineHeight = 26.sp,
+            "1 / 2",
+            fontSize = 13.sp,
+            color = NyColors.InkSecondary,
+            modifier = Modifier.align(Alignment.End).clip(CircleShape).background(Color.White).border(1.dp, NyColors.Hairline, CircleShape).padding(horizontal = 12.dp, vertical = 4.dp),
         )
+        Spacer(Modifier.height(16.dp))
+        Mascot(Modifier.size(72.dp), interactive = false)
+        Spacer(Modifier.height(20.dp))
+        Text("欢迎来到暖月", fontSize = 28.sp, fontWeight = FontWeight.Medium, color = NyColors.Ink)
+        Spacer(Modifier.height(8.dp))
+        Text("先告诉我们，你是谁在用。", fontSize = 15.sp, color = NyColors.InkSecondary)
+        Spacer(Modifier.height(28.dp))
+        RoleCard("我是本人", "记录自己的经期，查看预测与提醒", self) { onSelf(true) }
+        Spacer(Modifier.height(16.dp))
+        RoleCard("我是伴侣", "输入她的邀请码，同步查看周期", !self) { onSelf(false) }
+    }
+}
+
+@Composable
+private fun RoleCard(title: String, body: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+            .background(if (selected) NyColors.RoseContainer else Color.White)
+            .border(if (selected) 1.5.dp else 1.dp, if (selected) NyColors.Rose else NyColors.Hairline, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = NyColors.Ink)
+            Spacer(Modifier.height(4.dp))
+            Text(body, fontSize = 13.sp, color = NyColors.InkSecondary)
+        }
+        Box(
+            Modifier.size(24.dp).border(1.5.dp, if (selected) NyColors.Rose else NyColors.InkTertiary, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) Box(Modifier.size(12.dp).clip(CircleShape).background(NyColors.Rose))
+        }
     }
 }
 
@@ -251,9 +277,9 @@ private fun NameStep(value: String, onChange: (String) -> Unit) {
 }
 
 @Composable
-private fun InviteStep(syncing: Boolean, onSubmit: (String, Boolean, (String) -> Unit) -> Unit) {
+private fun InviteStep(syncing: Boolean, startAsPartner: Boolean = false, onSubmit: (String, Boolean, (String) -> Unit) -> Unit) {
     var code by remember { mutableStateOf("") }
-    var partner by remember { mutableStateOf(false) }
+    var partner by remember { mutableStateOf(startAsPartner) }
     var error by remember { mutableStateOf<String?>(null) }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Spacer(Modifier.height(40.dp))

@@ -1,5 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 暖月颜色资源（供桌面小组件 RemoteViews 等无法使用 Compose 的场景）。
+     由 spec/gen_colors_xml.py 从 tokens.kt 生成，必须与 tokens.kt 同值；改色请先改 tokens.kt 再重新生成。仅浅色模式。 -->
 <resources>
-    <color name="paper">#FFF6F7</color>
-    <color name="ink">#4A3540</color>
-    <color name="rouge">#FFE4EA</color>
+    <color name="ny_bg">#FFFFF9F8</color> <!-- Bg：页面暖白底 -->
+    <color name="ny_bg_wash">#FFFFF0F2</color> <!-- BgWash：顶部晕染起点 -->
+    <color name="ny_surface">#FFFFFFFF</color> <!-- Surface：卡片/小组件底 -->
+    <color name="ny_surface_sunken">#FFFBF3F2</color> <!-- SurfaceSunken：次级底 -->
+    <color name="ny_divider">#FFF3E6E8</color> <!-- Hairline：分割线/1dp 描边 -->
+    <color name="ny_ink">#FF4A3540</color> <!-- Ink：主文字 -->
+    <color name="ny_ink_secondary">#FF7B6571</color> <!-- InkSecondary：次文字 ≥4.5:1 -->
+    <color name="ny_ink_tertiary">#FFBCA9B2</color> <!-- InkTertiary：仅图标/禁用 -->
+    <color name="ny_tab_unselected">#FF876E7C</color> <!-- TabUnselected：未选 tab 文字 -->
+    <color name="ny_weekend">#FFB64C67</color> <!-- Weekend：六/日 表头 -->
+    <color name="ny_rose">#FFEC6482</color> <!-- Rose：品牌玫瑰，仅非文字图形 -->
+    <color name="ny_period_fill">#FFF39BAE</color> <!-- PeriodFill：经期日色块 -->
+    <color name="ny_on_period">#FF4A3540</color> <!-- OnPeriod：经期日数字 -->
+    <color name="ny_primary_button">#FFD04362</color> <!-- PrimaryButton：主按钮底 -->
+    <color name="ny_on_primary_button">#FFFFFFFF</color> <!-- OnPrimaryButton：主按钮文字 -->
+    <color name="ny_rose_strong">#FFB93A5B</color> <!-- RoseStrong：玫瑰色文字 -->
+    <color name="ny_rose_container">#FFFFE8ED</color> <!-- RoseContainer：浅玫瑰底/徽章底 -->
+    <color name="ny_rose_outline">#FFF4A8B8</color> <!-- RoseOutline：通用浅玫瑰描边 -->
+    <color name="ny_predicted_outline">#FFEB8399</color> <!-- PredictedOutline：预测经期 1.5dp 虚线 -->
+    <color name="ny_fertile">#FFFFF1DC</color> <!-- Fertile：易孕浅底 -->
+    <color name="ny_ovulation_dot">#FFF0A23A</color> <!-- Ovulation：排卵圆点 -->
+    <color name="ny_today_ring">#FF4A3540</color> <!-- TodayRing：今天外环 -->
 </resources>
