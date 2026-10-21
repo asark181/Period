@@ -97,9 +97,7 @@ internal class SettingsActions(
     val syncNow: () -> Unit = {},
     val toast: (String) -> Unit = {},
     val exportJson: suspend () -> String = { "{}" },
-    val checkUpdate: suspend () -> Result<com.nuanyue.app.sync.VersionInfo> = {
-        Result.failure(IllegalStateException("no network"))
-    },
+    val checkUpdate: () -> Unit = {},
     val joinInvite: (String, Boolean, (Boolean, String?) -> Unit) -> Unit = { _, _, done -> done(false, null) },
     val syncLogout: () -> Unit = {},
     val clearAll: () -> Unit = {},
@@ -275,18 +273,7 @@ internal fun SettingsPage(state: UiState, actions: SettingsActions) {
                 }
             }
             ActionRow(Icons.Rounded.Download, "检查更新", "当前 ${BuildConfig.VERSION_NAME}") {
-                scope.launch {
-                    val r = actions.checkUpdate()
-                    val v = r.getOrNull()
-                    when {
-                        v == null -> actions.toast("检查失败：${r.exceptionOrNull()?.message ?: "网络异常"}")
-                        v.versionCode > BuildConfig.VERSION_CODE -> {
-                            actions.toast("有新版本 ${v.versionName}，打开下载页")
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(v.url)))
-                        }
-                        else -> actions.toast("已是最新版本")
-                    }
-                }
+                actions.checkUpdate()
             }
             if (!s.isPartner) {
                 ActionRow(Icons.Rounded.DeleteOutline, "清空所有记录", "无法恢复", danger = true) { dialog = "clear" }

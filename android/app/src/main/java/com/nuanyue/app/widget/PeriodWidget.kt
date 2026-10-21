@@ -87,11 +87,18 @@ open class PeriodWidget : AppWidgetProvider() {
                 WidgetTone.EMPTY -> R.drawable.widget_bg_empty
                 WidgetTone.CALM -> R.drawable.widget_bg_calm
             }
+            val headlineColor = when (state.tone) {
+                WidgetTone.PERIOD -> 0xFFE25373.toInt()
+                WidgetTone.FERTILE -> 0xFFD67B27.toInt()
+                WidgetTone.CALM -> 0xFF4A3540.toInt()
+                WidgetTone.EMPTY -> 0xFF4A3540.toInt()
+            }
             val open = PendingIntent.getActivity(
                 context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
             )
             return RemoteViews(context.packageName, if (wide) R.layout.widget_period_wide else R.layout.widget_period).apply {
                 setTextViewText(R.id.widget_headline, state.headline)
+                setTextColor(R.id.widget_headline, headlineColor)
                 setTextViewText(R.id.widget_detail, state.detail)
                 setTextViewText(R.id.widget_next_date, state.nextDate)
                 // 空数据也保留这一行的空间，避免按比例分配的文字区域突然变形。
@@ -100,11 +107,6 @@ open class PeriodWidget : AppWidgetProvider() {
                 setProgressBar(R.id.widget_progress, 100, state.progressPercent, false)
                 setViewVisibility(R.id.widget_progress, if (state.hasCycle) View.VISIBLE else View.INVISIBLE)
                 setInt(R.id.widget_card, "setBackgroundResource", bg)
-                if (!wide && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val side = min(widthDp, heightDp).coerceIn(1f, 600f)
-                    setViewLayoutWidth(R.id.widget_card, side, TypedValue.COMPLEX_UNIT_DIP)
-                    setViewLayoutHeight(R.id.widget_card, side, TypedValue.COMPLEX_UNIT_DIP)
-                }
                 setOnClickPendingIntent(R.id.widget_card, open)
             }
         }

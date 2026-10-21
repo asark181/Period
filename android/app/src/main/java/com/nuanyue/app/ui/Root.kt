@@ -99,7 +99,7 @@ fun NuanYueRoot(vm: AppViewModel = viewModel()) {
 
     val update by vm.update.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
-    update?.let { offer ->
+    update?.takeIf { it.sheet }?.let { offer ->
         UpdateSheet(
             offer,
             onPrimary = { vm.updatePrimary(ctx) },

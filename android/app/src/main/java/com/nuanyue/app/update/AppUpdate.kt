@@ -194,7 +194,7 @@ class AppUpdate(
             }
             // A cancelled download stays cancelled until the user taps again.
             // A different versionCode starts fresh. Background checks do not pop the sheet.
-            val cancelled = same && saved.cancelled
+            val cancelled = same && saved.cancelled && !present
             val base = (saved ?: emptySaved()).copy(
                 versionCode = next.versionCode,
                 versionName = next.versionName,

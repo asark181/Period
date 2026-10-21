@@ -1,38 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent">
-    <LinearLayout android:id="@+id/widget_card"
-        android:layout_width="110dp" android:layout_height="110dp"
-        android:layout_gravity="top|center_horizontal" android:orientation="vertical"
-        android:padding="8dp" android:background="@drawable/widget_bg_calm">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_card"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_calm"
+    android:orientation="vertical"
+    android:padding="15dp">
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="20"
-            android:orientation="horizontal" android:gravity="center_vertical">
-            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
-                android:gravity="center_vertical" android:text="暖月" android:textColor="@color/ink"
-                android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="11sp" android:maxLines="1" />
-            <ImageView android:layout_width="26dp" android:layout_height="match_parent" android:src="@drawable/widget_mascot" android:contentDescription="小月" />
-        </LinearLayout>
-        <TextView android:id="@+id/widget_headline"
-            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="28"
-            android:gravity="center_vertical" android:text="开始记录" android:fontFamily="sans-serif-medium"
-            android:textColor="@color/ink" android:maxLines="1" android:autoSizeTextType="uniform"
-            android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="26sp" android:autoSizeStepGranularity="1sp" />
-        <TextView android:id="@+id/widget_detail"
-            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="16"
-            android:gravity="center_vertical" android:text="点我记录第一次经期" android:textColor="@color/ink"
-            android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="12sp" />
-        <TextView android:id="@+id/widget_next_date"
-            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="16"
-            android:gravity="center_vertical" android:textColor="@color/ink" android:maxLines="1"
-            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="12sp" />
-        <TextView android:id="@+id/widget_cycle_label"
-            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="16"
-            android:gravity="center_vertical" android:text="记录后显示周期进度" android:textColor="@color/ink"
-            android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="10sp" />
-        <ProgressBar android:id="@+id/widget_progress" style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent" android:layout_height="4dp" android:layout_marginTop="4dp"
-            android:progressDrawable="@drawable/widget_progress" android:indeterminate="false" android:max="100" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="暖月"
+            android:textColor="#8F7582"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:includeFontPadding="false" />
+
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/widget_mascot"
+            android:contentDescription="小月" />
     </LinearLayout>
-</FrameLayout>
+
+    <TextView
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/widget_headline"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="开始记录"
+        android:textColor="#4A3540"
+        android:textSize="22sp"
+        android:fontFamily="sans-serif-medium"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="14sp"
+        android:autoSizeMaxTextSize="22sp" />
+
+    <TextView
+        android:id="@+id/widget_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="点我记录第一次经期"
+        android:textColor="#785C6B"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="8sp"
+        android:autoSizeMaxTextSize="12sp" />
+
+    <TextView
+        android:id="@+id/widget_next_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="#8F7582"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="8sp"
+        android:autoSizeMaxTextSize="11sp" />
+
+    <TextView
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/widget_cycle_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:text="记录后显示周期进度"
+        android:textColor="#9E8793"
+        android:textSize="11sp"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="8sp"
+        android:autoSizeMaxTextSize="11sp" />
+
+    <ProgressBar
+        android:id="@+id/widget_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:indeterminate="false"
+        android:max="100"
+        android:progressDrawable="@drawable/widget_progress" />
+</LinearLayout>

@@ -36,7 +36,7 @@ class WidgetLayoutTest {
     )
 
     @Test fun compactFits110DpSquare() = checkSize("small-square", snapshot(3), false, 110, 110)
-    @Test fun compactStaysSquareInsideTallHost() = checkSize("tall-host", snapshot(3), false, 140, 240, true)
+    @Test fun compactFitsTallHost() = checkSize("tall-host", snapshot(3), false, 140, 240)
     @Test fun wideFits110DpHeight() = checkSize("short-wide", snapshot(3), true, 280, 110)
 
     @Test fun squareResizeConstraintDoesNotForce160DpHeight() {
@@ -55,7 +55,7 @@ class WidgetLayoutTest {
         }
     }
 
-    private fun checkSize(name: String, state: WidgetState, wide: Boolean, width: Int, height: Int, square: Boolean = !wide) {
+    private fun checkSize(name: String, state: WidgetState, wide: Boolean, width: Int, height: Int) {
         paparazzi.unsafeUpdateConfig(deviceConfig = config(width, height))
         val parent = FrameLayout(paparazzi.context)
         val view = PeriodWidget.createViews(paparazzi.context, state, wide, width.toFloat(), height.toFloat()).apply(paparazzi.context, parent)
@@ -74,13 +74,10 @@ class WidgetLayoutTest {
             assertTrue("Clipped text: ${text.text}", layout.getLineWidth(0) <= text.width - text.paddingLeft - text.paddingRight + 1)
             assertTrue("Clipped height ${width}x${height}: ${text.text} layout=${layout.height} view=${text.height}", layout.height <= text.height - text.paddingTop - text.paddingBottom)
         }
-        if (square) {
-            val cardId = paparazzi.context.resources.getIdentifier("widget_card", "id", paparazzi.context.packageName)
-            val card = view.findViewById<View>(cardId)
-            assertNotNull("Square background card missing", card)
-            assertEquals("Tall host must not stretch the square card", card.width, card.height)
-            assertTrue(card.width <= parent.width && card.height <= parent.height)
-        }
+        val cardId = paparazzi.context.resources.getIdentifier("widget_card", "id", paparazzi.context.packageName)
+        val card = view.findViewById<View>(cardId)
+        assertNotNull("Background card missing", card)
+        assertTrue(card.width <= parent.width && card.height <= parent.height)
         assertEquals(if (state.hasCycle) View.VISIBLE else View.INVISIBLE, view.findViewById<ProgressBar>(R.id.widget_progress).visibility)
     }
 

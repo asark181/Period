@@ -261,3 +261,23 @@ adb exec-out screencap -p > /tmp/s.png
 - **SSH 的当前根因已定位到本机 TUN 路径**：本机到 `129.151.21.101` 的路由走 `utun1024`、网关 `198.18.0.1`；Clash TUN 与 auto-route 均开启。普通连接在收到 SSH 横幅前被断开；同机同钥使用 `ssh -B en0` 后，收到 OpenSSH 横幅并正常认证登录。Cloud Shell 同钥也可登录。服务器 SSH、暖月、nginx、x-ui 均为 active，iptables 放行 22，fail2ban 当前封禁数为 0。由此排除当前密钥失效、SSH 服务宕掉及 fail2ban 当前封禁；具体 TUN 代理规则或转发环节没有继续改动。昨日现象与此一致，但未保留昨日 TUN 规则与转发日志，不把今日证据写成昨日链路的完整还原。
 - **本机部署命令**：`SSH_BIND_INTERFACE=en0 ./deploy/deploy.sh deploy/private/server_id_rsa dist/nuanyue-v1.10.1.apk`。脚本用参数数组给 SSH 和 SCP 同时传入 `BindInterface`，未设置该变量时保持原默认行为。`en0` 为当前物理有线网卡，换网络或机器应先确认接口；没有关闭全局代理、改系统路由或改服务器防护。脚本已通过 `bash -n deploy/deploy.sh` 并实际发布成功。
 - Cloud Shell 本轮只用于只读诊断，临时私钥已删除并确认不存在。模拟器使用 `-read-only -no-snapshot-load -no-snapshot-save` 冷启动验证，不加载或保存新快照，不写入经期记录。原 `ref160` 与 `pre190` 保留。
+
+### 2026-10-21 小组件视觉重构与应用内更新修复（1.10.2）
+
+- **版本升级**：`1.10.2`（`versionCode 16`）。
+- **应用内更新修复**：
+  - 移除此前跳转网页下载的逻辑，恢复应用内全自动下载与更新安装流。
+  - 用户在「设置」页点击「检查更新」时触发 `AppUpdate.checkFromUser()`，如有新版本自动弹出 `UpdateSheet` 并直接在应用内断点续传下载 APK，提供实时下载百分比进度条与取消按钮；下载完成校验 SHA-256 后直接唤起系统安装器，无需跳转浏览器。
+  - `AppViewModel` 监听更新事件（已是最新 / 检查失败）并通过全局轻量 Toast 提示用户。
+- **小组件视觉重构**：
+  - 彻底移除旧版将小组件强制裁剪为 110dp 顶部悬浮方块的限制，恢复为完全填充宿主桌面单元格（`match_parent`），圆角为标准 24dp。
+  - 背景配色重构：告别大面积生硬高饱和纯色，采用暖月纸感柔和渐变底色（经期采用 `#FFF3F5` 至 `#FFE7ED` 的柔和暖粉双色渐变搭配浅粉描边 `#F7D3DC`；易孕期采用 `#FFFBF3` 至 `#FFF0DC` 的柔杏渐变；安全期/空状态采用纯净珍珠白暖调渐变）。
+  - 排版与层级优化：
+    - 顶部保留「暖月」标签与清晰可爱的小月吉祥物头像（30dp）。
+    - 状态主标题字号 22sp（经期以 `#E25373` 暖粉深色强调，易孕期以琥珀色强调，其他为深墨色），副标题清晰指示剩余天数与下次预计日期。
+    - 底部搭配胶囊圆角进度条与周期天数指示，间距舒展自然。
+    - 4×2 横向小组件同样支持柔和渐变背景与 64dp 大尺寸小月吉祥物头像。
+- **测试与验证**：
+  - `(cd android && ./gradlew testDebugUnitTest assembleRelease --offline --console=plain)` 通过，81 项单元测试全部通过。
+  - 服务端单元测试 `server/.venv/bin/python -m pytest -q server/test_app.py` 2 项全部通过。
+  - `apksigner` 校验 release 签名证书一致（SHA-256 `ce98b7f6…bca`）。

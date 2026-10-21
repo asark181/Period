@@ -43,6 +43,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
     val update: StateFlow<UpdateUi?> = app.updates.ui
 
+    init {
+        viewModelScope.launch {
+            app.updates.events.collect { ev ->
+                if (ev != null) {
+                    toast(ev)
+                    app.updates.consumeEvent()
+                }
+            }
+        }
+    }
+
     val state: StateFlow<UiState> = combine(app.settings.flow, repo.periods, today) { s, periods, day ->
         UiState(
             loaded = true,
@@ -169,9 +180,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .encodeToString(com.nuanyue.app.data.BackupData.serializer(), data)
     }
 
-    suspend fun checkUpdate(): Result<VersionInfo> = withContext(Dispatchers.IO) {
-        runCatching { SyncClient().latestVersion() }
-    }
+    fun checkUpdate() = app.updates.checkFromUser()
 
     fun updatePrimary(context: android.content.Context) = app.updates.onPrimary(context)
     fun dismissUpdate() = app.updates.dismissSheet()
