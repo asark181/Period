@@ -35,28 +35,53 @@ class WidgetLayoutTest {
         "empty", WidgetState.from(CycleEngine.snapshot(emptyList(), 29, 5, LocalDate.of(2026, 10, 20))),
     )
 
+    @Test fun compactFits110DpSquare() = checkSize("small-square", snapshot(3), false, 110, 110)
+    @Test fun compactStaysSquareInsideTallHost() = checkSize("tall-host", snapshot(3), false, 140, 240, true)
+    @Test fun wideFits110DpHeight() = checkSize("short-wide", snapshot(3), true, 280, 110)
+
+    @Test fun squareResizeConstraintDoesNotForce160DpHeight() {
+        val xml = paparazzi.context.resources.getXml(R.xml.period_widget_info)
+        while (xml.next() != org.xmlpull.v1.XmlPullParser.START_TAG) { }
+        val attrs = paparazzi.context.resources.obtainAttributes(xml, intArrayOf(android.R.attr.minResizeHeight))
+        try {
+            val dp = attrs.getDimension(0, 0f) / paparazzi.context.resources.displayMetrics.density
+            assertTrue("Minimum height blocks square resize: $dp dp", dp <= 110f)
+        } finally { attrs.recycle(); xml.close() }
+    }
+
     private fun checkLayouts(name: String, state: WidgetState) {
         for (wide in listOf(false, true)) {
-            paparazzi.unsafeUpdateConfig(deviceConfig = config(if (wide) 300 else 140))
-            val parent = FrameLayout(paparazzi.context)
-            val view = PeriodWidget.createViews(paparazzi.context, state, wide).apply(paparazzi.context, parent)
-            val fontUrl = javaClass.classLoader!!.getResource("fonts/DroidSansFallback.ttf")!!
-            val font = Typeface.createFromFile(File(fontUrl.toURI()))
-            val textIds = listOf(R.id.widget_headline, R.id.widget_detail, R.id.widget_next_date, R.id.widget_cycle_label)
-            textIds.forEach { view.findViewById<TextView>(it).typeface = font }
-            parent.addView(view, FrameLayout.LayoutParams(-1, -1))
-            paparazzi.snapshot(parent, name = "$name-${if (wide) "4x2" else "2x2"}")
-            assertEquals(state.headline, view.findViewById<TextView>(R.id.widget_headline).text.toString())
-            for (id in textIds) {
-                val text = view.findViewById<TextView>(id)
-                if (text.visibility != View.VISIBLE) continue
-                val layout = text.layout
-                assertNotNull("Text not laid out: $id", layout)
-                assertTrue("Clipped text: ${text.text}", layout.getLineWidth(0) <= text.width - text.paddingLeft - text.paddingRight + 1)
-                assertTrue("Clipped height wide=$wide: ${text.text} layout=${layout.height} view=${text.height} padding=${text.paddingTop + text.paddingBottom} lines=${layout.lineCount}", layout.height <= text.height - text.paddingTop - text.paddingBottom)
-            }
-            assertEquals(if (state.hasCycle) View.VISIBLE else View.INVISIBLE, view.findViewById<ProgressBar>(R.id.widget_progress).visibility)
+            checkSize(name, state, wide, if (wide) 300 else 140, 160)
         }
+    }
+
+    private fun checkSize(name: String, state: WidgetState, wide: Boolean, width: Int, height: Int, square: Boolean = !wide) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = config(width, height))
+        val parent = FrameLayout(paparazzi.context)
+        val view = PeriodWidget.createViews(paparazzi.context, state, wide, width.toFloat(), height.toFloat()).apply(paparazzi.context, parent)
+        val fontUrl = javaClass.classLoader!!.getResource("fonts/DroidSansFallback.ttf")!!
+        val font = Typeface.createFromFile(File(fontUrl.toURI()))
+        val textIds = listOf(R.id.widget_headline, R.id.widget_detail, R.id.widget_next_date, R.id.widget_cycle_label)
+        textIds.forEach { view.findViewById<TextView>(it).typeface = font }
+        parent.addView(view, FrameLayout.LayoutParams(-1, -1))
+        paparazzi.snapshot(parent, name = "$name-${width}x${height}")
+        assertEquals(state.headline, view.findViewById<TextView>(R.id.widget_headline).text.toString())
+        for (id in textIds) {
+            val text = view.findViewById<TextView>(id)
+            if (text.visibility != View.VISIBLE) continue
+            val layout = text.layout
+            assertNotNull("Text not laid out: $id", layout)
+            assertTrue("Clipped text: ${text.text}", layout.getLineWidth(0) <= text.width - text.paddingLeft - text.paddingRight + 1)
+            assertTrue("Clipped height ${width}x${height}: ${text.text} layout=${layout.height} view=${text.height}", layout.height <= text.height - text.paddingTop - text.paddingBottom)
+        }
+        if (square) {
+            val cardId = paparazzi.context.resources.getIdentifier("widget_card", "id", paparazzi.context.packageName)
+            val card = view.findViewById<View>(cardId)
+            assertNotNull("Square background card missing", card)
+            assertEquals("Tall host must not stretch the square card", card.width, card.height)
+            assertTrue(card.width <= parent.width && card.height <= parent.height)
+        }
+        assertEquals(if (state.hasCycle) View.VISIBLE else View.INVISIBLE, view.findViewById<ProgressBar>(R.id.widget_progress).visibility)
     }
 
     private fun snapshot(day: Int): WidgetState {
@@ -66,10 +91,10 @@ class WidgetLayoutTest {
     }
 
     companion object {
-        private fun config(widthDp: Int) = DeviceConfig(
-            screenWidth = widthDp * 3, screenHeight = 160 * 3,
+        private fun config(widthDp: Int, heightDp: Int = 160) = DeviceConfig(
+            screenWidth = widthDp * 3, screenHeight = heightDp * 3,
             xdpi = 480, ydpi = 480, density = Density.XXHIGH,
-            orientation = if (widthDp > 160) ScreenOrientation.LANDSCAPE else ScreenOrientation.PORTRAIT,
+            orientation = if (widthDp > heightDp) ScreenOrientation.LANDSCAPE else ScreenOrientation.PORTRAIT,
             softButtons = false, navigation = Navigation.NONAV,
         )
     }

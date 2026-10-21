@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/widget_period"
-    android:minWidth="140dp"
-    android:minResizeWidth="140dp"
-    android:minHeight="160dp"
-    android:minResizeHeight="160dp"
+    android:minWidth="110dp"
+    android:minResizeWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeHeight="110dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="21600000"
     android:widgetCategory="home_screen"
-    android:description="@string/app_name" />
+    android:previewLayout="@layout/widget_period"
+    android:description="@string/widget_square_description" />

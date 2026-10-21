@@ -61,11 +61,17 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".widget.PeriodWidget" android:exported="true" android:label="暖月 · 经期倒计时">
+        <receiver android:name=".widget.PeriodWidget" android:exported="true" android:label="@string/widget_square_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/period_widget_info" />
+        </receiver>
+        <receiver android:name=".widget.WidePeriodWidget" android:exported="true" android:label="@string/widget_wide_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/period_widget_wide_info" />
         </receiver>
     </application>
 </manifest>

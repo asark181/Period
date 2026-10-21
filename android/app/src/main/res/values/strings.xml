@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">暖月</string>
+    <string name="widget_square_name">暖月 · 方形 2×2</string>
+    <string name="widget_wide_name">暖月 · 横向 4×2</string>
+    <string name="widget_square_description">方形经期卡片，显示日期、阶段和周期进度</string>
+    <string name="widget_wide_description">横向经期卡片，显示日期、阶段和周期进度</string>
 </resources>
