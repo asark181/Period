@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# Usage: deploy/deploy.sh <ssh-key> [apk]
+# Usage: [SSH_BIND_INTERFACE=en0] deploy/deploy.sh <ssh-key> [apk]
 # Ships the sync server, landing page and (optionally) a new APK to the Ubuntu host.
 set -euo pipefail
 KEY=${1:?ssh key}
 APK=${2:-}
 HOST=ubuntu@129.151.21.101
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-SSH="ssh -i $KEY -o StrictHostKeyChecking=accept-new"
+SSH_ARGS=(-i "$KEY" -o StrictHostKeyChecking=accept-new)
+if [[ -n "${SSH_BIND_INTERFACE:-}" ]]; then
+  SSH_ARGS+=(-o "BindInterface=$SSH_BIND_INTERFACE")
+fi
 
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
@@ -26,10 +29,10 @@ JSON
 fi
 
 COPYFILE_DISABLE=1 tar --no-xattrs -C "$STAGE" -czf "$STAGE.tgz" .
-scp -i "$KEY" "$STAGE.tgz" "$HOST:/tmp/nuanyue.tgz"
+scp "${SSH_ARGS[@]}" "$STAGE.tgz" "$HOST:/tmp/nuanyue.tgz"
 rm -f "$STAGE.tgz"
 
-$SSH "$HOST" 'bash -s' <<'REMOTE'
+ssh "${SSH_ARGS[@]}" "$HOST" 'bash -s' <<'REMOTE'
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 if ! command -v nginx >/dev/null || ! dpkg -s python3-venv >/dev/null 2>&1 || ! command -v sqlite3 >/dev/null; then
