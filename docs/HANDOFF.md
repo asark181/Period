@@ -8,7 +8,7 @@
 
 - **App**：Kotlin + Jetpack Compose，本地 Room 数据库，离线可用。1.9.0 的界面是暖白底 `#FFF9F8`、白卡片、墨色文字 `#4A3540`。经期日是浅玫瑰块 `#F39BAE` 加墨色数字，易孕是浅杏 `#FFF1DC`，排卵是杏底上的橙点，预测是 `#EB8399` 虚线。吉祥物仍是「小月」，每屏最多一次。底栏是贴底的白条，选中项是一颗高出顶边的浅玫瑰圆。
 - **服务器**：域名 <https://leafy.fxxkopenai.com>（Cloudflare 代理 HTTPS，源站仍是 `129.151.21.101` 的 nginx :80）+ FastAPI（127.0.0.1:8090）+ SQLite。只存端到端加密的密文，同时托管下载页和 APK。443 被 xray 占用，源站不要加证书。
-- **当前版本**：1.10.1（versionCode 15，已部署，验证见文末）。发布走 `deploy/deploy.sh`，它按 APK 重写 `version.json`。
+- **当前版本**：1.10.3（versionCode 17，已部署，验证见文末）。发布走 `deploy/deploy.sh`，它按 APK 重写 `version.json`。
 - **版本线**：1.5.0 域名 HTTPS，网络失败才回退源站 IP。1.6.0 首页一屏放下月历、开始/结束和悄悄话。1.7.0 圆角方格月历，应用内下载更新。1.7.1 方格按内容高度排，余白留给选中日。1.8.0 换成浅灰白日历和浮起的底栏圆泡，同步、加密、Room、更新协议都没动。1.9.0 按 v0.5 色板改回暖色，底栏改成随选中项隆起的白条，更新下载和安装流程没动。
 
 用户的核心诉求（按优先级）：
@@ -281,3 +281,13 @@ adb exec-out screencap -p > /tmp/s.png
   - `(cd android && ./gradlew testDebugUnitTest assembleRelease --offline --console=plain)` 通过，81 项单元测试全部通过。
   - 服务端单元测试 `server/.venv/bin/python -m pytest -q server/test_app.py` 2 项全部通过。
   - `apksigner` 校验 release 签名证书一致（SHA-256 `ce98b7f6…bca`）。
+
+### 2026-10-26 进行中经期显示修复（1.10.3）
+
+- **版本升级**：`1.10.3`（`versionCode 17`）。
+- **经期进行中状态与日历颜色对齐**：
+  - 修复未记录经期结束日期时，超过平均周期长度的天数被误判为安全期、导致日历红点变灰且首页阶段错乱的缺陷。
+  - `CycleEngine.effectiveLength` 针对未闭合（`p.end == null`）且处于 `MAX_PERIOD_DAYS`（14 天）内的当前进行中经期，动态将有效周期延展至 `today`，确保从起始日到今天所有已过去和当天的日期在日历上均维持深红色 `DayType.PERIOD` 标记。
+  - 首页卡片（`Phase.MENSTRUAL`，显示经期第 N 天）、底部操作按钮（`■ 月经结束了`）与日历颜色、小组件显示实现完全一致。
+- **测试与验证**：
+  - `(cd android && ./gradlew testDebugUnitTest assembleRelease)` 通过，85 项单元测试全部通过。

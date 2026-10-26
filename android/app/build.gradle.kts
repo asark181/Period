@@ -22,8 +22,8 @@ android {
         applicationId = "com.nuanyue.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.10.2"
+        versionCode = 17
+        versionName = "1.10.3"
         buildConfigField("String", "SERVER_URL", "\"https://leafy.fxxkopenai.com\"")
         buildConfigField("String", "SERVER_FALLBACK_URL", "\"http://129.151.21.101\"")
     }

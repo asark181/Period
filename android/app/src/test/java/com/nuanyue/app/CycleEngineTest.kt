@@ -93,4 +93,65 @@ class CycleEngineTest {
         val open = history.dropLast(1) + p("2026-08-24", null)
         assertTrue(Reminders.due(open, settings, LocalDate.parse("2026-08-29")).any { it.first.contains("走了吗") })
     }
+
+    @Test fun ongoingPeriodExtendsToTodayWhenPastAverage() {
+        // Average period is 5 days from history. Start is 2026-08-24, today is 2026-09-02 (day 10).
+        val open = history.dropLast(1) + p("2026-08-24", null)
+        val today = LocalDate.parse("2026-09-02")
+        val s = CycleEngine.snapshot(open, defaultCycle = 28, defaultPeriod = 5, today = today)
+
+        // Today must still be in menstrual phase on day 10
+        assertEquals(Phase.MENSTRUAL, s.today.phase)
+        assertEquals(10, s.today.periodDay)
+        assertEquals(10, s.today.cycleDay)
+
+        // In dayInfos, all days from start (08-24) to today (09-02) must be DayType.PERIOD
+        val infos = CycleEngine.dayInfos(s, LocalDate.parse("2026-08-20"), LocalDate.parse("2026-09-10"), today)
+        for (i in 0..9) {
+            val d = LocalDate.parse("2026-08-24").plusDays(i.toLong())
+            assertEquals("Day $d should be PERIOD", DayType.PERIOD, infos[d]!!.type)
+        }
+        // Tomorrow (09-03) is fertile window (nextStart 09-21, ovulation 09-07, fertile 09-02..09-11)
+        assertEquals(DayType.FERTILE, infos[LocalDate.parse("2026-09-03")]!!.type)
+    }
+
+    @Test fun ongoingPeriodWithinAverageLength() {
+        val open = history.dropLast(1) + p("2026-08-24", null)
+        val today = LocalDate.parse("2026-08-26") // day 3, avgPeriod is 5
+        val s = CycleEngine.snapshot(open, defaultCycle = 28, defaultPeriod = 5, today = today)
+
+        assertEquals(Phase.MENSTRUAL, s.today.phase)
+        assertEquals(3, s.today.periodDay)
+        assertEquals(3, s.today.periodDaysLeft)
+
+        val infos = CycleEngine.dayInfos(s, LocalDate.parse("2026-08-20"), LocalDate.parse("2026-09-10"), today)
+        // Days 1..3 are PERIOD (solid)
+        assertEquals(DayType.PERIOD, infos[LocalDate.parse("2026-08-24")]!!.type)
+        assertEquals(DayType.PERIOD, infos[LocalDate.parse("2026-08-25")]!!.type)
+        assertEquals(DayType.PERIOD, infos[LocalDate.parse("2026-08-26")]!!.type)
+        // Days 4..5 are PREDICTED_PERIOD (future days of ongoing period)
+        assertEquals(DayType.PREDICTED_PERIOD, infos[LocalDate.parse("2026-08-27")]!!.type)
+        assertEquals(DayType.PREDICTED_PERIOD, infos[LocalDate.parse("2026-08-28")]!!.type)
+        // Day 6 is SAFE
+        assertEquals(DayType.SAFE, infos[LocalDate.parse("2026-08-29")]!!.type)
+    }
+
+    @Test fun forgottenEndPastMaxDaysRevertsToAverage() {
+        val open = history.dropLast(1) + p("2026-08-01", null)
+        val today = LocalDate.parse("2026-08-25") // day 25 (> 14)
+        val s = CycleEngine.snapshot(open, defaultCycle = 28, defaultPeriod = 5, today = today)
+
+        // Should not be in menstrual phase after MAX_PERIOD_DAYS
+        assertTrue(s.today.phase != Phase.MENSTRUAL)
+    }
+
+    @Test fun periodContainingFindsActiveOngoingPeriod() {
+        val open = history.dropLast(1) + p("2026-08-24", null)
+        val today = LocalDate.parse("2026-09-02") // day 10
+        val s = CycleEngine.snapshot(open, defaultCycle = 28, defaultPeriod = 5, today = today)
+
+        val yesterday = LocalDate.parse("2026-09-01")
+        val found = CycleEngine.periodContaining(s, yesterday)
+        assertEquals("2026-08-24", found?.id)
+    }
 }

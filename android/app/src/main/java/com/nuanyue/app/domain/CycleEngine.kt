@@ -152,8 +152,15 @@ object CycleEngine {
     private fun effectiveLength(p: Period, avgPeriod: Int, next: Period?, today: LocalDate): Int {
         p.end?.let { return (days(p.start, it) + 1).coerceAtLeast(1) }
         var len = avgPeriod
-        // An open period cannot run into the next one.
-        if (next != null) len = minOf(len, days(p.start, next.start))
+        if (next == null) {
+            val elapsed = if (!today.isBefore(p.start)) days(p.start, today) + 1 else 0
+            if (elapsed in 1..MAX_PERIOD_DAYS) {
+                len = maxOf(len, elapsed)
+            }
+        } else {
+            // An open period cannot run into the next one.
+            len = minOf(len, days(p.start, next.start))
+        }
         return len.coerceAtLeast(1)
     }
 
@@ -286,12 +293,19 @@ object CycleEngine {
     }
 
     /** The period a date belongs to (logged or open-ended within the assumed length), if any. */
-    fun periodContaining(snapshot: CycleSnapshot, date: LocalDate): Period? =
-        snapshot.periods.lastOrNull { p ->
-            if (p.start.isAfter(date)) return@lastOrNull false
-            val end = p.end ?: p.start.plusDays((snapshot.avgPeriod - 1).toLong())
-            !date.isAfter(end)
+    fun periodContaining(snapshot: CycleSnapshot, date: LocalDate): Period? {
+        val periods = snapshot.periods
+        for (i in periods.indices.reversed()) {
+            val p = periods[i]
+            if (p.start.isAfter(date)) continue
+            val len = p.end?.let { days(p.start, it) + 1 }
+                ?: snapshot.cycles.getOrNull(i)?.periodLength
+                ?: snapshot.avgPeriod
+            val end = p.start.plusDays((len - 1).toLong())
+            if (!date.isAfter(end)) return p
         }
+        return null
+    }
 
     fun days(a: LocalDate, b: LocalDate): Int = ChronoUnit.DAYS.between(a, b).toInt()
 
