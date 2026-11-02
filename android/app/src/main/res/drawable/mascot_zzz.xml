@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/zzz.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M150 36 L162 36 L150 48 L162 48"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF8FA8DA"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M168 18 L176 18 L168 26 L176 26"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF8FA8DA"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M179.60,44.00 a2.40,2.40 0 1,0 4.80,0 a2.40,2.40 0 1,0 -4.80,0 Z"
+        android:fillColor="#FFFFD45E" />
+</vector>

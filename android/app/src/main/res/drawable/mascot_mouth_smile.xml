@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/mouth_smile.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M90 125 Q100 140 110 125 Q100 129 90 125 Z"
+        android:fillColor="#FFB24F60"
+        android:strokeColor="#FFB24F60"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M95 132 Q100 137 105 132 Q100 130 95 132 Z"
+        android:fillColor="#FFFF8FA3" />
+</vector>

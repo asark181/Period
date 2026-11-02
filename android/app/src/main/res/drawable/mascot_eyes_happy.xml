@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/eyes_happy.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M68 113 Q78 101 88 113"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF4A3A35"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+    <path android:pathData="M112 113 Q122 101 132 113"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF4A3A35"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+</vector>

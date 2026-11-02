@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/stickers/bottle.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp" android:height="72dp"
+    android:viewportWidth="64" android:viewportHeight="72">
+    <path android:pathData="M28.00,4.00 H36.00 A4.0,4.0 0 0 1 40.00,8.00 V12.00 A4.0,4.0 0 0 1 36.00,16.00 H28.00 A4.0,4.0 0 0 1 24.00,12.00 V8.00 A4.0,4.0 0 0 1 28.00,4.00 Z"
+        android:fillColor="#FFF27F99" />
+    <path android:pathData="M26.00,12.00 H38.00 A18.0,18.0 0 0 1 56.00,30.00 V50.00 A18.0,18.0 0 0 1 38.00,68.00 H26.00 A18.0,18.0 0 0 1 8.00,50.00 V30.00 A18.0,18.0 0 0 1 26.00,12.00 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M27.00,15.00 H37.00 A16.0,16.0 0 0 1 53.00,31.00 V49.00 A16.0,16.0 0 0 1 37.00,65.00 H27.00 A16.0,16.0 0 0 1 11.00,49.00 V31.00 A16.0,16.0 0 0 1 27.00,15.00 Z"
+        android:fillColor="#FFFF9EB3"
+        android:strokeColor="#FFEE6F90"
+        android:strokeWidth="2.2" />
+    <path android:pathData="M32 54 C23 47 20 42 23 38 C26 35 30 37 32 40 C34 37 38 35 41 38 C44 42 41 47 32 54 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M17 24 L17 50"
+        android:fillColor="#FF000000"
+        android:strokeColor="#99FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+</vector>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/mouth_small.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M95.50,129.00 a4.50,3.60 0 1,0 9.00,0 a4.50,3.60 0 1,0 -9.00,0 Z"
+        android:fillColor="#FFB24F60" />
+</vector>

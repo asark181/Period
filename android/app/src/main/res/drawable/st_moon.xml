@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/stickers/moon.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp" android:height="64dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <path android:pathData="M40 6 C24 6 12 18 12 34 C12 49 24 60 39 60 C48 60 55 56 59 50 C56 51 53 52 50 52 C36 52 25 41 25 27 C25 18 30 10 37 6 C38 6 39 6 40 6 Z"
+        android:fillColor="#FFFFE08A"
+        android:strokeColor="#FFF2B53A"
+        android:strokeWidth="2.2"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M22.20,38.00 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z"
+        android:fillColor="#FF4A3A35" />
+    <path android:pathData="M27 44 Q30 46 33 44"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF4A3A35"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+    <path android:pathData="M19.40,44.00 a2.60,1.50 0 1,0 5.20,0 a2.60,1.50 0 1,0 -5.20,0 Z"
+        android:fillColor="#FFFFAFC0" />
+</vector>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from art/mascot/bottle.svg by art/tools/svg2vector.py. Edit the SVG, not this file. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp" android:height="200dp"
+    android:viewportWidth="200" android:viewportHeight="200">
+    <path android:pathData="M94.00,136.00 H106.00 A4.0,4.0 0 0 1 110.00,140.00 V144.00 A4.0,4.0 0 0 1 106.00,148.00 H94.00 A4.0,4.0 0 0 1 90.00,144.00 V140.00 A4.0,4.0 0 0 1 94.00,136.00 Z"
+        android:fillColor="#FFF27F99" />
+    <path android:pathData="M92.00,144.00 H108.00 A18.0,18.0 0 0 1 126.00,162.00 V174.00 A18.0,18.0 0 0 1 108.00,192.00 H92.00 A18.0,18.0 0 0 1 74.00,174.00 V162.00 A18.0,18.0 0 0 1 92.00,144.00 Z"
+        android:fillColor="#FFFF9EB3"
+        android:strokeColor="#FFEE6F90"
+        android:strokeWidth="2.4" />
+    <path android:pathData="M100 178 C90 170 86 164 91 159 C95 155 99 158 100 161 C101 158 105 155 109 159 C114 164 110 170 100 178 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M80 152 L80 184"
+        android:fillColor="#FF000000"
+        android:strokeColor="#8CFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path android:pathData="M63.00,166.00 a9.00,9.00 0 1,0 18.00,0 a9.00,9.00 0 1,0 -18.00,0 Z"
+        android:fillColor="#FFFFE590"
+        android:strokeColor="#FFF0C55C"
+        android:strokeWidth="2.2" />
+    <path android:pathData="M119.00,166.00 a9.00,9.00 0 1,0 18.00,0 a9.00,9.00 0 1,0 -18.00,0 Z"
+        android:fillColor="#FFFFE590"
+        android:strokeColor="#FFF0C55C"
+        android:strokeWidth="2.2" />
+</vector>
