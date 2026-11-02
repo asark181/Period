@@ -49,5 +49,4 @@ android/   Kotlin + Jetpack Compose + Room
 server/    同步服务和下载页
 art/       吉祥物、贴纸的 SVG 源文件，短语原稿
 deploy/    部署脚本、systemd、nginx 模板
-docs/      HANDOFF.md：设计、同步协议、运维和历次改动
 ```
