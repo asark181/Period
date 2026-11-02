@@ -51,12 +51,3 @@ art/       吉祥物、贴纸的 SVG 源文件，短语原稿
 deploy/    部署脚本、systemd、nginx 模板
 docs/      HANDOFF.md：设计、同步协议、运维和历次改动
 ```
-
-## 部署
-
-```bash
-(cd android && ./gradlew assembleRelease)
-./deploy/deploy.sh deploy/private/server_id_rsa android/app/build/outputs/apk/release/app-release.apk
-```
-
-细节见 [docs/HANDOFF.md](docs/HANDOFF.md)。
